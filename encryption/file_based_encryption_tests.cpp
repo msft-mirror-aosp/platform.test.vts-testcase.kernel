@@ -157,7 +157,9 @@ static bool GetInodeNumber(const std::string &path, uint64_t *inode_number) {
 // available, as the other features were added in the same AOSP release.
 //
 // The easiest way to do this is to just execute the ioctl with a NULL argument.
-// If available it will fail with EFAULT; otherwise it will fail with ENOTTY.
+// If available it will fail with EFAULT; otherwise it will fail with ENOTTY (or
+// EOPNOTSUPP if encryption isn't enabled on the filesystem; that happens on old
+// devices that aren't using FBE and are upgraded to a new kernel).
 //
 static bool IsFscryptV2Supported(const std::string &mountpoint) {
   android::base::unique_fd fd(
@@ -176,6 +178,7 @@ static bool IsFscryptV2Supported(const std::string &mountpoint) {
   switch (errno) {
     case EFAULT:
       return true;
+    case EOPNOTSUPP:
     case ENOTTY:
       GTEST_LOG_(INFO) << "No support for FS_IOC_ADD_ENCRYPTION_KEY on "
                        << mountpoint;
