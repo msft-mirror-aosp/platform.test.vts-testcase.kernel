@@ -46,8 +46,6 @@ using namespace android::bpf;
 namespace android {
 
 TEST(BpfTest, bpfMapPinTest) {
-  SKIP_IF_BPF_NOT_SUPPORTED;
-
   EXPECT_EQ(0, setrlimitForTest());
   const char* bpfMapPath = "/sys/fs/bpf/testMap";
   int ret = access(bpfMapPath, F_OK);
@@ -126,8 +124,6 @@ class BpfRaceTest : public ::testing::Test {
   }
 
   void SetUp() {
-    SKIP_IF_BPF_NOT_SUPPORTED;
-
     EXPECT_EQ(0, setrlimitForTest());
     int ret = access(TEST_PROG_PATH, R_OK);
     // Always create a new program and remove the pinned program after program
@@ -160,8 +156,6 @@ class BpfRaceTest : public ::testing::Test {
   }
 
   void TearDown() {
-    SKIP_IF_BPF_NOT_SUPPORTED;
-
     // Stop the threads and clean up the program.
     stop = true;
     for (int i = 0; i < NUM_SOCKETS; i++) {
@@ -220,8 +214,6 @@ class BpfRaceTest : public ::testing::Test {
 // Verify the race problem disappear when the kernel call synchronize_rcu
 // after changing the active map.
 TEST_F(BpfRaceTest, testRaceWithBarrier) {
-  SKIP_IF_BPF_NOT_SUPPORTED;
-
   swapAndCleanStatsMap(true, 30);
 }
 
@@ -230,8 +222,6 @@ TEST_F(BpfRaceTest, testRaceWithBarrier) {
 // This test is flaky. Race not triggering isn't really a bug per say...
 // Maybe we should just outright delete this test...
 TEST_F(BpfRaceTest, testRaceWithoutBarrier) {
-  SKIP_IF_BPF_NOT_SUPPORTED;
-
   swapAndCleanStatsMap(false, 240);
 }
 
