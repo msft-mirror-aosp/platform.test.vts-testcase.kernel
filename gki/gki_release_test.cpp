@@ -18,16 +18,27 @@
 
 #include <gtest/gtest.h>
 #include <kver/kernel_release.h>
+#include <vintf/VintfObject.h>
+#include <vintf/parse_string.h>
 
 using android::kver::KernelRelease;
+using android::vintf::RuntimeInfo;
+using android::vintf::Version;
+using android::vintf::VintfObject;
 
 TEST(Gki, KernelReleaseFormat) {
-  struct utsname buf;
-  auto result = uname(&buf);
-  int saved_errno = errno;
-  ASSERT_EQ(0, result) << "Cannot call uname: " << strerror(saved_errno);
+  auto vintf = VintfObject::GetInstance();
+  ASSERT_NE(nullptr, vintf);
+  auto ri = vintf->getRuntimeInfo(RuntimeInfo::FetchFlag::CPU_VERSION);
+  ASSERT_NE(nullptr, ri);
 
-  std::string release = buf.release;
+  // GKI release format is only enabled on 5.4+ branches
+  if (ri->kernelVersion().dropMinor() < Version{5, 4}) {
+    GTEST_SKIP() << "Exempt GKI release format check on kernel "
+                 << ri->kernelVersion() << " (before 5.4.y)";
+  }
+
+  const std::string& release = ri->osRelease();
   ASSERT_TRUE(
       KernelRelease::Parse(release, true /* allow_suffix */).has_value())
       << "Kernel release '" << release
