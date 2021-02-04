@@ -16,6 +16,9 @@ cc_test {
     name: "vts_gki_release_test",
     require_root: true,
     test_min_api_level: 31,
+    defaults: [
+        "libvintf_static_user_defaults",
+    ],
     srcs: [
         "gki_release_test.cpp",
     ],
@@ -29,5 +32,6 @@ cc_test {
     ],
     static_libs: [
         "libkver",
+        "libvintf",
     ],
 }
