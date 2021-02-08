@@ -222,7 +222,7 @@ class ProcSysKernelRandomBootId(KernelProcFileTestBase.KernelProcFileTestBase):
     '''/proc/sys/kernel/random/boot_id generates a random ID each boot.'''
 
     def parse_contents(self, contents):
-        return self.parse_line("{:uuid}", contents, dict(uuid=token_uuid))[0]
+        return self.parse_line("{:uuid}\n", contents, dict(uuid=token_uuid))[0]
 
     def get_path(self):
         return "/proc/sys/kernel/random/boot_id"
