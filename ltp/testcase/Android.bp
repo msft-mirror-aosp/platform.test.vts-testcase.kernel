@@ -14,6 +14,10 @@
 // limitations under the License.
 //
 
+package {
+    default_applicable_licenses: ["Android-Apache-2.0"],
+}
+
 sh_test {
     name: "vts_ltp_test_arm_64",
     src: "phony_ltp_test_arm64.sh",
