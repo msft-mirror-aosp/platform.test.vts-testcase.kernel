@@ -257,4 +257,30 @@ public class KernelApiSysfsTest extends BaseHostJUnit4Test {
                     allowedStates.contains(state));
         }
     }
+
+    /* /sys/module/kfence/parameters/sample_interval contains KFENCE sampling rate. */
+    @Test
+    public void testKfenceSampleRate() throws Exception {
+        final int kRecommendedSampleRate = 500;
+        String versionPath = "/proc/version";
+        String versionStr = getDevice().pullFileContents(versionPath).trim();
+        Pattern p = Pattern.compile("Linux version ([0-9]+)\\.([0-9]+)");
+        Matcher m = p.matcher(versionStr);
+        assertTrue("Bad version " + versionPath, m.find());
+        int kernel_major = Integer.parseInt(m.group(1));
+        int kernel_minor = Integer.parseInt(m.group(2));
+
+        // Do not require KFENCE for kernels < 5.10.
+        if ((kernel_major < 5) || ((kernel_major == 5) && (kernel_minor < 10)))
+            return;
+
+        String filePath = "/sys/module/kfence/parameters/sample_interval";
+        assertTrue("Failed readwrite check of " + filePath,
+                TargetFileUtils.isReadWriteOnly(filePath, getDevice()));
+        String content = getDevice().pullFileContents(filePath).trim();
+        int sampleRate = Integer.parseInt(content);
+        assertTrue(
+                "Bad KFENCE sample rate: " + sampleRate + ", should be " + kRecommendedSampleRate,
+                sampleRate == kRecommendedSampleRate);
+    }
 }
