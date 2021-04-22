@@ -185,25 +185,26 @@ public class KernelApiSysfsTest extends BaseHostJUnit4Test {
         }
     }
 
-    /* Check that at least one rtc exists with hctosys = 1. */
+    /* Check that /dev/rtc matches CONFIG_RTC_HCTOSYS_DEVICE */
     @Test
     public void testRtcHctosys() throws Exception {
-        String[] rtcList = findFiles("/sys/class/rtc", "rtc*");
-        for (String entry : rtcList) {
-            String content = getDevice().pullFileContents(entry + "/hctosys");
-            if (Strings.isNullOrEmpty(content)) {
-                continue;
-            }
-            try {
-                int hctosys = Integer.parseInt(content.trim());
-                if (hctosys == 1) {
-                    return;
-                }
-            } catch (NumberFormatException e) {
-                continue;
+        String output = getDevice().executeShellCommand(
+                "gzip -dc /proc/config.gz | grep CONFIG_RTC_HCTOSYS_DEVICE");
+        Pattern p = Pattern.compile("CONFIG_RTC_HCTOSYS_DEVICE=\"(.*)\"");
+        Matcher m = p.matcher(output);
+        if (!m.find())
+            fail("Could not find CONFIG_RTC_HCTOSYS_DEVICE");
+        String rtc = m.group(1);
+        String rtc_link = getDevice().executeShellCommand("readlink /dev/rtc");
+        if (rtc_link.isEmpty()) {
+            if (getDevice().doesFileExist("/dev/rtc0")) {
+                rtc_link = "rtc0";
+            } else {
+                fail("Neither /dev/rtc nor /dev/rtc0 exist");
             }
         }
-        fail("No RTC with hctosys=1 present");
+        assertTrue(String.format("(%s) does not match RTC_HCTOSYS_DEVICE (%s)", rtc_link, rtc),
+                rtc.equals(rtc_link));
     }
 
     /* Check that locking and unlocking a wake lock works.. */
