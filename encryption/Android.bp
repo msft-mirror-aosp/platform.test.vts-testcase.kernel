@@ -34,19 +34,19 @@ cc_test {
         "-Werror",
     ],
     shared_libs: [
-        "android.system.keystore2-V1-ndk_platform",
         "libbase",
         "libbinder_ndk",
         "libcrypto",
-        "libhidlbase",
-        "libkeymint_support",
         "liblog",
         "libutils",
     ],
     static_libs: [
+        "android.hardware.security.keymint-V1-ndk_platform",
+        "android.system.keystore2-V1-ndk_platform",
         "libdm",
         "libext4_utils",
         "libfs_mgr",
+        "libkeymint_support",
         "liblzma",
     ],
     test_suites: [
