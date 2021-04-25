@@ -24,6 +24,7 @@
 
 #include <aidl/android/hardware/security/keymint/SecurityLevel.h>
 #include <aidl/android/system/keystore2/Domain.h>
+#include <aidl/android/system/keystore2/EphemeralStorageKeyResponse.h>
 #include <aidl/android/system/keystore2/KeyDescriptor.h>
 
 // Keep these in sync with system/security/keystore2/src/keystore2_main.rs
@@ -145,16 +146,18 @@ bool Keymaster::exportKey(const std::string& kmKey, std::string* key) {
   };
   storageKey.blob =
       std::make_optional<std::vector<uint8_t>>(kmKey.begin(), kmKey.end());
-  std::vector<uint8_t> ephemeral_key;
-  auto rc =
-      securityLevel->convertStorageKeyToEphemeral(storageKey, &ephemeral_key);
+  ks2::EphemeralStorageKeyResponse ephemeral_key_response;
+  auto rc = securityLevel->convertStorageKeyToEphemeral(
+      storageKey, &ephemeral_key_response);
 
   if (logKeystore2ExceptionIfPresent(rc, "exportKey")) goto out;
-  if (key) *key = std::string(ephemeral_key.begin(), ephemeral_key.end());
+  if (key)
+    *key = std::string(ephemeral_key_response.ephemeralKey.begin(),
+                       ephemeral_key_response.ephemeralKey.end());
 
   ret = true;
 out:
-  zeroize_vector(ephemeral_key);
+  zeroize_vector(ephemeral_key_response.ephemeralKey);
   zeroize_vector(storageKey.blob.value());
   return ret;
 }
