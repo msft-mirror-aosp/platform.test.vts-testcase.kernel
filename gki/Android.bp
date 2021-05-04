@@ -24,7 +24,10 @@ cc_test {
         "libvintf_static_user_defaults",
     ],
     srcs: [
+        "cpio.cpp",
         "gki_release_test.cpp",
+        "lz4_legacy.cpp",
+        "ramdisk_utils.cpp",
     ],
     cflags: [
         "-Wall",
@@ -35,7 +38,14 @@ cc_test {
         "vts",
     ],
     static_libs: [
+        "libbase",
+        "libc++fs",
         "libkver",
+        "liblz4",
         "libvintf",
+    ],
+    header_libs: [
+        "bootimg_headers",
+        "libstorage_literals_headers",
     ],
 }
