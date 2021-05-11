@@ -54,6 +54,7 @@ android::base::Result<void> Exec(std::vector<std::string>* args,
     CHECK(0 == chdir(working_directory.data())) << strerror(errno);
     // execvp needs char*, so copy the strings to heap.
     auto c_args = ToCStringArray(args);
+    (void)close(STDIN_FILENO);
     (void)execvp(c_args[0], c_args.data());
     // execvp only returns on error.
     PLOG(FATAL) << "Unable to execute `" << Join(*args, " ")
