@@ -72,7 +72,9 @@ android::base::Result<void> Lz4DecompressLegacy(const char* input,
     }
 
     // Android is little-endian. No need to convert block_size.
-
+    if (block_size == lz4_legacy_magic) {
+      return Error() << "Found another lz4 compressed stream";
+    }
     if (block_size > ibuf.size()) {
       return Error() << "Block size is " << block_size
                      << " but compress bound is " << ibuf.size();
