@@ -40,6 +40,7 @@ cc_test {
     static_libs: [
         "libbase",
         "libc++fs",
+        "libgmock",
         "libkver",
         "liblz4",
         "libvintf",
