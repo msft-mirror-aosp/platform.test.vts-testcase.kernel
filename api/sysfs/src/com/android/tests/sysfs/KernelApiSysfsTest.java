@@ -19,6 +19,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import android.platform.test.annotations.RequiresDevice;
 import com.android.tradefed.device.ITestDevice;
 import com.android.tradefed.testtype.DeviceJUnit4ClassRunner;
 import com.android.tradefed.testtype.junit4.BaseHostJUnit4Test;
@@ -41,6 +42,7 @@ import org.junit.runner.RunWith;
 @RunWith(DeviceJUnit4ClassRunner.class)
 public class KernelApiSysfsTest extends BaseHostJUnit4Test {
     /* Check for the existence of required files in /sys/class/android_usb. */
+    @RequiresDevice
     @Test
     public void testAndroidUSB() throws Exception {
         String state = "/sys/class/android_usb/android0/state";
