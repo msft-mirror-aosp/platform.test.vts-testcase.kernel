@@ -33,7 +33,7 @@ using android::vintf::Version;
 using android::vintf::VintfObject;
 using testing::IsSupersetOf;
 
-class GkiTest : public testing::Test {
+class GenericBootImageTest : public testing::Test {
  public:
   void SetUp() override {
     auto vintf = VintfObject::GetInstance();
@@ -41,16 +41,16 @@ class GkiTest : public testing::Test {
     runtime_info = vintf->getRuntimeInfo(RuntimeInfo::FetchFlag::CPU_VERSION);
     ASSERT_NE(nullptr, runtime_info);
 
-    // GKI tests only enforced on 5.4+ branches
+    // Generic boot image tests only enforced on 5.4+ branches
     if (runtime_info->kernelVersion().dropMinor() < Version{5, 4}) {
-      GTEST_SKIP() << "Exempt GKI tests on kernel "
+      GTEST_SKIP() << "Exempt generic boot image tests on kernel "
                    << runtime_info->kernelVersion() << " (before 5.4.y)";
     }
   }
   std::shared_ptr<const RuntimeInfo> runtime_info;
 };
 
-TEST_F(GkiTest, KernelReleaseFormat) {
+TEST_F(GenericBootImageTest, KernelReleaseFormat) {
   const std::string& release = runtime_info->osRelease();
   ASSERT_TRUE(
       KernelRelease::Parse(release, true /* allow_suffix */).has_value())
@@ -61,7 +61,7 @@ TEST_F(GkiTest, KernelReleaseFormat) {
       << "\nExample: 5.4.42-android12-0-something";
 }
 
-TEST_F(GkiTest, GenericRamdisk) {
+TEST_F(GenericBootImageTest, GenericRamdisk) {
   using std::filesystem::recursive_directory_iterator;
 
   std::string slot_suffix = GetProperty("ro.boot.slot_suffix", "");

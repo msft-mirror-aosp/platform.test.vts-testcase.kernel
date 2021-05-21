@@ -17,7 +17,7 @@ package {
 }
 
 cc_test {
-    name: "vts_gki_release_test",
+    name: "vts_generic_boot_image_test",
     require_root: true,
 
     // Even though 5.4-android11 also conforms with GKI release format,
@@ -35,7 +35,7 @@ cc_test {
     ],
     srcs: [
         "cpio.cpp",
-        "gki_release_test.cpp",
+        "generic_boot_image_test.cpp",
         "lz4_legacy.cpp",
         "ramdisk_utils.cpp",
     ],
