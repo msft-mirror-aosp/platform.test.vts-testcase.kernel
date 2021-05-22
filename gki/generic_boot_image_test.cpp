@@ -33,24 +33,28 @@ using android::vintf::Version;
 using android::vintf::VintfObject;
 using testing::IsSupersetOf;
 
-class GkiTest : public testing::Test {
+class GenericBootImageTest : public testing::Test {
  public:
   void SetUp() override {
     auto vintf = VintfObject::GetInstance();
     ASSERT_NE(nullptr, vintf);
     runtime_info = vintf->getRuntimeInfo(RuntimeInfo::FetchFlag::CPU_VERSION);
     ASSERT_NE(nullptr, runtime_info);
-
-    // GKI tests only enforced on 5.4+ branches
-    if (runtime_info->kernelVersion().dropMinor() < Version{5, 4}) {
-      GTEST_SKIP() << "Exempt GKI tests on kernel "
-                   << runtime_info->kernelVersion() << " (before 5.4.y)";
-    }
   }
   std::shared_ptr<const RuntimeInfo> runtime_info;
 };
 
-TEST_F(GkiTest, KernelReleaseFormat) {
+TEST_F(GenericBootImageTest, KernelReleaseFormat) {
+  // "GKI 1.0" is only enforced on 5.4+ kernels. For "GKI 1.0", the
+  // generic kernel image (GKI) is flashed before test, so this always passes.
+  // Run it nonetheless.
+  // On "GKI 2.0" with 5.10+ kernels, VTS runs once with the device kernel,
+  // so this test is meaningful.
+  if (runtime_info->kernelVersion().dropMinor() < Version{5, 4}) {
+    GTEST_SKIP() << "Exempt generic kernel image (GKI) test on kernel "
+                 << runtime_info->kernelVersion() << ". Only required on 5.4+.";
+  }
+
   const std::string& release = runtime_info->osRelease();
   ASSERT_TRUE(
       KernelRelease::Parse(release, true /* allow_suffix */).has_value())
@@ -61,7 +65,15 @@ TEST_F(GkiTest, KernelReleaseFormat) {
       << "\nExample: 5.4.42-android12-0-something";
 }
 
-TEST_F(GkiTest, GenericRamdisk) {
+TEST_F(GenericBootImageTest, GenericRamdisk) {
+  // On "GKI 2.0" with 5.10+ kernels, VTS runs once with the device kernel,
+  // so this test is meaningful.
+  if (runtime_info->kernelVersion().dropMinor() < Version{5, 10}) {
+    GTEST_SKIP() << "Exempt generic ramdisk test on kernel "
+                 << runtime_info->kernelVersion()
+                 << ". Only required on 5.10+.";
+  }
+
   using std::filesystem::recursive_directory_iterator;
 
   std::string slot_suffix = GetProperty("ro.boot.slot_suffix", "");
