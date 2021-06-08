@@ -22,7 +22,7 @@ from distutils.util import strtobool
 import ltp_test_cases
 from common import filter_utils
 
-def run(android_build_top, arch, n_bit, is_low_mem, is_hwasan, output_file):
+def run(android_build_top, arch, n_bit, is_low_mem, is_hwasan, run_staging, output_file):
 
     android_build_top = android_build_top
     ltp_tests = ltp_test_cases.LtpTestCases(
@@ -34,7 +34,7 @@ def run(android_build_top, arch, n_bit, is_low_mem, is_hwasan, output_file):
         n_bit,
         test_filter,
         output_file=output_file,
-        run_staging=False,
+        run_staging=run_staging,
         is_low_mem=is_low_mem,
         is_hwasan=is_hwasan)
 
@@ -65,6 +65,12 @@ if __name__ == '__main__':
                             choices=['True', 'False'],
                             required=True,
                             help="Target device is hwasan")
+    arg_parser.add_argument('--staging',
+                            dest='run_staging',
+                            type=str,
+                            choices=['True', 'False'],
+                            default="False",
+                            help="Run all the tests, except from the disabled ones")
     arg_parser.add_argument('output_file_path',
                             nargs=1,
                             help="Path for the output file")
@@ -75,4 +81,5 @@ if __name__ == '__main__':
         n_bit=str(args.bitness),
         is_low_mem=strtobool(args.is_low_mem),
         is_hwasan=strtobool(args.is_hwasan),
+        run_staging=strtobool(args.run_staging),
         output_file=args.output_file_path[0])
