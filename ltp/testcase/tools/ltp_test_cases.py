@@ -87,8 +87,8 @@ class LtpTestCases(object):
         Args:
             arch: String, arch
             n_bit: int, bitness
-            run_staging: bool, whether to use staging configuration
             is_low_mem: bool, whether to use low memory device configuration
+            is_hwasan: bool, whether to use hwasan configuration
 
         Returns:
             String.
