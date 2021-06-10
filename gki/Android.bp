@@ -17,15 +17,25 @@ package {
 }
 
 cc_test {
-    name: "vts_gki_release_test",
+    name: "vts_generic_boot_image_test",
     require_root: true,
+
+    // Even though 5.4-android11 also conforms with GKI release format,
+    // (often called "GKI 1.0"),
+    // skip the test on device launching with Android 11 (R) because:
+    // - We don't retroactively add requirements;
+    // - On those devices, VTS always flashes GKI before testing, making this
+    //   test meaningless.
+    // Therefore, the test is enforced on device launching with Android 12 (S)
+    // and above.
     test_min_api_level: 31,
+
     defaults: [
         "libvintf_static_user_defaults",
     ],
     srcs: [
         "cpio.cpp",
-        "gki_release_test.cpp",
+        "generic_boot_image_test.cpp",
         "lz4_legacy.cpp",
         "ramdisk_utils.cpp",
     ],
@@ -35,6 +45,9 @@ cc_test {
     ],
     test_suites: [
         "general-tests",
+
+        // On 5.10+ kernel, the device should use the generic boot image as the
+        // shipping image. Hence, we can include this test in VTS.
         "vts",
     ],
     static_libs: [
