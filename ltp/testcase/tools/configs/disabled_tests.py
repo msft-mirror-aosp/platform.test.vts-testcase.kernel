@@ -319,7 +319,6 @@ DISABLED_TESTS = [
     'fs_ext4.ext4-persist-prealloc',
     'fs_ext4.ext4-uninit-groups',
     'fsx.fsx-linux',
-    'fsx.fsx-linux',
     'hugetlb.hugemmap05_1',
     'hugetlb.hugemmap05_2',
     'hugetlb.hugemmap05_3',
@@ -338,6 +337,7 @@ DISABLED_TESTS = [
     'mm.mallocstress01',
     'mm.max_map_count_32bit', # b/67981135
     'mm.max_map_count_64bit', # b/67981135
+    'mm.mem03', # TODO missing triage
     'mm.min_free_kbytes',
     'mm.mmapstress10',
     'mm.mtest01',
@@ -370,10 +370,11 @@ DISABLED_TESTS = [
     'sched.trace_sched01',
     'syscalls.access04',
     'syscalls.alarm02', # b/112423802
+    'syscalls.chdir02', # TODO missing triage
+    'syscalls.chdir03', # TODO missing triage
     'syscalls.cve-2017-5669', # b/71416706
     'syscalls.fchown04',
     'syscalls.fchown04_16',
-    'syscalls.fcntl14',
     'syscalls.fcntl14',
     'syscalls.fcntl14_64',
     'syscalls.fcntl17',
@@ -382,6 +383,7 @@ DISABLED_TESTS = [
     'syscalls.fcntl35_64', # b/71416738
     'syscalls.fcntl36',
     'syscalls.fcntl36_64', # b/71416760
+    'syscalls.fgetxattr02', # TODO missing triage
     'syscalls.fork13', # takes too long: ~45mins
     'syscalls.gethostbyname_r01',
     'syscalls.getrusage04', # b/32386191
@@ -391,6 +393,7 @@ DISABLED_TESTS = [
     'syscalls.ioctl04',
     'syscalls.ioctl06',
     'syscalls.kcmp03',
+    'syscalls.kill11', # TODO missing triage
     'syscalls.kill12',
     'syscalls.lchown03',
     'syscalls.lchown03_16',
@@ -419,11 +422,13 @@ DISABLED_TESTS = [
     'syscalls.pselect01', # b/65053723#comment19
     'syscalls.readdir02', # b/112422073
     'syscalls.rt_sigprocmask01_32bit', # b/31152672
+    'syscalls.sched_rr_get_interval01', # TODO missing triage
     'syscalls.set_thread_area01_64bit', #b/112474139
     'syscalls.setpriority02', # b/73137289
     'syscalls.setregid02',
     'syscalls.setregid02_16',
     'syscalls.sigrelse01',
+    'syscalls.sigsuspend01', # TODO missing triage
     'syscalls.splice02',
     'syscalls.utimensat01',
     'syscalls.vfork02',
@@ -434,21 +439,21 @@ DISABLED_TESTS = [
 # These tests fail under hwasan.
 # mlock/mlockall tests activate lowmemorykiller and cause other unrelated tests to fail as well.
 DISABLED_TESTS_HWASAN = [ # b/134613162
-    'clone02',
-    'clone03',
-    'clone05',
-    'clone06',
-    'clone08',
-    'clone09',
-    'getcwd01',
-    'mem01',
-    'mlock01',
-    'mlock03',
-    'mlockall01',
-    'mlockall02',
-    'mlockall03',
-    'munlock01',
-    'sendmmsg01',
-    'sigaltstack01',
-    'time-schedule01',
+    'mm.mem01',
+    'sched.time-schedule01',
+    'syscalls.clone02',
+    'syscalls.clone03',
+    'syscalls.clone05',
+    'syscalls.clone06',
+    'syscalls.clone08',
+    'syscalls.clone09',
+    'syscalls.getcwd01',
+    'syscalls.mlock01',
+    'syscalls.mlock03',
+    'syscalls.mlockall01',
+    'syscalls.mlockall02',
+    'syscalls.mlockall03',
+    'syscalls.munlock01',
+    'syscalls.sendmmsg01',
+    'syscalls.sigaltstack01',
 ]
