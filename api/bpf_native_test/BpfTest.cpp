@@ -108,7 +108,7 @@ class BpfRaceTest : public ::testing::Test {
     EXPECT_NE(-1, sendSock) << "send socket create failed!\n";
     EXPECT_NE(-1, setsockopt(recvSock, SOL_SOCKET, SO_ATTACH_BPF, &prog_fd,
                              sizeof(prog_fd)))
-        << "attach bpf program failed"
+        << "attach bpf program failed: "
         << android::base::StringPrintf("%s\n", strerror(errno));
 
     // Keep sending and receiving packet until test end.
@@ -134,9 +134,14 @@ class BpfRaceTest : public ::testing::Test {
     std::string progSrcPath = BPF_SRC_PATH BPF_SRC_NAME;
     // 0 != 2 means ENOENT - ie. missing bpf program.
     ASSERT_EQ(0, access(progSrcPath.c_str(), R_OK) ? errno : 0);
-    bool critical = true;
+    bool critical = false;
     ASSERT_EQ(0, android::bpf::loadProg(progSrcPath.c_str(), &critical));
-    ASSERT_EQ(false, critical);
+    ASSERT_EQ(true, critical);
+
+    errno = 0;
+    int prog_fd = retrieveProgram(TEST_PROG_PATH);
+    EXPECT_EQ(0, errno);
+    ASSERT_LE(3, prog_fd);
 
     EXPECT_RESULT_OK(cookieStatsMap[0].init(TEST_STATS_MAP_A_PATH));
     EXPECT_RESULT_OK(cookieStatsMap[1].init(TEST_STATS_MAP_B_PATH));
@@ -144,11 +149,11 @@ class BpfRaceTest : public ::testing::Test {
     EXPECT_TRUE(cookieStatsMap[0].isValid());
     EXPECT_TRUE(cookieStatsMap[1].isValid());
     EXPECT_TRUE(configurationMap.isValid());
+    EXPECT_RESULT_OK(configurationMap.writeValue(ACTIVE_MAP_KEY, 0, BPF_ANY));
+
     // Start several threads to send and receive packets with an eBPF program
     // attached to the socket.
     stop = false;
-    int prog_fd = retrieveProgram(TEST_PROG_PATH);
-    EXPECT_RESULT_OK(configurationMap.writeValue(ACTIVE_MAP_KEY, 0, BPF_ANY));
 
     for (int i = 0; i < NUM_SOCKETS; i++) {
       tds[i] = std::thread(workerThread, prog_fd, &stop);
