@@ -87,29 +87,34 @@ class LTPConfigTest(unittest.TestCase):
     def test_configs_collide(self):
         parsed_tests = self.get_parsed_tests()
         success = True
+
         """
-        DISABLED_TESTS_HWASAN is currently ignored in this test as HWASAN tests
-        are considered a special case, and this simplifies the way the launcher
-        filtering these tests.
+        DISABLED_TESTS_HWASAN is currently ignored for matching with
+        STABLE_TESTS. This because tests in DISABLED_TESTS_HWASAN can be
+        executed on non-HWASAN devices.
         """
+
         multiple_occurrences = {
             "DISABLED_TESTS": {},
-            #"DISABLED_TESTS_HWASAN": {},
+            "DISABLED_TESTS_HWASAN": {},
         }
 
-        for st in parsed_tests["STABLE_TESTS"]:
-            for disabled_container in multiple_occurrences:
+        for container_name in ["STABLE_TESTS", "DISABLED_TESTS_HWASAN"]:
+            for st in parsed_tests[container_name]:
                 """
                 gen_ltp_config.py filters the stable tests by testing the
                 existence of the disabled test substring into the stable test
                 substring. Because of this, this test has to do the same, and
                 list::count() is not an option.
                 """
-                for dt in parsed_tests[disabled_container]:
+                for dt in parsed_tests["DISABLED_TESTS"]:
                     if dt in st:
-                        multiple_occurrences[disabled_container][st] = dt
+                        multiple_occurrences["DISABLED_TESTS"][st] = dt
                         success = False
-        self.assertTrue(success, 'Test(s) in STABLE_TESTS also DISABLED: \n{}'.format(pprint.pformat(multiple_occurrences)))
+        self.assertTrue(success, 'Test(s) in {} also in {}: \n{}'.format(
+            container_name,
+            "DISABLED_TESTS",
+            pprint.pformat(multiple_occurrences)))
 
 
 if __name__ == '__main__':
