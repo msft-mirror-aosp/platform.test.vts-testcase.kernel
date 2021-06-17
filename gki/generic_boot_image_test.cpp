@@ -45,14 +45,12 @@ class GenericBootImageTest : public testing::Test {
 };
 
 TEST_F(GenericBootImageTest, KernelReleaseFormat) {
-  // "GKI 1.0" is only enforced on 5.4+ kernels. For "GKI 1.0", the
-  // generic kernel image (GKI) is flashed before test, so this always passes.
-  // Run it nonetheless.
   // On "GKI 2.0" with 5.10+ kernels, VTS runs once with the device kernel,
   // so this test is meaningful.
-  if (runtime_info->kernelVersion().dropMinor() < Version{5, 4}) {
+  if (runtime_info->kernelVersion().dropMinor() < Version{5, 10}) {
     GTEST_SKIP() << "Exempt generic kernel image (GKI) test on kernel "
-                 << runtime_info->kernelVersion() << ". Only required on 5.4+.";
+                 << runtime_info->kernelVersion()
+                 << ". Only required on 5.10+.";
   }
 
   const std::string& release = runtime_info->osRelease();
