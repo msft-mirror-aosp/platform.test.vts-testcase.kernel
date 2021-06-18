@@ -57,15 +57,9 @@ class LTPConfigTest(unittest.TestCase):
     def test_configs_correct_format(self):
         parsed_tests = self.get_parsed_tests()
 
-        container = "STABLE_TESTS"
-        with self.subTest(container=container):
-            test_syntax = re.compile(r"\A[\w|-]+\.[\w|-]+_(32|64)bit\Z")
-            for t in parsed_tests[container]:
-                self.assertIsNotNone(test_syntax.match(t), '"{}" should be in the form "<class>.<method>_{{32,64}}bit"'.format(t))
-
-        for container in ["DISABLED_TESTS", "DISABLED_TESTS_HWASAN"]:
+        for container in ["STABLE_TESTS", "DISABLED_TESTS", "DISABLED_TESTS_HWASAN"]:
             with self.subTest(container=container):
-                test_syntax = re.compile(r"\A[\w|-]+\.[\w|-]+\Z")
+                test_syntax = re.compile(r"\A[\w|-]+\.[\w|-]+_(32|64)bit\Z")
                 for t in parsed_tests[container]:
                     self.assertIsNotNone(test_syntax.match(t), '"{}" should be in the form "<class>.<method>_{{32,64}}bit"'.format(t))
 
