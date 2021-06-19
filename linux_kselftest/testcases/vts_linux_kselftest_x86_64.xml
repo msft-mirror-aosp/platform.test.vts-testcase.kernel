@@ -59,6 +59,8 @@
         <option name="test-command-line" key="x86_test_mremap_vdso_x86_64" value="chmod 755 &ktest_dir;/x86/test_mremap_vdso; cd &ktest_dir;/x86; ./test_mremap_vdso" />
         <option name="test-command-line" key="x86_check_initial_reg_state_x86_64" value="chmod 755 &ktest_dir;/x86/check_initial_reg_state; cd &ktest_dir;/x86; ./check_initial_reg_state" />
         <option name="test-command-line" key="x86_ldt_gdt_x86_64" value="chmod 755 &ktest_dir;/x86/ldt_gdt; cd &ktest_dir;/x86; ./ldt_gdt" />
+        <option name="test-command-line" key="vm_userfaultfd_anon_x86_64" value="chmod 755 &ktest_dir;/vm/userfaultfd; cd &ktest_dir;/vm; ./userfaultfd anon 32 99" />
+        <option name="test-command-line" key="vm_userfaultfd_shmem_x86_64" value="chmod 755 &ktest_dir;/vm/userfaultfd; cd &ktest_dir;/vm; ./userfaultfd shmem 32 99" />
     </test>
 </configuration>
 
