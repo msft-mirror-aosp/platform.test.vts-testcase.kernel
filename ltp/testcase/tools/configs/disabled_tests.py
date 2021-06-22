@@ -24,6 +24,7 @@ DISABLED_TESTS = [
     'cve.cve-2019-8912_64bit',  # b/191224904
     'cve.cve-2020-14416_32bit',  # b/191227026
     'cve.cve-2020-14416_64bit',  # b/191227026
+    'cve.cve-2021-3444_64bit',  # b/191226866
     'kernel_misc.zram01_32bit',  # b/191226875
     'kernel_misc.zram01_64bit',  # b/191226875
     'kernel_misc.zram02_32bit',  # b/191227531
@@ -32,6 +33,8 @@ DISABLED_TESTS = [
     'pty.pty03_64bit',  # b/191224822
     'pty.pty05_32bit',  # b/191224341
     'pty.pty05_64bit',  # b/191224341
+    'syscalls.bpf_prog05_32bit',  # b/191224899
+    'syscalls.bpf_prog05_64bit',  # b/191224899
     'syscalls.clone301_32bit',  # b/191236153
     'syscalls.clone301_64bit',  # b/191236153
     'syscalls.clone302_32bit',  # b/191236103
@@ -70,12 +73,10 @@ DISABLED_TESTS = [
 # These tests are only disabled for hwasan
 DISABLED_TESTS_HWASAN = [
     'commands.sysctl02_sh_64bit',  # b/191227527
-    'cve.cve-2021-3444_64bit',  # b/191226866
     'fs.binfmt_misc01_64bit',  # b/191224879
     'fs.binfmt_misc02_64bit',  # b/191224881
     'fs.read_all_dev_64bit',  # b/191226872
     'fs.read_all_proc_64bit',  # b/191226873
     'syscalls.accept02_64bit',  # b/191224729
-    'syscalls.bpf_prog05_64bit',  # b/191224899
     'syscalls.ioctl_loop07_64bit',  # b/191227029
 ]
