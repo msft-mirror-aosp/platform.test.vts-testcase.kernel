@@ -24,6 +24,7 @@ DISABLED_TESTS = [
     'cve.cve-2019-8912_64bit',  # b/191224904
     'cve.cve-2020-14416_32bit',  # b/191227026
     'cve.cve-2020-14416_64bit',  # b/191227026
+    'cve.cve-2021-3444_32bit',  # b/191226866
     'cve.cve-2021-3444_64bit',  # b/191226866
     'kernel_misc.zram01_32bit',  # b/191226875
     'kernel_misc.zram01_64bit',  # b/191226875
@@ -44,12 +45,16 @@ DISABLED_TESTS = [
     'syscalls.fcntl38_64_32bit',  # b/191236432
     'syscalls.fcntl38_64_64bit',  # b/191236432
     'syscalls.fcntl38_64bit',  # b/191236494
+    'syscalls.inotify08_32bit',  # b/191748474
+    'syscalls.inotify08_64bit',  # b/191748474
     'syscalls.io_pgetevents01_32bit',  # b/191247131
     'syscalls.io_pgetevents02_32bit',  # b/191247132
     'syscalls.ioctl_loop01_32bit',  # b/191224819
     'syscalls.ioctl_loop01_64bit',  # b/191224819
     'syscalls.ioctl_loop02_32bit',  # b/191227028
     'syscalls.ioctl_loop02_64bit',  # b/191227028
+    'syscalls.ioctl_loop07_32bit',  # b/191748892
+    'syscalls.ioctl_loop07_64bit',  # b/191748892, b/191227029
     'syscalls.ioctl_ns01_32bit',  # b/191227031
     'syscalls.ioctl_ns01_64bit',  # b/191227031
     'syscalls.ioctl_ns04_32bit',  # b/191225494
@@ -78,5 +83,4 @@ DISABLED_TESTS_HWASAN = [
     'fs.read_all_dev_64bit',  # b/191226872
     'fs.read_all_proc_64bit',  # b/191226873
     'syscalls.accept02_64bit',  # b/191224729
-    'syscalls.ioctl_loop07_64bit',  # b/191227029
 ]
