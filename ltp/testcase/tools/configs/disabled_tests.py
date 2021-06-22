@@ -45,6 +45,8 @@ DISABLED_TESTS = [
     'syscalls.fcntl38_64_32bit',  # b/191236432
     'syscalls.fcntl38_64_64bit',  # b/191236432
     'syscalls.fcntl38_64bit',  # b/191236494
+    'syscalls.inotify07_32bit',  # b/191773884
+    'syscalls.inotify07_64bit',  # b/191773884
     'syscalls.inotify08_32bit',  # b/191748474
     'syscalls.inotify08_64bit',  # b/191748474
     'syscalls.io_pgetevents01_32bit',  # b/191247131

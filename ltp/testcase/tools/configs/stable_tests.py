@@ -1422,8 +1422,6 @@ STABLE_TESTS = [
     ('syscalls.inotify05_64bit', True),
     ('syscalls.inotify06_32bit', True),
     ('syscalls.inotify06_64bit', True),
-    ('syscalls.inotify07_32bit', True),
-    ('syscalls.inotify07_64bit', True),
     ('syscalls.inotify09_32bit', True),
     ('syscalls.inotify09_64bit', True),
     ('syscalls.inotify10_32bit', True),
