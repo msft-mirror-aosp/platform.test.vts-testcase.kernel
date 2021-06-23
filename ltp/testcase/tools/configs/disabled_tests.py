@@ -24,6 +24,8 @@ DISABLED_TESTS = [
     'cve.cve-2019-8912_64bit',  # b/191224904
     'cve.cve-2020-14416_32bit',  # b/191227026
     'cve.cve-2020-14416_64bit',  # b/191227026
+    'cve.cve-2021-3444_32bit',  # b/191226866
+    'cve.cve-2021-3444_64bit',  # b/191226866
     'kernel_misc.zram01_32bit',  # b/191226875
     'kernel_misc.zram01_64bit',  # b/191226875
     'kernel_misc.zram02_32bit',  # b/191227531
@@ -32,6 +34,8 @@ DISABLED_TESTS = [
     'pty.pty03_64bit',  # b/191224822
     'pty.pty05_32bit',  # b/191224341
     'pty.pty05_64bit',  # b/191224341
+    'syscalls.bpf_prog05_32bit',  # b/191224899
+    'syscalls.bpf_prog05_64bit',  # b/191224899
     'syscalls.clone301_32bit',  # b/191236153
     'syscalls.clone301_64bit',  # b/191236153
     'syscalls.clone302_32bit',  # b/191236103
@@ -41,12 +45,18 @@ DISABLED_TESTS = [
     'syscalls.fcntl38_64_32bit',  # b/191236432
     'syscalls.fcntl38_64_64bit',  # b/191236432
     'syscalls.fcntl38_64bit',  # b/191236494
+    'syscalls.inotify07_32bit',  # b/191773884
+    'syscalls.inotify07_64bit',  # b/191773884
+    'syscalls.inotify08_32bit',  # b/191748474
+    'syscalls.inotify08_64bit',  # b/191748474
     'syscalls.io_pgetevents01_32bit',  # b/191247131
     'syscalls.io_pgetevents02_32bit',  # b/191247132
     'syscalls.ioctl_loop01_32bit',  # b/191224819
     'syscalls.ioctl_loop01_64bit',  # b/191224819
     'syscalls.ioctl_loop02_32bit',  # b/191227028
     'syscalls.ioctl_loop02_64bit',  # b/191227028
+    'syscalls.ioctl_loop07_32bit',  # b/191748892
+    'syscalls.ioctl_loop07_64bit',  # b/191748892, b/191227029
     'syscalls.ioctl_ns01_32bit',  # b/191227031
     'syscalls.ioctl_ns01_64bit',  # b/191227031
     'syscalls.ioctl_ns04_32bit',  # b/191225494
@@ -70,12 +80,9 @@ DISABLED_TESTS = [
 # These tests are only disabled for hwasan
 DISABLED_TESTS_HWASAN = [
     'commands.sysctl02_sh_64bit',  # b/191227527
-    'cve.cve-2021-3444_64bit',  # b/191226866
     'fs.binfmt_misc01_64bit',  # b/191224879
     'fs.binfmt_misc02_64bit',  # b/191224881
     'fs.read_all_dev_64bit',  # b/191226872
     'fs.read_all_proc_64bit',  # b/191226873
     'syscalls.accept02_64bit',  # b/191224729
-    'syscalls.bpf_prog05_64bit',  # b/191224899
-    'syscalls.ioctl_loop07_64bit',  # b/191227029
 ]
