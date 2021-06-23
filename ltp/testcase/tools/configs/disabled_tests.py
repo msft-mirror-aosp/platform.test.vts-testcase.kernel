@@ -16,6 +16,8 @@ DISABLED_TESTS = [
     'commands.unzip01_sh_64bit',  # b/191227036
     'controllers.cgroup_fj_function_blkio_32bit',  # b/191224883
     'controllers.cgroup_fj_function_blkio_64bit',  # b/191224883
+    'controllers.cgroup_fj_function_memory_32bit',  # b/191867109
+    'controllers.cgroup_fj_function_memory_64bit',  # b/191867109
     'cve.cve-2017-15649_32bit',  # b/191224884
     'cve.cve-2017-15649_64bit',  # b/191224884
     'cve.cve-2017-2636_32bit',  # b/191224903

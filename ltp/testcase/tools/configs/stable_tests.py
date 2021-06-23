@@ -43,8 +43,6 @@ STABLE_TESTS = [
     ('controllers.cgroup_fj_function_devices_64bit', True),
     ('controllers.cgroup_fj_function_hugetlb_32bit', True),
     ('controllers.cgroup_fj_function_hugetlb_64bit', True),
-    ('controllers.cgroup_fj_function_memory_32bit', True),
-    ('controllers.cgroup_fj_function_memory_64bit', True),
     ('controllers.cgroup_fj_function_net_cls_32bit', True),
     ('controllers.cgroup_fj_function_net_cls_64bit', True),
     ('controllers.cgroup_fj_function_net_prio_32bit', True),
