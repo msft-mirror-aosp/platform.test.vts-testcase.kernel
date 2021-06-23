@@ -650,8 +650,6 @@ STABLE_TESTS = [
     ('syscalls.bpf_map01_64bit', True),
     ('syscalls.bpf_prog01_32bit', True),
     ('syscalls.bpf_prog01_64bit', True),
-    ('syscalls.bpf_prog02_32bit', True),
-    ('syscalls.bpf_prog02_64bit', True),
     ('syscalls.bpf_prog03_32bit', True),
     ('syscalls.bpf_prog03_64bit', True),
     ('syscalls.bpf_prog04_32bit', True),
