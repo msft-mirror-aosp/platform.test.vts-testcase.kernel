@@ -1,8 +1,0 @@
-{
-  "presubmit": [
-    {
-      "name": "vts_ltp_launcher_test",
-      "host" : true
-    }
-  ]
-}
