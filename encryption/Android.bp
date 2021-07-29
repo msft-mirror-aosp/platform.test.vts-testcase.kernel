@@ -41,8 +41,8 @@ cc_test {
         "libutils",
     ],
     static_libs: [
-        "android.hardware.security.keymint-V1-ndk_platform",
-        "android.system.keystore2-V1-ndk_platform",
+        "android.hardware.security.keymint-V1-ndk",
+        "android.system.keystore2-V1-ndk",
         "libdm",
         "libext4_utils",
         "libfs_mgr",
