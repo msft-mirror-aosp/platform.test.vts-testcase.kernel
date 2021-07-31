@@ -41,16 +41,18 @@ import org.junit.runner.RunWith;
 /* A test to check check sysfs files. */
 @RunWith(DeviceJUnit4ClassRunner.class)
 public class KernelApiSysfsTest extends BaseHostJUnit4Test {
-    /* Check for the existence of required files in /sys/class/android_usb. */
+    /* Check required files in /sys/class/android_usb if they exist. */
     @RequiresDevice
     @Test
     public void testAndroidUSB() throws Exception {
         String state = "/sys/class/android_usb/android0/state";
-        assertTrue(TargetFileUtils.isReadOnly(state, getDevice()));
-        String content = getDevice().pullFileContents(state).trim();
-        HashSet<String> possibles =
-                new HashSet<>(Arrays.asList("DISCONNECTED", "CONNECTED", "CONFIGURED"));
-        assertTrue(possibles.contains(content));
+        if (getDevice().doesFileExist(state)) {
+            assertTrue(TargetFileUtils.isReadOnly(state, getDevice()));
+            String content = getDevice().pullFileContents(state).trim();
+            HashSet<String> possibles =
+                    new HashSet<>(Arrays.asList("DISCONNECTED", "CONNECTED", "CONFIGURED"));
+            assertTrue(possibles.contains(content));
+        }
     }
 
     /**
