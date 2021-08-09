@@ -39,7 +39,7 @@ class KernelVersionTest : public ::testing::Test {
         should_run_compiler_test_(
             first_api_level_ >= __ANDROID_API_R__ ||
             (arch_ == "arm64" && first_api_level_ >= __ANDROID_API_Q__)),
-        should_run_linker_test_(first_api_level_ >= __ANDROID_API_R__) {
+        should_run_linker_test_(first_api_level_ >= __ANDROID_API_S__) {
     std::ifstream proc_version("/proc/version");
     std::getline(proc_version, version_);
   }
