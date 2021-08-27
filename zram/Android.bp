@@ -18,41 +18,30 @@ package {
     default_applicable_licenses: ["Android-Apache-2.0"],
 }
 
-cc_test {
-    name: "vts_kernel_encryption_test",
-    srcs: [
-        "adiantum.cpp",
-        "aes_256_xts.cpp",
-        "file_based_encryption_tests.cpp",
-        "Keymaster.cpp",
-        "metadata_encryption_tests.cpp",
-        "utils.cpp",
-    ],
-    cflags: [
-        "-D_FILE_OFFSET_BITS=64",
-        "-Wall",
-        "-Werror",
-    ],
+cc_defaults {
+    name: "binary_zram_defaults",
+    srcs: ["ZramTest.cpp"],
     shared_libs: [
         "libbase",
-        "libbinder_ndk",
-        "libcrypto",
-        "liblog",
-        "libutils",
     ],
-    static_libs: [
-        "android.hardware.security.keymint-V1-ndk_platform",
-        "android.system.keystore2-V1-ndk_platform",
-        "libdm",
-        "libext4_utils",
-        "libfs_mgr",
-        "libkeymint_support",
-        "liblzma",
+    cflags: [
+        "-fno-strict-aliasing",
+        "-Wall",
+        "-Werror",
+        "-Wno-unused-variable",
     ],
+}
+
+cc_test {
+    name: "zram_module_test",
+    defaults: ["binary_zram_defaults"],
+    test_config: "zram_module_test.xml",
     test_suites: [
-        "general-tests",
         "vts",
     ],
-    require_root: true,
-    auto_gen_config: true,
+}
+
+cc_test {
+    name: "vts_test_binary_zram_module",
+    defaults: ["binary_zram_defaults"],
 }

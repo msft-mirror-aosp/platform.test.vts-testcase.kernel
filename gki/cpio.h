@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 The Android Open Source Project
+ * Copyright (C) 2021 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,18 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package {
-    default_applicable_licenses: ["Android-Apache-2.0"],
-}
 
-java_test_host {
-    name: "KernelDynamicPartitionsTest",
-    libs: [
-        "tradefed",
-    ],
-    srcs: ["src/**/*.java"],
-    test_suites: [
-        "vts",
-    ],
-    test_config: "KernelDynamicPartitionsTest.xml",
-}
+#pragma once
+
+#include <memory>
+#include <string_view>
+
+#include <android-base/file.h>
+#include <android-base/result.h>
+
+namespace android {
+
+// Extract CPIO archive at |archive_path| to a temporary directory.
+android::base::Result<std::unique_ptr<TemporaryDir>> CpioExtract(
+    std::string_view archive_path);
+
+}  // namespace android
