@@ -32,7 +32,6 @@ cc_defaults {
         "libbpf",
         "libbpf_android",
         "libnetdutils",
-        "libprocessgroup",
         "libtestUtil",
     ],
     cflags: [
