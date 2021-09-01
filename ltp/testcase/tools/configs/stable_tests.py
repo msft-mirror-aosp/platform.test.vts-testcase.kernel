@@ -67,8 +67,6 @@ STABLE_TESTS = [
     ('controllers.cpuset_sched_domains_64bit', True),
     ('controllers.cpuset_syscall_32bit', True),
     ('controllers.cpuset_syscall_64bit', True),
-    ('controllers.memcg_control_32bit', True),
-    ('controllers.memcg_control_64bit', True),
     ('controllers.memcg_regression_32bit', True),
     ('controllers.memcg_regression_64bit', True),
     ('controllers.memcg_test_3_32bit', True),
