@@ -53,6 +53,10 @@ DISABLED_TESTS = [
     'syscalls.fcntl38_64_32bit',  # b/191236432
     'syscalls.fcntl38_64_64bit',  # b/191236432
     'syscalls.fcntl38_64bit',  # b/191236494
+    'syscalls.ftruncate04_32bit',  # b/198611142
+    'syscalls.ftruncate04_64_32bit',  # b/198611142
+    'syscalls.ftruncate04_64_64bit',  # b/198611142
+    'syscalls.ftruncate04_64bit',  # b/198611142
     'syscalls.inotify07_32bit',  # b/191773884
     'syscalls.inotify07_64bit',  # b/191773884
     'syscalls.inotify08_32bit',  # b/191748474
