@@ -13,14 +13,14 @@
      See the License for the specific language governing permissions and
      limitations under the License.
 -->
-<configuration description="Runs KernelDynamicPartitionsTest">
-    <object type="module_controller" class="com.android.tradefed.testtype.suite.module.ShippingApiLevelModuleController">
-        <option name="min-api-level" value="29" />
-    </object>
-
-    <target_preparer class="com.android.tradefed.targetprep.RootTargetPreparer" />
-
-    <test class="com.android.tradefed.testtype.HostTest" >
-        <option name="jar" value="KernelDynamicPartitionsTest.jar" />
+<configuration description="Config for zram_module_test">
+    <target_preparer class="com.android.tradefed.targetprep.RootTargetPreparer"/>
+    <target_preparer class="com.android.tradefed.targetprep.PushFilePreparer">
+        <option name="cleanup" value="true" />
+        <option name="push" value="zram_module_test->/data/local/tmp/zram_module_test" />
+    </target_preparer>
+    <test class="com.android.tradefed.testtype.GTest" >
+        <option name="native-test-device-path" value="/data/local/tmp" />
+        <option name="module-name" value="zram_module_test" />
     </test>
 </configuration>
