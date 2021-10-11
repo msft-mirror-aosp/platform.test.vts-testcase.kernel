@@ -47,6 +47,7 @@ cc_test {
         "libext4_utils",
         "libfs_mgr",
         "libkeymint_support",
+        "liblz4",
         "liblzma",
     ],
     test_suites: [
