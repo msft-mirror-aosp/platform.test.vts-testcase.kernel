@@ -42,8 +42,8 @@ DEFINE_BPF_MAP(test_stats_map_B, HASH, uint64_t, stats_value, NUM_SOCKETS)
 DEFINE_UPDATE_INGRESS_STATS(test_stats_map_A)
 DEFINE_UPDATE_INGRESS_STATS(test_stats_map_B)
 
-SEC("skfilter/test")
-int ingress_prog(struct __sk_buff* skb) {
+DEFINE_BPF_PROG("skfilter/test", AID_ROOT, AID_ROOT, ingress_prog)
+(struct __sk_buff* skb) {
   uint32_t key = 1;
   uint32_t* config = bpf_test_configuration_map_lookup_elem(&key);
   if (config) {
