@@ -21,8 +21,8 @@
 #include "bpf_net_helpers.h"
 
 DEFINE_BPF_MAP(test_configuration_map, HASH, uint32_t, uint32_t, 1)
-DEFINE_BPF_MAP(test_stats_map_A, HASH, uint64_t, stats_value, NUM_SOCKETS)
-DEFINE_BPF_MAP(test_stats_map_B, HASH, uint64_t, stats_value, NUM_SOCKETS)
+DEFINE_BPF_MAP(test_stats_map_A, HASH, uint64_t, stats_value, MAX_NUM_SOCKETS)
+DEFINE_BPF_MAP(test_stats_map_B, HASH, uint64_t, stats_value, MAX_NUM_SOCKETS)
 
 #define DEFINE_UPDATE_INGRESS_STATS(the_map)                               \
   static inline void update_ingress_##the_map(struct __sk_buff* skb) {     \
