@@ -80,7 +80,8 @@ TEST(BpfTest, bpfMapPinTest) {
 #define TEST_CONFIGURATION_MAP_PATH BPF_PATH "/map_kern_test_configuration_map"
 
 constexpr int ACTIVE_MAP_KEY = 1;
-const int NUM_SOCKETS = sysconf(_SC_NPROCESSORS_ONLN);
+const int NUM_CPUS = sysconf(_SC_NPROCESSORS_ONLN);
+const int NUM_SOCKETS = std::min(NUM_CPUS, MAX_NUM_SOCKETS);
 
 class BpfRaceTest : public ::testing::Test {
  protected:
@@ -88,7 +89,7 @@ class BpfRaceTest : public ::testing::Test {
   BpfMap<uint64_t, stats_value> cookieStatsMap[2];
   BpfMap<uint32_t, uint32_t> configurationMap;
   bool stop;
-  std::thread *tds = new std::thread[std::min(NUM_SOCKETS, MAX_NUM_SOCKETS)];
+  std::thread *tds = new std::thread[NUM_SOCKETS];
 
   static void workerThread(int prog_fd, bool *stop) {
     struct sockaddr_in6 remote = {.sin6_family = AF_INET6};
