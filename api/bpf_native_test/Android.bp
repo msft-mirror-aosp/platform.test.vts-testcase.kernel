@@ -29,7 +29,7 @@ cc_defaults {
         "libbase",
     ],
     static_libs: [
-        "libbpf",
+        "libbpf_bcc",
         "libbpf_android",
         "libnetdutils",
         "libtestUtil",
