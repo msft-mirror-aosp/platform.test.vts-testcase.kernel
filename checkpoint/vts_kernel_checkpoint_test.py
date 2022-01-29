@@ -19,7 +19,7 @@ import os
 import time
 import unittest
 
-from checkpoint_utils import  ADB
+from vts.testcases.kernel.utils import adb
 from vts.testcases.vndk import utils
 
 class VtsKernelCheckpointTest(unittest.TestCase):
@@ -32,7 +32,7 @@ class VtsKernelCheckpointTest(unittest.TestCase):
         serial_number = os.environ.get("ANDROID_SERIAL")
         self.assertTrue(serial_number, "$ANDROID_SERIAL is empty.")
         self.dut = utils.AndroidDevice(serial_number)
-        self.adb = ADB(serial_number)
+        self.adb = adb.ADB(serial_number)
         self.isCheckpoint_ = self.isCheckpoint()
 
     def getFstab(self):
