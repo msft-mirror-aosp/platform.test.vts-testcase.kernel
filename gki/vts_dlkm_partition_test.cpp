@@ -155,6 +155,20 @@ TEST_F(DlkmPartitionTest, VendorDlkmPartition) {
   ASSERT_NO_FATAL_FAILURE(VerifyDlkmPartition("odm"));
 }
 
+TEST_F(DlkmPartitionTest, SystemDlkmPartition) {
+  if (vendor_api_level < __ANDROID_API_T__) {
+    GTEST_SKIP()
+        << "Exempt from system_dlkm partition test. ro.vendor.api_level ("
+        << vendor_api_level << ") < " << __ANDROID_API_T__;
+  }
+  if (runtime_info->kernelVersion().dropMinor() <
+      android::vintf::Version{5, 10}) {
+    GTEST_SKIP() << "Exempt from system_dlkm partition test. kernel: "
+                 << runtime_info->kernelVersion();
+  }
+  ASSERT_NO_FATAL_FAILURE(VerifyDlkmPartition("system"));
+}
+
 int main(int argc, char *argv[]) {
   ::testing::InitGoogleTest(&argc, argv);
   android::base::InitLogging(argv, android::base::StderrLogger);

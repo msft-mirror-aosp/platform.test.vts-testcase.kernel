@@ -98,33 +98,3 @@ cc_test {
         "libstorage_literals_headers",
     ],
 }
-
-cc_test {
-    name: "vts_system_dlkm_partition_test",
-    require_root: true,
-
-    // GKI modules feautre is only available with Android 13(T) launch kernels
-    // Therefore, the test is enforced on device launching with Android 13 (T)
-    // and above.
-    test_options: {
-        min_shipping_api_level: 33,
-    },
-
-    srcs: [
-        "system_dlkm_partition_test.cpp",
-    ],
-    cflags: [
-        "-Wall",
-        "-Werror",
-    ],
-    test_suites: [
-        "general-tests",
-        "vts",
-    ],
-    static_libs: [
-        "libbase",
-    ],
-    header_libs: [
-        "libstorage_literals_headers",
-    ],
-}
