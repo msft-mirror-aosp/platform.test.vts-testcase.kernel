@@ -17,6 +17,39 @@ package {
 }
 
 cc_test {
+    name: "vts_dlkm_partition_test",
+    require_root: true,
+    test_suites: [
+        "general-tests",
+        "vts",
+    ],
+
+    srcs: [
+        "vts_dlkm_partition_test.cpp",
+    ],
+    defaults: [
+        "libvintf_static_user_defaults",
+    ],
+    shared_libs: [
+        "libcrypto",
+    ],
+    static_libs: [
+        "libbase",
+        "libcrypto_utils",
+        "libcutils",
+        "libext4_utils",
+        "libfs_mgr_binder",
+        "liblp",
+        "libutils",
+        "libvintf",
+    ],
+    cflags: [
+        "-Wall",
+        "-Werror",
+    ],
+}
+
+cc_test {
     name: "vts_generic_boot_image_test",
     require_root: true,
 
