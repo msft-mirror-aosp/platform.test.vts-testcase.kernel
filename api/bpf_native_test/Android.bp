@@ -31,8 +31,8 @@ cc_defaults {
     static_libs: [
         "libbpf_bcc",
         "libbpf_android",
-        "libbpf_minimal",
         "libnetdutils",
+        "libprocessgroup",
         "libtestUtil",
     ],
     cflags: [
