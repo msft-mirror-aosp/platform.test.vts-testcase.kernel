@@ -15,7 +15,7 @@
  */
 #include <stdint.h>
 
-const int MAX_NUM_SOCKETS = 8;  // Max available number of threads per device.
+const int NUM_SOCKETS = 8;  // At least one thread per core on device.
 
 typedef struct {
   uint64_t rxPackets;
