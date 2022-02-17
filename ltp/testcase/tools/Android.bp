@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2018 The Android Open Source Project
+// Copyright (C) 2021 The Android Open Source Project
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,23 +19,13 @@ package {
 }
 
 python_test_host {
-    name: "vts_kernel_checkpoint_test",
-    main: "vts_kernel_checkpoint_test.py",
+    name: "vts_ltp_launcher_test",
+    main: "test_launcher.py",
     srcs: [
-        "vts_kernel_checkpoint_test.py",
+        "configs/disabled_tests.py",
+        "configs/stable_tests.py",
+        "test_launcher.py",
     ],
-    libs: [
-        "vndk_utils",
-        "vts_kernel_utils",
-        "vts_vndk_utils",
-    ],
-    test_suites: [
-        "vts",
-    ],
-    test_options: {
-        unit_test: false,
-    },
-    test_config: "vts_kernel_checkpoint_test.xml",
     version: {
         py2: {
             enabled: false,
@@ -45,5 +35,5 @@ python_test_host {
             enabled: true,
             embedded_launcher: true,
         }
-    }
+    },
 }
