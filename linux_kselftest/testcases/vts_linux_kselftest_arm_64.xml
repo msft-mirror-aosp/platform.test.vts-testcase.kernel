@@ -36,6 +36,7 @@
         <option name="test-command-line" key="capabilities_test_execve_arm_64" value="chmod 755 &ktest_dir;/capabilities/test_execve; cd &ktest_dir;/capabilities; ./test_execve" />
         <option name="test-command-line" key="futex_functional_run.sh_arm_64" value="chmod 755 &ktest_dir;/futex/functional/run.sh; cd &ktest_dir;/futex/functional; ./run.sh" />
         <option name="test-command-line" key="kcmp_kcmp_test_arm_64" value="chmod 755 &ktest_dir;/kcmp/kcmp_test; cd &ktest_dir;/kcmp; ./kcmp_test" />
+	<option name="test-command-line" key="kvm_pvm_wipe_mem_arm_64" value="chmod 755 &ktest_dir;/kvm/aarch64/pvm_wipe_mem; cd &ktest_dir;/kvm/aarch64; ./pvm_wipe_mem" />
         <option name="test-command-line" key="net_psock_tpacket_arm_64" value="chmod 755 &ktest_dir;/net/psock_tpacket; cd &ktest_dir;/net; ./psock_tpacket" />
         <option name="test-command-line" key="net_reuseaddr_conflict_arm_64" value="chmod 755 &ktest_dir;/net/reuseaddr_conflict; cd &ktest_dir;/net; ./reuseaddr_conflict" />
         <option name="test-command-line" key="net_socket_arm_64" value="chmod 755 &ktest_dir;/net/socket; cd &ktest_dir;/net; ./socket" />
