@@ -30,7 +30,8 @@
         <option name="run-command" value='find &ktest_dir; -type f | xargs grep -l -e "bin/sh" -e "bin/bash" | xargs sed -i -e "s?/bin/echo?echo?" -i -e "s?#!/bin/sh?#!/system/bin/sh?" -i -e "s?#!/bin/bash?#!/system/bin/sh?"' />
     </target_preparer>
 
-    <test class="com.android.tradefed.testtype.binary.ExecutableTargetTest" >
+    <test class="com.android.tradefed.testtype.binary.KernelTargetTest" >
+        <option name="exit-code-skip" value="4" />
 	<option name="test-command-line" key="binderfs_arm_64" value="chmod 755 &ktest_dir;/filesystems/binderfs/binderfs_test; cd &ktest_dir;/filesystems/binderfs; ./binderfs_test" />
         <option name="test-command-line" key="breakpoints_breakpoint_test_arm64_arm_64" value="chmod 755 &ktest_dir;/breakpoints/breakpoint_test_arm64; cd &ktest_dir;/breakpoints; ./breakpoint_test_arm64" />
         <option name="test-command-line" key="capabilities_test_execve_arm_64" value="chmod 755 &ktest_dir;/capabilities/test_execve; cd &ktest_dir;/capabilities; ./test_execve" />
