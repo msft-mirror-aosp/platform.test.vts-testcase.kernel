@@ -33,7 +33,7 @@ genrule {
         "tools/**/*.py",
         "tools/template/template.xml",
     ],
-    cmd: "export ANDROID_BUILD_TOP=$$(pwd) && python3 $(location tools/gen_ltp_config.py) --arch arm --bitness 64 --low-mem False --hwasan False $(out)",
+    cmd: "export ANDROID_BUILD_TOP=$$(pwd) && python3 $(location tools/gen_ltp_config.py) arm 64 False False $(out)",
 }
 
 sh_test {
@@ -51,7 +51,7 @@ genrule {
         "tools/**/*.py",
         "tools/template/template.xml",
     ],
-    cmd: "export ANDROID_BUILD_TOP=$$(pwd) && python3 $(location tools/gen_ltp_config.py) --arch arm --bitness 64 --low-mem True --hwasan False $(out)",
+    cmd: "export ANDROID_BUILD_TOP=$$(pwd) && python3 $(location tools/gen_ltp_config.py) arm 64 True False $(out)",
 }
 
 sh_test {
@@ -69,7 +69,7 @@ genrule {
         "tools/**/*.py",
         "tools/template/template.xml",
     ],
-    cmd: "export ANDROID_BUILD_TOP=$$(pwd) && python3 $(location tools/gen_ltp_config.py) --arch arm --bitness 64 --low-mem False --hwasan True $(out)",
+    cmd: "export ANDROID_BUILD_TOP=$$(pwd) && python3 $(location tools/gen_ltp_config.py) arm 64 False True $(out)",
 }
 
 sh_test {
@@ -87,7 +87,7 @@ genrule {
         "tools/**/*.py",
         "tools/template/template.xml",
     ],
-    cmd: "export ANDROID_BUILD_TOP=$$(pwd) && python3 $(location tools/gen_ltp_config.py) --arch arm --bitness 64 --low-mem True --hwasan True $(out)",
+    cmd: "export ANDROID_BUILD_TOP=$$(pwd) && python3 $(location tools/gen_ltp_config.py) arm 64 True True $(out)",
 }
 
 sh_test {
@@ -105,7 +105,7 @@ genrule {
         "tools/**/*.py",
         "tools/template/template.xml",
     ],
-    cmd: "export ANDROID_BUILD_TOP=$$(pwd) && python3 $(location tools/gen_ltp_config.py) --arch arm --bitness 32 --low-mem False --hwasan False $(out)",
+    cmd: "export ANDROID_BUILD_TOP=$$(pwd) && python3 $(location tools/gen_ltp_config.py) arm 32 False False $(out)",
 }
 
 sh_test {
@@ -123,7 +123,7 @@ genrule {
         "tools/**/*.py",
         "tools/template/template.xml",
     ],
-    cmd: "export ANDROID_BUILD_TOP=$$(pwd) && python3 $(location tools/gen_ltp_config.py) --arch arm --bitness 32 --low-mem True --hwasan False $(out)",
+    cmd: "export ANDROID_BUILD_TOP=$$(pwd) && python3 $(location tools/gen_ltp_config.py) arm 32 True False $(out)",
 }
 
 sh_test {
@@ -141,7 +141,7 @@ genrule {
         "tools/**/*.py",
         "tools/template/template.xml",
     ],
-    cmd: "export ANDROID_BUILD_TOP=$$(pwd) && python3 $(location tools/gen_ltp_config.py) --arch x86 --bitness 64 --low-mem False --hwasan False $(out)",
+    cmd: "export ANDROID_BUILD_TOP=$$(pwd) && python3 $(location tools/gen_ltp_config.py) x86 64 False False $(out)",
 }
 
 sh_test {
@@ -159,5 +159,5 @@ genrule {
         "tools/**/*.py",
         "tools/template/template.xml",
     ],
-    cmd: "export ANDROID_BUILD_TOP=$$(pwd) && python3 $(location tools/gen_ltp_config.py) --arch x86 --bitness 32 --low-mem False --hwasan False $(out)",
+    cmd: "export ANDROID_BUILD_TOP=$$(pwd) && python3 $(location tools/gen_ltp_config.py) x86 32 False False $(out)",
 }
