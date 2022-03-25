@@ -28,6 +28,7 @@
 using android::base::GetBoolProperty;
 using android::base::GetProperty;
 using android::kver::KernelRelease;
+using android::vintf::Level;
 using android::vintf::RuntimeInfo;
 using android::vintf::Version;
 using android::vintf::VintfObject;
@@ -75,14 +76,39 @@ TEST_F(GenericBootImageTest, GenericRamdisk) {
   using std::filesystem::recursive_directory_iterator;
 
   std::string slot_suffix = GetProperty("ro.boot.slot_suffix", "");
-  std::string boot_path = "/dev/block/by-name/boot" + slot_suffix;
+  // Launching devices with T+ using android13+ kernels have the ramdisk in
+  // init_boot instead of boot
+  std::string error_msg;
+  const auto kernel_level =
+      VintfObject::GetInstance()->getKernelLevel(&error_msg);
+  ASSERT_NE(Level::UNSPECIFIED, kernel_level) << error_msg;
+  std::string boot_path;
+  if (kernel_level >= Level::T) {
+    if (std::stoi(android::base::GetProperty("ro.vendor.api_level", "0")) >=
+        __ANDROID_API_T__) {
+      boot_path = "/dev/block/by-name/init_boot" + slot_suffix;
+    } else {
+      // This is the case of a device launched before Android 13 that is
+      // upgrading its kernel to android13+. These devices can't add an
+      // init_boot partition and need to include the equivalent ramdisk
+      // functionality somewhere outside of boot.img (most likely in the
+      // vendor_boot image). Since we don't know where to look, or which files
+      // will be present, we can skip the rest of this test case.
+      GTEST_SKIP() << "Exempt generic ramdisk test on upgrading device that "
+                   << "launched before Android 13 and is now using an Android "
+                   << "13+ kernel.";
+    }
+  } else {
+    boot_path = "/dev/block/by-name/boot" + slot_suffix;
+  }
   if (0 != access(boot_path.c_str(), F_OK)) {
     int saved_errno = errno;
     FAIL() << "Can't access " << boot_path << ": " << strerror(saved_errno);
   }
 
   auto extracted_ramdisk = android::ExtractRamdiskToDirectory(boot_path);
-  ASSERT_RESULT_OK(extracted_ramdisk);
+  ASSERT_TRUE(extracted_ramdisk.ok())
+      << "Failed to find the block device: " << boot_path;
 
   std::set<std::string> actual_files;
   std::filesystem::path extracted_ramdisk_path((*extracted_ramdisk)->path);
