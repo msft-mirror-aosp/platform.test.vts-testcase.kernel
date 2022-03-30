@@ -111,6 +111,7 @@ TEST_F(GenericBootImageTest, GenericRamdisk) {
 
   std::set<std::string> generic_ramdisk_allowlist{
       "init",
+      "system/bin/snapuserd",
       "system/etc/ramdisk/build.prop",
   };
   if (GetBoolProperty("ro.debuggable", false)) {
