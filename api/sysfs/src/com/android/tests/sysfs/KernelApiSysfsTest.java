@@ -19,7 +19,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import android.platform.test.annotations.RequiresDevice;
 import com.android.tradefed.device.ITestDevice;
 import com.android.tradefed.testtype.DeviceJUnit4ClassRunner;
 import com.android.tradefed.testtype.junit4.BaseHostJUnit4Test;
@@ -40,18 +39,15 @@ import org.junit.runner.RunWith;
 /* A test to check check sysfs files. */
 @RunWith(DeviceJUnit4ClassRunner.class)
 public class KernelApiSysfsTest extends BaseHostJUnit4Test {
-    /* Check required files in /sys/class/android_usb if they exist. */
-    @RequiresDevice
+    /* Check for the existence of required files in /sys/class/android_usb. */
     @Test
     public void testAndroidUSB() throws Exception {
         String state = "/sys/class/android_usb/android0/state";
-        if (getDevice().doesFileExist(state)) {
-            assertTrue(TargetFileUtils.isReadOnly(state, getDevice()));
-            String content = getDevice().pullFileContents(state).trim();
-            HashSet<String> possibles =
-                    new HashSet<>(Arrays.asList("DISCONNECTED", "CONNECTED", "CONFIGURED"));
-            assertTrue(possibles.contains(content));
-        }
+        assertTrue(TargetFileUtils.isReadOnly(state, getDevice()));
+        String content = getDevice().pullFileContents(state).trim();
+        HashSet<String> possibles =
+                new HashSet<>(Arrays.asList("DISCONNECTED", "CONNECTED", "CONFIGURED"));
+        assertTrue(possibles.contains(content));
     }
 
     /**
@@ -188,26 +184,25 @@ public class KernelApiSysfsTest extends BaseHostJUnit4Test {
         }
     }
 
-    /* Check that /dev/rtc matches CONFIG_RTC_HCTOSYS_DEVICE */
+    /* Check that at least one rtc exists with hctosys = 1. */
     @Test
     public void testRtcHctosys() throws Exception {
-        String output = getDevice().executeShellCommand(
-                "gzip -dc /proc/config.gz | grep CONFIG_RTC_HCTOSYS_DEVICE");
-        Pattern p = Pattern.compile("CONFIG_RTC_HCTOSYS_DEVICE=\"(.*)\"");
-        Matcher m = p.matcher(output);
-        if (!m.find())
-            fail("Could not find CONFIG_RTC_HCTOSYS_DEVICE");
-        String rtc = m.group(1);
-        String rtc_link = getDevice().executeShellCommand("readlink /dev/rtc");
-        if (rtc_link.isEmpty()) {
-            if (getDevice().doesFileExist("/dev/rtc0")) {
-                rtc_link = "rtc0";
-            } else {
-                fail("Neither /dev/rtc nor /dev/rtc0 exist");
+        String[] rtcList = findFiles("/sys/class/rtc", "rtc*");
+        for (String entry : rtcList) {
+            String content = getDevice().pullFileContents(entry + "/hctosys");
+            if (Strings.isNullOrEmpty(content)) {
+                continue;
+            }
+            try {
+                int hctosys = Integer.parseInt(content.trim());
+                if (hctosys == 1) {
+                    return;
+                }
+            } catch (NumberFormatException e) {
+                continue;
             }
         }
-        assertTrue(String.format("(%s) does not match RTC_HCTOSYS_DEVICE (%s)", rtc_link, rtc),
-                rtc.equals(rtc_link));
+        fail("No RTC with hctosys=1 present");
     }
 
     /* Check that locking and unlocking a wake lock works.. */
@@ -261,31 +256,5 @@ public class KernelApiSysfsTest extends BaseHostJUnit4Test {
             assertTrue(String.format("Invalid system power state: '%s'", state),
                     allowedStates.contains(state));
         }
-    }
-
-    /* /sys/module/kfence/parameters/sample_interval contains KFENCE sampling rate. */
-    @Test
-    public void testKfenceSampleRate() throws Exception {
-        final int kRecommendedSampleRate = 500;
-        String versionPath = "/proc/version";
-        String versionStr = getDevice().pullFileContents(versionPath).trim();
-        Pattern p = Pattern.compile("Linux version ([0-9]+)\\.([0-9]+)");
-        Matcher m = p.matcher(versionStr);
-        assertTrue("Bad version " + versionPath, m.find());
-        int kernel_major = Integer.parseInt(m.group(1));
-        int kernel_minor = Integer.parseInt(m.group(2));
-
-        // Do not require KFENCE for kernels < 5.10.
-        if ((kernel_major < 5) || ((kernel_major == 5) && (kernel_minor < 10)))
-            return;
-
-        String filePath = "/sys/module/kfence/parameters/sample_interval";
-        assertTrue("Failed readwrite check of " + filePath,
-                TargetFileUtils.isReadWriteOnly(filePath, getDevice()));
-        String content = getDevice().pullFileContents(filePath).trim();
-        int sampleRate = Integer.parseInt(content);
-        assertTrue(
-                "Bad KFENCE sample rate: " + sampleRate + ", should be " + kRecommendedSampleRate,
-                sampleRate == kRecommendedSampleRate);
     }
 }

@@ -367,8 +367,6 @@ DISABLED_TESTS = [
     'pipes.pipeio_5',
     'pipes.pipeio_6',
     'pipes.pipeio_8',
-    'sched.sched_getattr01_32bit', # b/200686092
-    'sched.sched_setattr01_32bit', # b/200686092
     'sched.trace_sched01',
     'syscalls.access04',
     'syscalls.alarm02', # b/112423802
