@@ -764,6 +764,8 @@ STABLE_TESTS = [
     ('syscalls.close02_64bit', True),
     ('syscalls.close08_32bit', True),
     ('syscalls.close08_64bit', True),
+    ('syscalls.close_range01_32bit', True),
+    ('syscalls.close_range01_64bit', True),
     ('syscalls.close_range02_32bit', True),
     ('syscalls.close_range02_64bit', True),
     ('syscalls.connect01_32bit', True),
