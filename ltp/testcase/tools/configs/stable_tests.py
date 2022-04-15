@@ -251,6 +251,8 @@ STABLE_TESTS = [
     ('cve.cve-2020-11494_64bit', True),
     ('cve.cve-2020-14386_32bit', True),
     ('cve.cve-2020-14386_64bit', True),
+    ('cve.cve-2020-14416_32bit', True),
+    ('cve.cve-2020-14416_64bit', True),
     ('cve.cve-2020-29373_32bit', True),
     ('cve.cve-2020-29373_64bit', True),
     ('dio.dio01_32bit', False),
