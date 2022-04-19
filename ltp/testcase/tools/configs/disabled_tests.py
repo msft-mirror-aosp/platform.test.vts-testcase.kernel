@@ -85,6 +85,8 @@ DISABLED_TESTS = [
     'syscalls.semctl09_64bit',  # b/191227035
     'syscalls.shmctl08_32bit',  # b/191227526
     'syscalls.shmctl08_64bit',  # b/191227526
+    'syscalls.signal06_32bit',  # b/192048179
+    'syscalls.signal06_64bit',  # b/192048179
     'syscalls.statx07_32bit',  # b/191236106
     'syscalls.statx07_64bit',  # b/191236106
 ]
