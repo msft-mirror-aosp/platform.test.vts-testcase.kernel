@@ -83,10 +83,21 @@ TEST_F(GenericBootImageTest, GenericRamdisk) {
       VintfObject::GetInstance()->getKernelLevel(&error_msg);
   ASSERT_NE(Level::UNSPECIFIED, kernel_level) << error_msg;
   std::string boot_path;
-  if (std::stoi(android::base::GetProperty("ro.vendor.api_level", "0")) >=
-          __ANDROID_API_T__ &&
-      kernel_level >= Level::T) {
-    boot_path = "/dev/block/by-name/init_boot" + slot_suffix;
+  if (kernel_level >= Level::T) {
+    if (std::stoi(android::base::GetProperty("ro.vendor.api_level", "0")) >=
+        __ANDROID_API_T__) {
+      boot_path = "/dev/block/by-name/init_boot" + slot_suffix;
+    } else {
+      // This is the case of a device launched before Android 13 that is
+      // upgrading its kernel to android13+. These devices can't add an
+      // init_boot partition and need to include the equivalent ramdisk
+      // functionality somewhere outside of boot.img (most likely in the
+      // vendor_boot image). Since we don't know where to look, or which files
+      // will be present, we can skip the rest of this test case.
+      GTEST_SKIP() << "Exempt generic ramdisk test on upgrading device that "
+                   << "launched before Android 13 and is now using an Android "
+                   << "13+ kernel.";
+    }
   } else {
     boot_path = "/dev/block/by-name/boot" + slot_suffix;
   }
@@ -111,6 +122,7 @@ TEST_F(GenericBootImageTest, GenericRamdisk) {
 
   std::set<std::string> generic_ramdisk_allowlist{
       "init",
+      "system/bin/snapuserd",
       "system/etc/ramdisk/build.prop",
   };
   if (GetBoolProperty("ro.debuggable", false)) {
