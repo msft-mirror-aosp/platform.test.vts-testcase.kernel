@@ -44,17 +44,18 @@ TEST(drop_caches, set_perf_property) {
 
   android::base::unique_fd fd(
       open("/data/local/tmp/garbage.data", O_CREAT | O_RDWR, 0666));
-  ASSERT_NE(-1, fd);
+  ASSERT_NE(-1, fd) << "Failed to allocate a file for the test.";
 
   for (unsigned int chunk = 0; chunk < filesize / blocksize; chunk++) {
+    lseek(fd, chunk * blocksize, SEEK_SET);
     for (unsigned int c = 0; c < chunksize; c++) {
       buf[c] = (random() % 26) + 'A';
     }
     write(fd, buf, chunksize);
-    lseek(fd, chunk * blocksize, SEEK_SET);
   }
   lseek(fd, 0, SEEK_SET);
-  ASSERT_NE(-1, fdatasync(fd.get()));
+  ASSERT_NE(-1, fdatasync(fd.get()))
+      << "Failed to sync file in memory with storage.";
 
   // Read the chunks of data created earlier in the file 3 times. The first
   // read promotes these pages to the inactive LRU cache. The second promotes
@@ -75,43 +76,63 @@ TEST(drop_caches, set_perf_property) {
   // not cached.
 
   void* ptr = mmap(NULL, filesize, PROT_READ, MAP_PRIVATE, fd.get(), 0);
+  ASSERT_NE(ptr, MAP_FAILED) << "Failed to mmap the data file.";
+  // This advice will prevent readaheads from the OS, which might cause the
+  // existing pages in the pagecache to get mapped, reducing the number of
+  // minor faults.
+  madvise(ptr, filesize, MADV_RANDOM);
 
   struct rusage usage_before_minor, usage_after_minor;
   getrusage(RUSAGE_SELF, &usage_before_minor);
-  for (unsigned int i = 0; i < filesize / blocksize - 1; i++) {
+  for (unsigned int i = 0; i < filesize / blocksize; i++) {
     volatile int tmp = *((char*)ptr + (i * blocksize));
     (void)tmp;  // Bypass the unused error.
   }
   getrusage(RUSAGE_SELF, &usage_after_minor);
 
-  ASSERT_NE(-1, munmap(ptr, filesize));
+  ASSERT_NE(-1, munmap(ptr, filesize)) << "Failed to unmap the data file.";
 
   android::base::SetProperty("perf.drop_caches", "3");
-  sleep(1);
-  ASSERT_EQ("0", android::base::GetProperty("perf.drop_caches", "-1"));
+  // This command can occasionally be delayed from running.
+  int attempts_left = 10;
+  while (android::base::GetProperty("perf.drop_caches", "-1") != "0") {
+    attempts_left--;
+    if (attempts_left == 0) {
+      FAIL() << "The perf.drop_caches property was never set back to 0. It's "
+                "currently equal to"
+             << android::base::GetProperty("perf.drop_caches", "") << ".";
+    } else {
+      sleep(1);
+    }
+  }
 
   // Read a few bytes from every block while all the data is not cached.
   // Every page accessed will cause a major fault if the page cache has
   // been dropped like we expect.
 
   ptr = mmap(NULL, filesize, PROT_READ, MAP_PRIVATE, fd.get(), 0);
+  ASSERT_NE(ptr, MAP_FAILED) << "Failed to mmap the data file.";
   // This advice will prevent readaheads from the OS, which may turn major
   // faults into minor faults and obscure whether data was previously cached.
   madvise(ptr, filesize, MADV_RANDOM);
 
   struct rusage usage_before_major, usage_after_major;
   getrusage(RUSAGE_SELF, &usage_before_major);
-  for (unsigned int i = 0; i < filesize / blocksize - 1; i++) {
+  for (unsigned int i = 0; i < filesize / blocksize; i++) {
     volatile int tmp = *((char*)ptr + (i * blocksize));
     (void)tmp;  // Bypass the unused error.
   }
   getrusage(RUSAGE_SELF, &usage_after_major);
+
+  ASSERT_NE(-1, munmap(ptr, filesize)) << "Failed to unmap the data file.";
 
   long with_cache_minor_faults =
       usage_after_minor.ru_minflt - usage_before_minor.ru_minflt;
   long without_cache_major_faults =
       usage_after_major.ru_majflt - usage_before_major.ru_majflt;
   bool failure = abs(with_cache_minor_faults - without_cache_major_faults) > 2;
+  ALOGI("There were %ld minor faults and %ld major faults.",
+        with_cache_minor_faults, without_cache_major_faults);
   ASSERT_EQ(failure, false)
       << "The difference between minor and major faults was too large.";
 
