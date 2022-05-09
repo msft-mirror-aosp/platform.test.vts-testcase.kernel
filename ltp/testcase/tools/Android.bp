@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2018 The Android Open Source Project
+// Copyright (C) 2021 The Android Open Source Project
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,30 +18,22 @@ package {
     default_applicable_licenses: ["Android-Apache-2.0"],
 }
 
-cc_test {
-    name: "vts_test_binary_bow_module",
-    tidy_timeout_srcs: ["BowTest.cpp"],
-    srcs: ["BowTest.cpp"],
-    shared_libs: [
-        "libcutils",
-        "libutils",
-        "liblog",
-        "libbase",
+python_test_host {
+    name: "vts_ltp_launcher_test",
+    main: "test_launcher.py",
+    srcs: [
+        "configs/disabled_tests.py",
+        "configs/stable_tests.py",
+        "test_launcher.py",
     ],
-    static_libs: [
-        "libdm",
-        "libext2_uuid",
-        "libtestUtil",
-    ],
-    cflags: [
-        "-fno-strict-aliasing",
-        "-Wall",
-        "-Werror",
-        "-Wno-unused-variable",
-    ],
-    test_suites: [
-        "vts",
-    ],
-    require_root: true,
-    auto_gen_config: true,
+    version: {
+        py2: {
+            enabled: false,
+            embedded_launcher: false,
+        },
+        py3: {
+            enabled: true,
+            embedded_launcher: true,
+        }
+    },
 }
