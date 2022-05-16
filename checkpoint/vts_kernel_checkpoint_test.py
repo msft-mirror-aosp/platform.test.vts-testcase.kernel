@@ -38,7 +38,7 @@ class VtsKernelCheckpointTest(unittest.TestCase):
     def getFstab(self):
         # Make sure device is ready for adb.
         self.adb.Execute(["wait-for-device"], timeout=900)
-        self.adb.Execute(["root"])
+        self.adb.Root()
 
         for prop in ["fstab_suffix", "hardware", "hardware.platform"]:
             out, err, return_code = self.dut.Execute("getprop ro.boot." + prop)
@@ -81,7 +81,7 @@ class VtsKernelCheckpointTest(unittest.TestCase):
         # regularly on taimen with Android Q
         for i in range(1, 30):
           try:
-            self.adb.Execute(["root"])
+            self.adb.Root()
             break
           except:
             time.sleep(1)
@@ -119,7 +119,7 @@ class VtsKernelCheckpointTest(unittest.TestCase):
         if not self.isCheckpoint_:
             return
 
-        self.adb.Execute(["root"])
+        self.adb.Root()
 
         # Make sure that we are fully booted so we don't get entangled in
         # someone else's checkpoint
@@ -151,7 +151,7 @@ class VtsKernelCheckpointTest(unittest.TestCase):
         if not self.isCheckpoint_:
             return
 
-        self.adb.Execute(["root"])
+        self.adb.Root()
 
         # Make sure that we are fully booted so we don't get entangled in
         # someone else's checkpoint
