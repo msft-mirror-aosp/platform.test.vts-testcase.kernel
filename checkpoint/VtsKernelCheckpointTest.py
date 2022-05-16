@@ -103,12 +103,13 @@ class VtsKernelCheckpointTest(base_test.BaseTestClass):
 
     def testCheckpointEnabled(self):
         result = self.dut.adb.shell("getprop ro.product.first_api_level")
+        first_api_level = 0
         try:
           first_api_level = int(result)
-          asserts.assertTrue(first_api_level < 29 or self.isCheckpoint_,
-                             "User Data Checkpoint is disabled")
         except:
           pass
+        asserts.assertTrue(first_api_level < 29 or self.isCheckpoint_,
+                             "User Data Checkpoint is disabled")
 
     def testRollback(self):
         if not self.isCheckpoint_:
