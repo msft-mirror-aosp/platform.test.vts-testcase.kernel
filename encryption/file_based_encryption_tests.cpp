@@ -336,6 +336,18 @@ static bool WriteTestFile(const std::vector<uint8_t> &plaintext,
     return false;
   }
 
+  if (compress_options != nullptr) {
+    // With compress_mode=user, files in a compressed directory inherit the
+    // compression flag but aren't actually compressed unless
+    // F2FS_IOC_COMPRESS_FILE is called.  The ioctl compresses existing data
+    // only, so it must be called *after* writing the data.  With
+    // compress_mode=fs, the ioctl is unnecessary and fails with EOPNOTSUPP.
+    if (ioctl(fd, F2FS_IOC_COMPRESS_FILE, NULL) != 0 && errno != EOPNOTSUPP) {
+      ADD_FAILURE() << "F2FS_IOC_COMPRESS_FILE failed on " << path << Errno();
+      return false;
+    }
+  }
+
   GTEST_LOG_(INFO) << "Reading the raw ciphertext of " << path << " from disk";
   if (!ReadRawDataOfFile(fd, blk_device, plaintext.size(), ciphertext)) {
     ADD_FAILURE() << "Failed to read the raw ciphertext of " << path;
