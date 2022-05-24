@@ -38,7 +38,7 @@ class VtsKernelCheckpointTest(unittest.TestCase):
     def getFstab(self):
         # Make sure device is ready for adb.
         self.adb.Execute(["wait-for-device"], timeout=900)
-        self.adb.Execute(["root"])
+        self.adb.Root()
 
         for prop in ["fstab_suffix", "hardware", "hardware.platform"]:
             out, err, return_code = self.dut.Execute("getprop ro.boot." + prop)
@@ -81,7 +81,7 @@ class VtsKernelCheckpointTest(unittest.TestCase):
         # regularly on taimen with Android Q
         for i in range(1, 30):
           try:
-            self.adb.Execute(["root"])
+            self.adb.Root()
             break
           except:
             time.sleep(1)
@@ -107,18 +107,19 @@ class VtsKernelCheckpointTest(unittest.TestCase):
 
     def testCheckpointEnabled(self):
         out, err, return_code = self.dut.Execute("getprop ro.product.first_api_level")
+        first_api_level = 0
         try:
           first_api_level = int(out)
-          self.assertTrue(first_api_level < 29 or self.isCheckpoint_,
-                             "User Data Checkpoint is disabled")
         except:
           pass
+        self.assertTrue(first_api_level < 29 or self.isCheckpoint_,
+                           "User Data Checkpoint is disabled")
 
     def testRollback(self):
         if not self.isCheckpoint_:
             return
 
-        self.adb.Execute(["root"])
+        self.adb.Root()
 
         # Make sure that we are fully booted so we don't get entangled in
         # someone else's checkpoint
@@ -150,7 +151,7 @@ class VtsKernelCheckpointTest(unittest.TestCase):
         if not self.isCheckpoint_:
             return
 
-        self.adb.Execute(["root"])
+        self.adb.Root()
 
         # Make sure that we are fully booted so we don't get entangled in
         # someone else's checkpoint
