@@ -195,21 +195,27 @@ static bool IsFscryptV2Supported(const std::string &mountpoint) {
   }
 }
 
-// Helper class to pin / unpin a file on f2fs, to prevent f2fs from moving the
-// file's blocks while the test is accessing them via the underlying device.
+// Helper class to freeze / unfreeze a filesystem, to prevent the filesystem
+// from moving the file's blocks while the test is accessing them via the
+// underlying device.  ext4 doesn't need this, but f2fs does because f2fs does
+// background garbage collection.  We cannot use F2FS_IOC_SET_PIN_FILE because
+// F2FS_IOC_SET_PIN_FILE doesn't support compressed files.
 //
-// This can be used without checking the filesystem type, since on other
-// filesystem types F2FS_IOC_SET_PIN_FILE will just fail and do nothing.
-class ScopedF2fsFilePinning {
+// The fd given can be any fd to a file or directory on the filesystem.
+// FIFREEZE operates on the whole filesystem, not on the individual file given.
+class ScopedFsFreezer {
  public:
-  explicit ScopedF2fsFilePinning(int fd) : fd_(fd) {
-    __u32 set = 1;
-    ioctl(fd_, F2FS_IOC_SET_PIN_FILE, &set);
+  explicit ScopedFsFreezer(int fd) : fd_(fd) {
+    if (ioctl(fd_, FIFREEZE, NULL) != 0) {
+      ADD_FAILURE() << "Failed to freeze filesystem" << Errno();
+      fd_ = -1;
+    }
   }
 
-  ~ScopedF2fsFilePinning() {
-    __u32 set = 0;
-    ioctl(fd_, F2FS_IOC_SET_PIN_FILE, &set);
+  ~ScopedFsFreezer() {
+    if (fd_ != -1 && ioctl(fd_, FITHAW, NULL) != 0) {
+      ADD_FAILURE() << "Failed to thaw filesystem" << Errno();
+    }
   }
 
  private:
@@ -228,21 +234,20 @@ static bool ReadRawDataOfFile(int fd, const std::string &blk_device,
 
   EXPECT_TRUE(expected_data_size % kFilesystemBlockSize == 0);
 
-  // It's not entirely clear how F2FS_IOC_SET_PIN_FILE interacts with dirty
-  // data, so do an extra sync here and don't just rely on FIEMAP_FLAG_SYNC.
   if (fsync(fd) != 0) {
     ADD_FAILURE() << "Failed to sync file" << Errno();
     return false;
   }
 
-  ScopedF2fsFilePinning pinned_file(fd);  // no-op on non-f2fs
+  // Freeze the filesystem containing the file.
+  ScopedFsFreezer freezer(fd);
 
   // Query the file's extents.
   size_t allocsize = offsetof(struct fiemap, fm_extents[max_extents]);
   std::unique_ptr<struct fiemap> map(
       new (::operator new(allocsize)) struct fiemap);
   memset(map.get(), 0, allocsize);
-  map->fm_flags = FIEMAP_FLAG_SYNC;
+  map->fm_flags = 0;
   map->fm_length = UINT64_MAX;
   map->fm_extent_count = max_extents;
   if (ioctl(fd, FS_IOC_FIEMAP, map.get()) != 0) {
