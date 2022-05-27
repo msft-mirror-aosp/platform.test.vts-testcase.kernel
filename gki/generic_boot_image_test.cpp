@@ -17,6 +17,7 @@
 #include <filesystem>
 
 #include <android-base/properties.h>
+#include <android-base/strings.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <kver/kernel_release.h>
@@ -71,6 +72,7 @@ TEST_F(GenericBootImageTest, GenericRamdisk) {
     GTEST_SKIP() << "Exempt generic ramdisk test on kernel "
                  << runtime_info->kernelVersion()
                  << ". Only required on 5.10+.";
+    return;
   }
 
   using std::filesystem::recursive_directory_iterator;
@@ -97,18 +99,20 @@ TEST_F(GenericBootImageTest, GenericRamdisk) {
       GTEST_SKIP() << "Exempt generic ramdisk test on upgrading device that "
                    << "launched before Android 13 and is now using an Android "
                    << "13+ kernel.";
+      return;
     }
   } else {
     boot_path = "/dev/block/by-name/boot" + slot_suffix;
   }
-  if (0 != access(boot_path.c_str(), F_OK)) {
+  if (0 != access(boot_path.c_str(), R_OK)) {
     int saved_errno = errno;
     FAIL() << "Can't access " << boot_path << ": " << strerror(saved_errno);
+    return;
   }
 
   auto extracted_ramdisk = android::ExtractRamdiskToDirectory(boot_path);
   ASSERT_TRUE(extracted_ramdisk.ok())
-      << "Failed to find the block device: " << boot_path;
+      << "Failed to extract ramdisk: " << extracted_ramdisk.error();
 
   std::set<std::string> actual_files;
   std::filesystem::path extracted_ramdisk_path((*extracted_ramdisk)->path);
@@ -123,6 +127,7 @@ TEST_F(GenericBootImageTest, GenericRamdisk) {
   std::set<std::string> generic_ramdisk_allowlist{
       "init",
       "system/bin/snapuserd",
+      "system/etc/init/snapuserd.rc",
       "system/etc/ramdisk/build.prop",
   };
   if (GetBoolProperty("ro.debuggable", false)) {
