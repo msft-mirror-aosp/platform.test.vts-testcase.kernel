@@ -54,7 +54,10 @@
         <option name="test-command-line" key="timers_set-timer-lat_x86_64" value="chmod 755 &ktest_dir;/timers/set-timer-lat; cd &ktest_dir;/timers; ./set-timer-lat" />
         <option name="test-command-line" key="timers_threadtest_x86_64" value="chmod 755 &ktest_dir;/timers/threadtest; cd &ktest_dir;/timers; ./threadtest" />
         <option name="test-command-line" key="timers_valid-adjtimex_x86_64" value="chmod 755 &ktest_dir;/timers/valid-adjtimex; cd &ktest_dir;/timers; ./valid-adjtimex" />
-        <option name="test-command-line" key="vDSO_kselftest_vdso_test_x86_64" value="chmod 755 &ktest_dir;/vDSO/kselftest_vdso_test; cd &ktest_dir;/vDSO; ./kselftest_vdso_test" />
+        <option name="test-command-line" key="vDSO_kselftest_vdso_test_abi_x86_64" value="chmod 755 &ktest_dir;/vDSO/kselftest_vdso_test_abi; cd &ktest_dir;/vDSO; ./kselftest_vdso_test_abi" />
+        <option name="test-command-line" key="vDSO_kselftest_vdso_test_clock_getres_x86_64" value="chmod 755 &ktest_dir;/vDSO/kselftest_vdso_test_clock_getres; cd &ktest_dir;/vDSO; ./kselftest_vdso_test_clock_getres" />
+        <option name="test-command-line" key="vDSO_kselftest_vdso_test_getcpu_x86_64" value="chmod 755 &ktest_dir;/vDSO/kselftest_vdso_test_getcpu; cd &ktest_dir;/vDSO; ./kselftest_vdso_test_getcpu" />
+        <option name="test-command-line" key="vDSO_kselftest_vdso_test_gettimeofday_x86_64" value="chmod 755 &ktest_dir;/vDSO/kselftest_vdso_test_gettimeofday; cd &ktest_dir;/vDSO; ./kselftest_vdso_test_gettimeofday" />
         <option name="test-command-line" key="x86_single_step_syscall_x86_64" value="chmod 755 &ktest_dir;/x86/single_step_syscall; cd &ktest_dir;/x86; ./single_step_syscall" />
         <option name="test-command-line" key="x86_syscall_nt_x86_64" value="chmod 755 &ktest_dir;/x86/syscall_nt; cd &ktest_dir;/x86; ./syscall_nt" />
         <option name="test-command-line" key="x86_ptrace_syscall_x86_64" value="chmod 755 &ktest_dir;/x86/ptrace_syscall; cd &ktest_dir;/x86; ./ptrace_syscall" />
