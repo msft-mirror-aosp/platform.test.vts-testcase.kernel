@@ -42,8 +42,8 @@ class LtpTestCases(object):
         self._android_build_top = android_build_top
         self._filter_func = filter_func
         self._ltp_tests_filter = filter_utils.Filter(
-            [ i[0] for i in stable_tests.STABLE_TESTS ],
-            disabled_tests.DISABLED_TESTS,
+            list(stable_tests.STABLE_TESTS.keys()),
+            list(disabled_tests.DISABLED_TESTS),
             enable_regex=True)
         self._ltp_tests_filter.ExpandBitness()
         self._ltp_binaries = []
@@ -235,13 +235,11 @@ class LtpTestCases(object):
                     continue
 
             if not testcase.is_staging:
-                for x in stable_tests.STABLE_TESTS:
-                    if x[0] == test_display_name and x[1]:
-                        testcase.is_mandatory = True
-                        break
+                if stable_tests.STABLE_TESTS.get(test_display_name, False):
+                    testcase.is_mandatory = True
 
             if is_hwasan:
-                if x[0] in disabled_tests.DISABLED_TESTS_HWASAN:
+                if test_display_name in disabled_tests.DISABLED_TESTS_HWASAN:
                     continue
 
             if self.IsLtpBinaryExist(command):

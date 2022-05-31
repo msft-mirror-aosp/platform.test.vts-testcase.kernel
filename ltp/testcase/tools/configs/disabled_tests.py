@@ -1,5 +1,5 @@
 # Disabled tests
-DISABLED_TESTS = [
+DISABLED_TESTS = {
     'can.can_filter_32bit',  # b/191224815
     'can.can_filter_64bit',  # b/191224815
     'can.can_rcv_own_msgs_32bit',  # b/191225491
@@ -87,14 +87,14 @@ DISABLED_TESTS = [
     'syscalls.signal06_64bit',  # b/192048179
     'syscalls.statx07_32bit',  # b/191236106
     'syscalls.statx07_64bit',  # b/191236106
-]
+}
 
 # These tests are only disabled for hwasan
-DISABLED_TESTS_HWASAN = [
+DISABLED_TESTS_HWASAN = {
     'commands.sysctl02_sh_64bit',  # b/191227527
     'fs.binfmt_misc01_64bit',  # b/191224879
     'fs.binfmt_misc02_64bit',  # b/191224881
     'fs.read_all_dev_64bit',  # b/191226872
     'fs.read_all_proc_64bit',  # b/191226873
     'syscalls.accept02_64bit',  # b/191224729
-]
+}
