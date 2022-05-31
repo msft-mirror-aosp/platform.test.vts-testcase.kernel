@@ -172,9 +172,10 @@ class LtpTestCases(object):
         module_controller_option = self.GetKernelModuleControllerOption(arch, n_bit,
                                                                         is_low_mem,
                                                                         is_hwasan)
-        test_case_string = ''
-        run_scritp = self.GenerateLtpRunScript(scenario_groups)
-        for line in run_scritp:
+        mandatory_test_cases = []
+        skippable_test_cases = []
+        run_script = self.GenerateLtpRunScript(scenario_groups)
+        for line in run_script:
             items = self.ValidateDefinition(line)
             if not items:
                 continue
@@ -251,10 +252,16 @@ class LtpTestCases(object):
                 # e.g. mm.mmapstress07
                 command = command.replace(ltp_configs.LTPDIR, '&ltp_dir;')
                 ltp_test_line = ltp_test_template % (test_display_name, command)
-                test_case_string += (ltp_test_line + '\n')
+                if testcase.is_mandatory:
+                    mandatory_test_cases.append(ltp_test_line)
+                else:
+                    skippable_test_cases.append(ltp_test_line)
         nativetest_bit_path = '64' if n_bit == '64' else ''
-        config_lines = config_lines.format(nativetest_bit_path, module_controller_option,
-                                           test_case_string)
+        config_lines = config_lines.format(
+            nativetest_bit_path=nativetest_bit_path,
+            module_controller_option=module_controller_option,
+            mandatory_test_cases='\n'.join(mandatory_test_cases),
+            skippable_test_cases='\n'.join(skippable_test_cases))
         with open(output_file, 'w') as f:
             f.write(config_lines)
 
