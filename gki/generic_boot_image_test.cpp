@@ -122,6 +122,9 @@ TEST_F(GenericBootImageTest, GenericRamdisk) {
 
   std::set<std::string> generic_ramdisk_allowlist{
       "init",
+      "system/bin/e2fsck",
+      "system/bin/fsck.f2fs",
+      "system/bin/tune2fs",
       "system/bin/snapuserd",
       "system/etc/ramdisk/build.prop",
   };
