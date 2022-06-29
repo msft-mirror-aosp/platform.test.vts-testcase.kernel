@@ -43,8 +43,8 @@ class LtpTestCases(object):
         self._android_build_top = android_build_top
         self._filter_func = filter_func
         self._ltp_tests_filter = filter_utils.Filter(
-            list(stable_tests.STABLE_TESTS.keys()),
-            list(disabled_tests.DISABLED_TESTS),
+            set(stable_tests.STABLE_TESTS.keys()),
+            disabled_tests.DISABLED_TESTS,
             enable_regex=True)
         self._ltp_tests_filter.ExpandBitness()
         self._ltp_binaries = []
