@@ -23,6 +23,7 @@ import test_case
 from configs import stable_tests
 from configs import disabled_tests
 from common import filter_utils
+from typing import Set, Optional, List, Callable
 
 ltp_test_template = '        <option name="test-command-line" key="%s" value="&env_setup_cmd; ;' \
                     ' cd &ltp_bin_dir; ; %s" />'
@@ -38,7 +39,7 @@ class LtpTestCases(object):
         _ltp_config_lines: list of string: the context of the generated config
     """
 
-    def __init__(self, android_build_top, filter_func):
+    def __init__(self, android_build_top: str, filter_func: Callable):
         self._android_build_top = android_build_top
         self._filter_func = filter_func
         self._ltp_tests_filter = filter_utils.Filter(
@@ -49,7 +50,7 @@ class LtpTestCases(object):
         self._ltp_binaries = []
         self._ltp_config_lines = []
 
-    def ValidateDefinition(self, line):
+    def ValidateDefinition(self, line: str) -> Optional[List[str]]:
         """Validate a tab delimited test case definition.
 
         Will check whether the given line of definition has three parts
@@ -70,7 +71,7 @@ class LtpTestCases(object):
         else:
             return items
 
-    def ReadConfigTemplateFile(self):
+    def ReadConfigTemplateFile(self) -> str:
         """Read the template of the config file and return the context.
 
         Returns:
@@ -81,7 +82,7 @@ class LtpTestCases(object):
         with open(file_path, 'r') as f:
             return f.read()
 
-    def GetKernelModuleControllerOption(self, arch, n_bit, is_low_mem=False, is_hwasan=False):
+    def GetKernelModuleControllerOption(self, arch: str, n_bit: int, is_low_mem: bool = False, is_hwasan: bool = False) -> str:
         """Get the Option of KernelModuleController.
 
         Args:
@@ -114,9 +115,6 @@ class LtpTestCases(object):
 
         Args:
             command: String, the test command
-
-        Returns:
-            bool: True if the binary in the gen.bp
         """
         gen_bp_path = os.path.join(self._android_build_top, ltp_configs.LTP_GEN_BINARY_BP)
         for line in open(gen_bp_path, 'r'):
@@ -127,7 +125,7 @@ class LtpTestCases(object):
                 ltp_binary = line.split('"')[1]
                 self._ltp_binaries.append(ltp_binary)
 
-    def IsLtpBinaryExist(self, commands):
+    def IsLtpBinaryExist(self, commands: str) -> bool:
         """Check the binary exist in the command.
 
         Args:
@@ -146,13 +144,13 @@ class LtpTestCases(object):
         return False
 
     def GenConfig(self,
-             arch,
-             n_bit,
-             test_filter,
-             output_file,
-             run_staging=False,
-             is_low_mem=False,
-             is_hwasan=False):
+             arch: str,
+             n_bit: int,
+             test_filter: filter_utils.Filter,
+             output_file: str,
+             run_staging: bool = False,
+             is_low_mem: bool = False,
+             is_hwasan: bool = False):
         """Read the definition file and generate the test config.
 
         Args:
@@ -265,7 +263,7 @@ class LtpTestCases(object):
         with open(output_file, 'w') as f:
             f.write(config_lines)
 
-    def ReadCommentedTxt(self, filepath):
+    def ReadCommentedTxt(self, filepath: str) -> Optional[Set[str]]:
         '''Read a lines of a file that are not commented by #.
 
         Args:
@@ -284,7 +282,7 @@ class LtpTestCases(object):
                 line for line in lines_gen
                 if line and not line.startswith('#'))
 
-    def GenerateLtpTestCases(self, testsuite, disabled_tests_list):
+    def GenerateLtpTestCases(self, testsuite: str, disabled_tests_list: List[str]) -> List[str]:
         '''Generate test cases for each ltp test suite.
 
         Args:
@@ -311,7 +309,7 @@ class LtpTestCases(object):
                 [testsuite, testname_modified, line[len(testname):].strip()]))
         return result
 
-    def GenerateLtpRunScript(self, scenario_groups):
+    def GenerateLtpRunScript(self, scenario_groups: List[str]) -> List[str]:
         '''Given a scenario group generate test case script.
 
         Args:

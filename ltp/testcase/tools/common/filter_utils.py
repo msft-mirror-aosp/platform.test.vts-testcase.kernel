@@ -19,6 +19,7 @@ import logging
 import re
 from sre_constants import error as regex_error
 import types
+from typing import List, Tuple, Callable, Union
 
 from host import const
 from common import list_utils
@@ -33,7 +34,7 @@ DEFAULT_EXCLUDE_OVER_INCLUDE = False
 _MODULE_NAME_PATTERN = '{module}.{test}'
 
 
-def ExpandBitness(input_list):
+def ExpandBitness(input_list: List[str]) -> List[str]:
     '''Expand filter items with bitness suffix.
 
     If a filter item contains bitness suffix, only test name with that tag
@@ -63,7 +64,7 @@ def ExpandBitness(input_list):
     return list_utils.DeduplicateKeepOrder(result)
 
 
-def ExpandAppendix(input_list, appendix_list, filter_pattern):
+def ExpandAppendix(input_list: List[str], appendix_list: List[str], filter_pattern: str) -> List[str]:
     '''Expand each item in input_list with appendix in the appendix_list
 
     For each item in input_list, expand it to N items (N=size of appendix_list)
@@ -107,7 +108,7 @@ def ExpandAppendix(input_list, appendix_list, filter_pattern):
     return result
 
 
-def SplitFilterList(input_list):
+def SplitFilterList(input_list: List[str]) -> Tuple[List[str], List[str]]:
     '''Split filter items into exact and regex lists.
 
     To specify a regex filter, the syntax is:
@@ -143,7 +144,7 @@ def SplitFilterList(input_list):
     return (exact, regex)
 
 
-def SplitNegativePattern(input_list):
+def SplitNegativePattern(input_list: List[str]) -> Tuple[List[str], List[str]]:
     '''Split negative items out from an input filter list.
 
     Items starting with the negative sign will be moved to the second returning
@@ -167,7 +168,7 @@ def SplitNegativePattern(input_list):
     return (positive, negative)
 
 
-def InRegexList(item, regex_list):
+def InRegexList(item: str, regex_list: List[str]) -> bool:
     '''Checks whether a given string matches an item in the given regex list.
 
     Args:
@@ -186,7 +187,7 @@ def InRegexList(item, regex_list):
     return False
 
 
-def IsRegexFilter(item):
+def IsRegexFilter(item: str) -> bool:
     '''Checks whether the given item is a regex filter.
 
     Args:
@@ -286,7 +287,7 @@ class Filter(object):
         '''
         return not self.include_filter_exact and not self.include_filter_regex
 
-    def ExpandAppendix(self, appendix_list, filter_pattern):
+    def ExpandAppendix(self, appendix_list: List[str], filter_pattern: str):
         '''Expand filter with appendix from appendix_list.
 
         Reset both include_filter and exclude_filter by expanding the filters
@@ -302,7 +303,7 @@ class Filter(object):
         self.exclude_filter = ExpandAppendix(self.exclude_filter,
                                              appendix_list, filter_pattern)
 
-    def Filter(self, item):
+    def Filter(self, item: str) -> bool:
         '''Filter a given string using the internal filters.
 
         Rule:
@@ -332,7 +333,7 @@ class Filter(object):
 
             return not self.IsInExcludeFilter(item)
 
-    def IsInIncludeFilter(self, item):
+    def IsInIncludeFilter(self, item: str) -> bool:
         '''Check if item is in include filter.
 
         If enable_module_name_prefix_matching is set to True, module name
@@ -347,7 +348,7 @@ class Filter(object):
         return self._ModuleNamePrefixMatchingCheck(item,
                                                    self._IsInIncludeFilter)
 
-    def IsInExcludeFilter(self, item):
+    def IsInExcludeFilter(self, item: str) -> bool:
         '''Check if item is in exclude filter.
 
         If enable_module_name_prefix_matching is set to True, module name
@@ -362,7 +363,7 @@ class Filter(object):
         return self._ModuleNamePrefixMatchingCheck(item,
                                                    self._IsInExcludeFilter)
 
-    def _ModuleNamePrefixMatchingCheck(self, item, check_function):
+    def _ModuleNamePrefixMatchingCheck(self, item: str, check_function: Callable) -> bool:
         '''Check item from filter after appending module name as prefix.
 
         This function will first check whether enable_module_name_prefix_matching
@@ -392,7 +393,7 @@ class Filter(object):
 
         return res
 
-    def _IsInIncludeFilter(self, item):
+    def _IsInIncludeFilter(self, item: str) -> bool:
         '''Internal function to check if item is in include filter.
 
         Args:
@@ -404,7 +405,7 @@ class Filter(object):
         return item in self.include_filter_exact or InRegexList(
             item, self.include_filter_regex)
 
-    def _IsInExcludeFilter(self, item):
+    def _IsInExcludeFilter(self, item: str) -> bool:
         '''Internal function to check if item is in exclude filter.
 
         Args:
@@ -441,7 +442,7 @@ class Filter(object):
         return getattr(self, _INCLUDE_FILTER, [])
 
     @include_filter.setter
-    def include_filter(self, include_filter):
+    def include_filter(self, include_filter: List[str]):
         '''Setter method for include_filter'''
         setattr(self, _INCLUDE_FILTER, include_filter)
         self.refresh_filter()
@@ -471,12 +472,12 @@ class Filter(object):
         return getattr(self, _EXCLUDE_FILTER, [])
 
     @exclude_filter.setter
-    def exclude_filter(self, exclude_filter):
+    def exclude_filter(self, exclude_filter: List[str]):
         '''Setter method for exclude_filter'''
         setattr(self, _EXCLUDE_FILTER, exclude_filter)
         self.refresh_filter()
 
-    def add_to_include_filter(self, pattern, auto_refresh=True):
+    def add_to_include_filter(self, pattern: Union[str, List[str]], auto_refresh: bool = True):
         '''Add an item to include_filter.
 
         Args:
@@ -495,7 +496,7 @@ class Filter(object):
         if auto_refresh:
             self.refresh_filter()
 
-    def add_to_exclude_filter(self, pattern, auto_refresh=True):
+    def add_to_exclude_filter(self, pattern: Union[str, List[str]], auto_refresh: bool = True):
         '''Add an item to exclude_filter.
 
         Args:
