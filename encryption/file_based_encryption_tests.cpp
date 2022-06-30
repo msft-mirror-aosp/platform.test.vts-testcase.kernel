@@ -336,6 +336,18 @@ static bool WriteTestFile(const std::vector<uint8_t> &plaintext,
     return false;
   }
 
+  if (compress_options != nullptr) {
+    // With compress_mode=user, files in a compressed directory inherit the
+    // compression flag but aren't actually compressed unless
+    // F2FS_IOC_COMPRESS_FILE is called.  The ioctl compresses existing data
+    // only, so it must be called *after* writing the data.  With
+    // compress_mode=fs, the ioctl is unnecessary and fails with EOPNOTSUPP.
+    if (ioctl(fd, F2FS_IOC_COMPRESS_FILE, NULL) != 0 && errno != EOPNOTSUPP) {
+      ADD_FAILURE() << "F2FS_IOC_COMPRESS_FILE failed on " << path << Errno();
+      return false;
+    }
+  }
+
   GTEST_LOG_(INFO) << "Reading the raw ciphertext of " << path << " from disk";
   if (!ReadRawDataOfFile(fd, blk_device, plaintext.size(), ciphertext)) {
     ADD_FAILURE() << "Failed to read the raw ciphertext of " << path;
@@ -1288,6 +1300,59 @@ TEST_F(FBEPolicyTest, TestF2fsCompression) {
   ASSERT_EQ(file_info.plaintext, decompressed_data);
 }
 
+static bool DeviceUsesFBE() {
+  if (android::base::GetProperty("ro.crypto.type", "") == "file") return true;
+  // FBE has been required since Android Q.
+  int first_api_level;
+  if (!GetFirstApiLevel(&first_api_level)) return true;
+  if (first_api_level >= __ANDROID_API_Q__) {
+    ADD_FAILURE() << "File-based encryption is required";
+  } else {
+    GTEST_LOG_(INFO)
+        << "Skipping test because device doesn't use file-based encryption";
+  }
+  return false;
+}
+
+// Retrieves the encryption key specifier used in the file-based encryption
+// policy of |dir|.  This isn't the key itself, but rather a "name" for the key.
+// If the key specifier cannot be retrieved, e.g. due to the directory being
+// unencrypted, then false is returned and a failure is added.
+static bool GetKeyUsedByDir(const std::string &dir,
+                            std::string *key_specifier) {
+  android::base::unique_fd fd(open(dir.c_str(), O_RDONLY));
+  if (fd < 0) {
+    ADD_FAILURE() << "Failed to open " << dir << Errno();
+    return false;
+  }
+  struct fscrypt_get_policy_ex_arg arg = {.policy_size = sizeof(arg.policy)};
+  int res = ioctl(fd, FS_IOC_GET_ENCRYPTION_POLICY_EX, &arg);
+  if (res != 0 && errno == ENOTTY) {
+    // Handle old kernels that don't support FS_IOC_GET_ENCRYPTION_POLICY_EX.
+    res = ioctl(fd, FS_IOC_GET_ENCRYPTION_POLICY, &arg.policy.v1);
+  }
+  if (res != 0) {
+    if (errno == ENODATA) {
+      ADD_FAILURE() << "Directory " << dir << " is not encrypted!";
+    } else {
+      ADD_FAILURE() << "Failed to get encryption policy of " << dir << Errno();
+    }
+    return false;
+  }
+  switch (arg.policy.version) {
+    case FSCRYPT_POLICY_V1:
+      *key_specifier = BytesToHex(arg.policy.v1.master_key_descriptor);
+      return true;
+    case FSCRYPT_POLICY_V2:
+      *key_specifier = BytesToHex(arg.policy.v2.master_key_identifier);
+      return true;
+    default:
+      ADD_FAILURE() << dir << " uses unknown encryption policy version ("
+                    << arg.policy.version << ")";
+      return false;
+  }
+}
+
 // Tests that if the device uses FBE, then the ciphertext for file contents in
 // encrypted directories seems to be random.
 //
@@ -1298,16 +1363,8 @@ TEST(FBETest, TestFileContentsRandomness) {
   constexpr const char *path_1 = "/data/local/tmp/vts-test-file-1";
   constexpr const char *path_2 = "/data/local/tmp/vts-test-file-2";
 
-  if (android::base::GetProperty("ro.crypto.type", "") != "file") {
-    // FBE has been required since Android Q.
-    int first_api_level;
-    ASSERT_TRUE(GetFirstApiLevel(&first_api_level));
-    ASSERT_LE(first_api_level, __ANDROID_API_P__)
-        << "File-based encryption is required";
-    GTEST_LOG_(INFO)
-        << "Skipping test because device doesn't use file-based encryption";
-    return;
-  }
+  if (!DeviceUsesFBE()) return;
+
   FilesystemInfo fs_info;
   ASSERT_TRUE(GetFilesystemInfo("/data", &fs_info));
 
@@ -1336,6 +1393,33 @@ TEST(FBETest, TestFileContentsRandomness) {
 
   ASSERT_EQ(unlink(path_1), 0);
   ASSERT_EQ(unlink(path_2), 0);
+}
+
+// Tests that all of user 0's directories that should be encrypted actually are,
+// and that user 0's CE and DE keys are different.
+TEST(FBETest, TestUserDirectoryPolicies) {
+  if (!DeviceUsesFBE()) return;
+
+  std::string user0_ce_key, user0_de_key;
+  EXPECT_TRUE(GetKeyUsedByDir("/data/user/0", &user0_ce_key));
+  EXPECT_TRUE(GetKeyUsedByDir("/data/user_de/0", &user0_de_key));
+  EXPECT_NE(user0_ce_key, user0_de_key) << "CE and DE keys must differ";
+
+  // Check the CE directories other than /data/user/0.
+  for (const std::string &dir : {"/data/media/0", "/data/misc_ce/0",
+                                 "/data/system_ce/0", "/data/vendor_ce/0"}) {
+    std::string key;
+    EXPECT_TRUE(GetKeyUsedByDir(dir, &key));
+    EXPECT_EQ(key, user0_ce_key) << dir << " must be encrypted with CE key";
+  }
+
+  // Check the DE directories other than /data/user_de/0.
+  for (const std::string &dir :
+       {"/data/misc_de/0", "/data/system_de/0", "/data/vendor_de/0"}) {
+    std::string key;
+    EXPECT_TRUE(GetKeyUsedByDir(dir, &key));
+    EXPECT_EQ(key, user0_de_key) << dir << " must be encrypted with DE key";
+  }
 }
 
 }  // namespace kernel
