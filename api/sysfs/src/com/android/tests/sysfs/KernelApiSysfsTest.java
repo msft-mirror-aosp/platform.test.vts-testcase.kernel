@@ -75,7 +75,7 @@ public class KernelApiSysfsTest extends BaseHostJUnit4Test {
                 TargetFileUtils.isReadOnly(filePath, getDevice()));
         String content = getDevice().pullFileContents(filePath).trim();
         // Confirm the content is integer.
-        Integer.parseInt(content);
+        Long.parseLong(content);
     }
 
     private void isReadWriteAndIntegerContent(String filePath) throws Exception {
@@ -83,7 +83,7 @@ public class KernelApiSysfsTest extends BaseHostJUnit4Test {
                 TargetFileUtils.isReadWriteOnly(filePath, getDevice()));
         String content = getDevice().pullFileContents(filePath).trim();
         // Confirm the content is integer.
-        Integer.parseInt(content);
+        Long.parseLong(content);
     }
 
     /**
@@ -136,7 +136,7 @@ public class KernelApiSysfsTest extends BaseHostJUnit4Test {
                 if (!Strings.isNullOrEmpty(content)) {
                     String[] availFreqs = content.split(" ");
                     for (String freq : availFreqs) {
-                        Integer.parseInt(freq);
+                        Long.parseLong(freq);
                     }
                 }
             }
@@ -149,7 +149,7 @@ public class KernelApiSysfsTest extends BaseHostJUnit4Test {
                     for (String line : content.split("\\n")) {
                         String[] values = line.split(" ");
                         for (String value : values) {
-                            Integer.parseInt(value);
+                            Long.parseLong(value);
                         }
                     }
                 }
