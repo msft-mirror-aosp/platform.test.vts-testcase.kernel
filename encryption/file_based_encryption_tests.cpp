@@ -1202,6 +1202,21 @@ bool FBEPolicyTest::F2fsCompressOptionsSupported(
     const struct f2fs_comp_option &opts) {
   android::base::unique_fd fd(
       open(test_file_.c_str(), O_WRONLY | O_CREAT, 0600));
+  if (fd < 0) {
+    // If the filesystem has the compression feature flag enabled but f2fs
+    // compression support was compiled out of the kernel, then setting
+    // FS_COMPR_FL on the directory will succeed, but creating a file in the
+    // directory will fail with EOPNOTSUPP.
+    if (errno == EOPNOTSUPP) {
+      GTEST_LOG_(INFO)
+          << "Skipping test because kernel doesn't support f2fs compression";
+      return false;
+    }
+    ADD_FAILURE() << "Unexpected error creating " << test_file_
+                  << " after enabling f2fs compression on parent directory"
+                  << Errno();
+    return false;
+  }
 
   if (ioctl(fd, F2FS_IOC_SET_COMPRESS_OPTION, &opts) != 0) {
     if (errno == ENOTTY || errno == EOPNOTSUPP) {
