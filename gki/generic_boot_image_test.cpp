@@ -15,6 +15,7 @@
  */
 
 #include <filesystem>
+#include <optional>
 
 #include <android-base/properties.h>
 #include <gmock/gmock.h>
@@ -33,13 +34,33 @@ using android::vintf::Version;
 using android::vintf::VintfObject;
 using testing::IsSupersetOf;
 
+std::optional<std::string> get_config(
+    const std::map<std::string, std::string>& configs, const std::string& key) {
+  auto it = configs.find(key);
+  if (it == configs.end()) {
+    return std::nullopt;
+  }
+  return it->second;
+}
+
 class GenericBootImageTest : public testing::Test {
  public:
   void SetUp() override {
     auto vintf = VintfObject::GetInstance();
     ASSERT_NE(nullptr, vintf);
-    runtime_info = vintf->getRuntimeInfo(RuntimeInfo::FetchFlag::CPU_VERSION);
+    runtime_info = vintf->getRuntimeInfo(RuntimeInfo::FetchFlag::CPU_VERSION |
+                                         RuntimeInfo::FetchFlag::CONFIG_GZ);
     ASSERT_NE(nullptr, runtime_info);
+
+    const auto& configs = runtime_info->kernelConfigs();
+    if (get_config(configs, "CONFIG_ARM") == "y") {
+      GTEST_SKIP() << "Skipping on 32-bit ARM devices";
+    }
+    // Technically, the test should also be skipped on CONFIG_X86 and
+    // CONFIG_X86_64, and only run on CONFIG_ARM64,
+    // but we want to keep this test passing on virtual
+    // device targets, and we don't have any requests to skip this test
+    // on x86 / x86_64 as of 2022-06-07.
   }
   std::shared_ptr<const RuntimeInfo> runtime_info;
 };
