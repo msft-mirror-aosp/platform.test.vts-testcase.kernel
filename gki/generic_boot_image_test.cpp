@@ -49,6 +49,10 @@ static bool deviceSupportsFeature(const char *feature) {
         break;
       }
     }
+    if (line) {
+      free(line);
+      line = NULL;
+    }
     pclose(p);
   }
   return device_supports_feature;
