@@ -34,6 +34,32 @@ using android::vintf::Version;
 using android::vintf::VintfObject;
 using testing::IsSupersetOf;
 
+// Returns true iff the device has the specified feature.
+static bool deviceSupportsFeature(const char *feature) {
+  bool device_supports_feature = false;
+  FILE *p = popen("pm list features", "re");
+  if (p) {
+    char *line = NULL;
+    size_t len = 0;
+    while (getline(&line, &len, p) > 0) {
+      if (strstr(line, feature)) {
+        device_supports_feature = true;
+        break;
+      }
+    }
+    if (line) {
+      free(line);
+      line = NULL;
+    }
+    pclose(p);
+  }
+  return device_supports_feature;
+}
+
+static bool isTV() {
+  return deviceSupportsFeature("android.software.leanback");
+}
+
 std::optional<std::string> get_config(
     const std::map<std::string, std::string>& configs, const std::string& key) {
   auto it = configs.find(key);
@@ -61,6 +87,11 @@ class GenericBootImageTest : public testing::Test {
     // but we want to keep this test passing on virtual
     // device targets, and we don't have any requests to skip this test
     // on x86 / x86_64 as of 2022-06-07.
+
+    int firstApiLevel = std::stoi(android::base::GetProperty("ro.product.first_api_level", "0"));
+    if (isTV() && firstApiLevel <= __ANDROID_API_S__) {
+      GTEST_SKIP() << "Skipping on TV devices";
+    }
   }
   std::shared_ptr<const RuntimeInfo> runtime_info;
 };
