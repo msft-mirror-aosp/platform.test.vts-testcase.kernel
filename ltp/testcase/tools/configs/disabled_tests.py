@@ -1,5 +1,7 @@
 # Disabled tests
-DISABLED_TESTS = [
+DISABLED_TESTS = {
+    'can.can_bcm01_32bit',  # b/191224815
+    'can.can_bcm01_64bit',  # b/191224815
     'can.can_filter_32bit',  # b/191224815
     'can.can_filter_64bit',  # b/191224815
     'can.can_rcv_own_msgs_32bit',  # b/191225491
@@ -18,8 +20,12 @@ DISABLED_TESTS = [
     'controllers.cgroup_fj_function_blkio_64bit',  # b/191224883
     'controllers.cgroup_fj_function_memory_32bit',  # b/191867109
     'controllers.cgroup_fj_function_memory_64bit',  # b/191867109
-    'controllers.cgroup_fj_function_net_prio_32bit', # b/193172511
-    'controllers.cgroup_fj_function_net_prio_64bit', # b/193172511
+    'controllers.cgroup_fj_function_net_prio_32bit',  # b/193172511
+    'controllers.cgroup_fj_function_net_prio_64bit',  # b/193172511
+    'controllers.memcontrol01_32bit',  # b/241486404
+    'controllers.memcontrol01_64bit',  # b/241486404
+    'controllers.memcontrol02_32bit',  # b/241487456
+    'controllers.memcontrol02_64bit',  # b/241487456
     'cve.cve-2017-15649_32bit',  # b/191224884
     'cve.cve-2017-15649_64bit',  # b/191224884
     'cve.cve-2017-2636_32bit',  # b/191224903
@@ -47,6 +53,8 @@ DISABLED_TESTS = [
     'syscalls.clone302_32bit',  # b/191236103
     'syscalls.clone302_64bit',  # b/191236103
     'syscalls.copy_file_range02_64bit',  # b/191236491
+    'syscalls.epoll_pwait04_32bit',  # b/241310858
+    'syscalls.epoll_pwait04_64bit',  # b/241310858
     'syscalls.fcntl38_32bit',  # b/191236494
     'syscalls.fcntl38_64_32bit',  # b/191236432
     'syscalls.fcntl38_64_64bit',  # b/191236432
@@ -87,14 +95,14 @@ DISABLED_TESTS = [
     'syscalls.signal06_64bit',  # b/192048179
     'syscalls.statx07_32bit',  # b/191236106
     'syscalls.statx07_64bit',  # b/191236106
-]
+}
 
 # These tests are only disabled for hwasan
-DISABLED_TESTS_HWASAN = [
+DISABLED_TESTS_HWASAN = {
     'commands.sysctl02_sh_64bit',  # b/191227527
     'fs.binfmt_misc01_64bit',  # b/191224879
     'fs.binfmt_misc02_64bit',  # b/191224881
     'fs.read_all_dev_64bit',  # b/191226872
     'fs.read_all_proc_64bit',  # b/191226873
     'syscalls.accept02_64bit',  # b/191224729
-]
+}
