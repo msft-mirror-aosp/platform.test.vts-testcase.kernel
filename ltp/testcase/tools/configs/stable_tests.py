@@ -2749,7 +2749,7 @@ STABLE_TESTS = {
     'syscalls.sync01_64bit': True,
     'syscalls.sync02_32bit': True,
     'syscalls.sync02_64bit': True,
-    'syscalls.sync_file_range01_32bit': True,
+    'syscalls.sync_file_range01_32bit': False,
     'syscalls.sync_file_range01_64bit': True,
     'syscalls.syncfs01_32bit': False,
     'syscalls.syncfs01_64bit': False,
