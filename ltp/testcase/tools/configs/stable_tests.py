@@ -2621,6 +2621,8 @@ STABLE_TESTS = {
     'syscalls.signal04_64bit': True,
     'syscalls.signal05_32bit': True,
     'syscalls.signal05_64bit': True,
+    'syscalls.signal06_32bit': False,
+    'syscalls.signal06_64bit': False,
     'syscalls.signalfd01_32bit': True,
     'syscalls.signalfd01_64bit': True,
     'syscalls.signalfd4_01_32bit': True,
