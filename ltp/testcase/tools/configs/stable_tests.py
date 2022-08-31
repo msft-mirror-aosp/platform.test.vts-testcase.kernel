@@ -728,7 +728,7 @@ STABLE_TESTS = {
     'syscalls.clock_gettime02_64bit': True,
     'syscalls.clock_gettime03_32bit': False,
     'syscalls.clock_gettime03_64bit': False,
-    'syscalls.clock_gettime04_32bit': True,
+    'syscalls.clock_gettime04_32bit': False,
     'syscalls.clock_gettime04_64bit': True,
     'syscalls.clock_nanosleep01_32bit': True,
     'syscalls.clock_nanosleep01_64bit': True,
