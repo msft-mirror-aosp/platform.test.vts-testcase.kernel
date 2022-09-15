@@ -38,8 +38,6 @@ DISABLED_TESTS = {
     'kernel_misc.zram01_64bit',  # b/191226875
     'kernel_misc.zram02_32bit',  # b/191227531
     'kernel_misc.zram02_64bit',  # b/191227531
-    'pty.pty05_32bit',  # b/191224341
-    'pty.pty05_64bit',  # b/191224341
     'sched.sched_getattr01_32bit', # b/200686092
     'sched.sched_setattr01_32bit', # b/200686092
     'syscalls.bpf_prog02_32bit',  # b/191867447
