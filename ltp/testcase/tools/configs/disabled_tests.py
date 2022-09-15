@@ -53,10 +53,6 @@ DISABLED_TESTS = {
     'syscalls.copy_file_range02_64bit',  # b/191236491
     'syscalls.epoll_pwait04_32bit',  # b/241310858
     'syscalls.epoll_pwait04_64bit',  # b/241310858
-    'syscalls.fcntl38_32bit',  # b/191236494
-    'syscalls.fcntl38_64_32bit',  # b/191236432
-    'syscalls.fcntl38_64_64bit',  # b/191236432
-    'syscalls.fcntl38_64bit',  # b/191236494
     'syscalls.ftruncate04_32bit',  # b/198611142
     'syscalls.ftruncate04_64_32bit',  # b/198611142
     'syscalls.ftruncate04_64_64bit',  # b/198611142
