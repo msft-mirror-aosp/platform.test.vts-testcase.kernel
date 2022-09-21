@@ -38,10 +38,6 @@ DISABLED_TESTS = {
     'kernel_misc.zram01_64bit',  # b/191226875
     'kernel_misc.zram02_32bit',  # b/191227531
     'kernel_misc.zram02_64bit',  # b/191227531
-    'pty.pty03_32bit',  # b/191224822
-    'pty.pty03_64bit',  # b/191224822
-    'pty.pty05_32bit',  # b/191224341
-    'pty.pty05_64bit',  # b/191224341
     'sched.sched_getattr01_32bit', # b/200686092
     'sched.sched_setattr01_32bit', # b/200686092
     'syscalls.bpf_prog02_32bit',  # b/191867447
@@ -55,10 +51,6 @@ DISABLED_TESTS = {
     'syscalls.copy_file_range02_64bit',  # b/191236491
     'syscalls.epoll_pwait04_32bit',  # b/241310858
     'syscalls.epoll_pwait04_64bit',  # b/241310858
-    'syscalls.fcntl38_32bit',  # b/191236494
-    'syscalls.fcntl38_64_32bit',  # b/191236432
-    'syscalls.fcntl38_64_64bit',  # b/191236432
-    'syscalls.fcntl38_64bit',  # b/191236494
     'syscalls.ftruncate04_32bit',  # b/198611142
     'syscalls.ftruncate04_64_32bit',  # b/198611142
     'syscalls.ftruncate04_64_64bit',  # b/198611142
