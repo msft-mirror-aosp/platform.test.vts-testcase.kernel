@@ -28,7 +28,7 @@
         <option name="cleanup" value="true" />
         <!-- LTP tests must be pushed to `/data/local/tmp/ltp` which has the right security context setting.
           Any other directory might not work. -->
-        <option name="push" value="vts_kernel_tests->&ltp_root;" />
+        <option name="push" value="vts_kernel_ltp_tests->&ltp_root;" />
     </target_preparer>
 
     <target_preparer class="com.android.tradefed.targetprep.RunCommandTargetPreparer">
