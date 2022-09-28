@@ -226,7 +226,7 @@ TEST_F(BpfRaceTest, testRaceWithBarrier) {
 // after changing the active map.
 // This test is flaky. Race not triggering isn't really a bug per say...
 // Maybe we should just outright delete this test...
-TEST_F(BpfRaceTest, testRaceWithoutBarrier) {
+TEST_F(BpfRaceTest, DISABLED_testRaceWithoutBarrier) {
   swapAndCleanStatsMap(false, 240);
 }
 
