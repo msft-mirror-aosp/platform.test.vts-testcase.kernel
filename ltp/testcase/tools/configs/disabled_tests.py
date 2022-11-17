@@ -42,6 +42,8 @@ DISABLED_TESTS = {
     'sched.sched_setattr01_32bit', # b/200686092
     'syscalls.bpf_prog02_32bit',  # b/191867447
     'syscalls.bpf_prog02_64bit',  # b/191867447
+    'syscalls.bpf_prog06_32bit',  # b/259559270
+    'syscalls.bpf_prog06_64bit',  # b/259559270
     'syscalls.clone301_32bit',  # b/191236153
     'syscalls.clone301_64bit',  # b/191236153
     'syscalls.clone302_32bit',  # b/191236103
