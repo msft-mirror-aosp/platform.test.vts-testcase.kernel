@@ -16,6 +16,8 @@ DISABLED_TESTS = {
     'commands.unshare01_sh_64bit',  # b/191225496
     'commands.unzip01_sh_32bit',  # b/191227036
     'commands.unzip01_sh_64bit',  # b/191227036
+    'controllers.cgroup_core01_32bit',  # b/259557077
+    'controllers.cgroup_core01_64bit',  # b/259557077
     'controllers.cgroup_fj_function_blkio_32bit',  # b/191224883
     'controllers.cgroup_fj_function_blkio_64bit',  # b/191224883
     'controllers.cgroup_fj_function_memory_32bit',  # b/191867109
