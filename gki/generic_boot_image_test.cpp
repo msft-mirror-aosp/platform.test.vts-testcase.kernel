@@ -83,6 +83,9 @@ class GenericBootImageTest : public testing::Test {
     const auto& configs = runtime_info->kernelConfigs();
     if (get_config(configs, "CONFIG_ARM") == "y") {
       GTEST_SKIP() << "Skipping on 32-bit ARM devices";
+    } else if (get_config(configs, "CONFIG_X86") == "y" ||
+               get_config(configs, "CONFIG_X86_64") == "y") {
+      GTEST_SKIP() << "Skipping on X86 & X86_64 devices";
     }
     // Technically, the test should also be skipped on CONFIG_X86 and
     // CONFIG_X86_64, and only run on CONFIG_ARM64,
