@@ -267,17 +267,24 @@ public class KernelApiSysfsTest extends BaseHostJUnit4Test {
         }
     }
 
+    /* Get the kernel version (at least the major/minor numbers) as an array of integers. */
+    private int[] getKernelVersion() throws Exception {
+        String versionStr = getDevice().executeShellCommand("uname -r");
+        Pattern p = Pattern.compile("([0-9.]+)");
+        Matcher m = p.matcher(versionStr);
+        assertTrue("Bad version: " + versionStr, m.find());
+        int[] res = Arrays.stream(m.group(1).split("\\.")).mapToInt(Integer::parseInt).toArray();
+        assertTrue("Missing major or minor version: " + Arrays.toString(res), res.length > 1);
+        return res;
+    }
+
     /* /sys/module/kfence/parameters/sample_interval contains KFENCE sampling rate. */
     @Test
     public void testKfenceSampleRate() throws Exception {
         final int kRecommendedSampleRate = 500;
-        String versionPath = "/proc/version";
-        String versionStr = getDevice().pullFileContents(versionPath).trim();
-        Pattern p = Pattern.compile("Linux version ([0-9]+)\\.([0-9]+)");
-        Matcher m = p.matcher(versionStr);
-        assertTrue("Bad version " + versionPath, m.find());
-        int kernel_major = Integer.parseInt(m.group(1));
-        int kernel_minor = Integer.parseInt(m.group(2));
+        int[] version = getKernelVersion();
+        int kernel_major = version[0];
+        int kernel_minor = version[1];
 
         // Do not require KFENCE for kernels < 5.10.
         if ((kernel_major < 5) || ((kernel_major == 5) && (kernel_minor < 10)))
