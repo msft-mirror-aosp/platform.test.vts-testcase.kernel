@@ -11,7 +11,7 @@
      limitations under the License.
 -->
 <!DOCTYPE configuration [
-    <!ENTITY ktest_dir "/data/local/tmp/vts_kernel_tests/DATA/nativetest/linux-kselftest">
+    <!ENTITY ktest_dir "/data/local/tmp/vts_kernel_kselftest_tests/DATA/nativetest/linux-kselftest">
 ]>
 <configuration description="Runs vts_linux_kselftest.">
     <target_preparer class="com.android.tradefed.targetprep.RootTargetPreparer">
@@ -23,7 +23,7 @@
 
     <target_preparer class="com.android.tradefed.targetprep.PushFilePreparer">
         <option name="cleanup" value="true" />
-        <option name="push-file" key="vts_kernel_tests" value="/data/local/tmp/vts_kernel_tests" />
+        <option name="push-file" key="vts_kernel_kselftest_tests" value="/data/local/tmp/vts_kernel_kselftest_tests" />
         <option name="skip-abi-filtering" value="true" />
     </target_preparer>
 
@@ -33,6 +33,7 @@
 
     <test class="com.android.tradefed.testtype.binary.KernelTargetTest" >
         <option name="exit-code-skip" value="4" />
+        <option name="skip-binary-check" value="true" />
         <option name="test-command-line" key="binderfs_x86_32" value="chmod 755 &ktest_dir;/filesystems/binderfs/binderfs_test; cd &ktest_dir;/filesystems/binderfs; ./binderfs_test" />
         <option name="test-command-line" key="capabilities_test_execve_x86_32" value="chmod 755 &ktest_dir;/capabilities/test_execve; cd &ktest_dir;/capabilities; ./test_execve" />
         <option name="test-command-line" key="futex_functional_run.sh_x86_32" value="chmod 755 &ktest_dir;/futex/functional/run.sh; cd &ktest_dir;/futex/functional; USE_COLOR=0 ./run.sh" />
