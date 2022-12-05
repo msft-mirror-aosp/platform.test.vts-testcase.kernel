@@ -327,4 +327,23 @@ public class KernelApiSysfsTest extends BaseHostJUnit4Test {
                 sampleRate == kRecommendedSampleRate);
     }
 
+    /* Ensure kernel stack initialization is enabled. */
+    @Test
+    public void testKernelStackInitialization() throws Exception {
+        int[] version = getKernelVersion();
+        int kernel_major = version[0];
+        int kernel_minor = version[1];
+
+        // Do not require stack initialization for kernels < 5.4.
+        assumeTrue(kernel_major >= 5);
+        assumeTrue(kernel_major > 5 || kernel_minor >= 4);
+
+        /*
+         * Upstream Linux kernels may use CONFIG_INIT_STACK_ALL instead, but new (>= 5.4)
+         * android-common kernels only have CONFIG_INIT_STACK_ALL_ZERO.
+         */
+        String configName = "CONFIG_INIT_STACK_ALL_ZERO";
+        String hasInitialization = getKernelConfigValue(configName);
+        assertTrue(configName + " not enabled in the kernel config", hasInitialization != null);
+    }
 }
