@@ -190,18 +190,42 @@ public class KernelApiSysfsTest extends BaseHostJUnit4Test {
         }
     }
 
+    /* Read a config option from /proc/config.gz. If the option is missing, return null. */
+    private String getKernelConfigValue(String config) throws Exception {
+        assertTrue(config.startsWith("CONFIG_"));
+        Pattern p = Pattern.compile(config + "=(.*)");
+        String output =
+                getDevice().executeShellCommand("zcat /proc/config.gz | grep " + config);
+        Matcher m = p.matcher(output);
+        if (!m.find())
+            return null;
+        else
+            return m.group(1);
+    }
+
+    /* Read a string value from the config and return it without quotes. */
+    private String getKernelConfigUnquotedString(String config) throws Exception {
+        String value = getKernelConfigValue(config);
+        if (value == null)
+            return value;
+        int len = value.length();
+        /*
+         * Assuming that the config contains a quoted string. If this is not the case, use
+         * getKernelConfigValue() instead.
+         */
+        assertTrue((len >= 2) && (value.charAt(0) == '"') && (value.charAt(len - 1) == '"'));
+        value = value.substring(1, len - 1);
+        return value;
+    }
+
     /* If RTC is present, check that /dev/rtc matches CONFIG_RTC_HCTOSYS_DEVICE */
     @Test
     public void testRtcHctosys() throws Exception {
         String[] rtcList = findFiles("/sys/class/rtc", "rtc*");
         assumeTrue("Device has RTC", rtcList.length != 0);
-        String output = getDevice().executeShellCommand(
-                "gzip -dc /proc/config.gz | grep CONFIG_RTC_HCTOSYS_DEVICE");
-        Pattern p = Pattern.compile("CONFIG_RTC_HCTOSYS_DEVICE=\"(.*)\"");
-        Matcher m = p.matcher(output);
-        if (!m.find())
+        String rtc = getKernelConfigUnquotedString("CONFIG_RTC_HCTOSYS_DEVICE");
+        if (rtc == null)
             fail("Could not find CONFIG_RTC_HCTOSYS_DEVICE");
-        String rtc = m.group(1);
         String rtc_link = getDevice().executeShellCommand("readlink /dev/rtc");
         if (rtc_link.isEmpty()) {
             if (getDevice().doesFileExist("/dev/rtc0")) {
@@ -286,20 +310,12 @@ public class KernelApiSysfsTest extends BaseHostJUnit4Test {
         int kernel_major = version[0];
         int kernel_minor = version[1];
 
+        assumeTrue("CONFIG_ARM64 not set, skipping the test",
+                   getKernelConfigValue("CONFIG_ARM64") != null);
+
         // Do not require KFENCE for kernels < 5.10.
         if ((kernel_major < 5) || ((kernel_major == 5) && (kernel_minor < 10)))
             return;
-
-        String executeShellKernelARM64 =
-            "cat /proc/config.gz | gzip -d | grep CONFIG_ARM64=y";
-
-        boolean isKernelARM64 = getDevice().executeShellCommand(executeShellKernelARM64)
-                                           .contains("CONFIG_ARM64");
-
-        if (!isKernelARM64) {
-            CLog.d("Kernel not 64bit skip");
-            return;
-        }
 
         String filePath = "/sys/module/kfence/parameters/sample_interval";
         assertTrue("Failed readwrite check of " + filePath,
@@ -310,4 +326,5 @@ public class KernelApiSysfsTest extends BaseHostJUnit4Test {
                 "Bad KFENCE sample rate: " + sampleRate + ", should be " + kRecommendedSampleRate,
                 sampleRate == kRecommendedSampleRate);
     }
+
 }
