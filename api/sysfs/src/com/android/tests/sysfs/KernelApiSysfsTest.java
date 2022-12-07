@@ -314,8 +314,8 @@ public class KernelApiSysfsTest extends BaseHostJUnit4Test {
                    getKernelConfigValue("CONFIG_ARM64") != null);
 
         // Do not require KFENCE for kernels < 5.10.
-        if ((kernel_major < 5) || ((kernel_major == 5) && (kernel_minor < 10)))
-            return;
+        assumeTrue(kernel_major >= 5);
+        assumeTrue(kernel_major > 5 || kernel_minor >= 10);
 
         String filePath = "/sys/module/kfence/parameters/sample_interval";
         assertTrue("Failed readwrite check of " + filePath,
