@@ -22,10 +22,6 @@ DISABLED_TESTS = {
     'controllers.cgroup_fj_function_memory_64bit',  # b/191867109
     'controllers.cgroup_fj_function_net_prio_32bit',  # b/193172511
     'controllers.cgroup_fj_function_net_prio_64bit',  # b/193172511
-    'controllers.memcontrol01_32bit',  # b/241486404
-    'controllers.memcontrol01_64bit',  # b/241486404
-    'controllers.memcontrol02_32bit',  # b/241487456
-    'controllers.memcontrol02_64bit',  # b/241487456
     'cve.cve-2017-15649_32bit',  # b/191224884
     'cve.cve-2017-15649_64bit',  # b/191224884
     'cve.cve-2017-2636_32bit',  # b/191224903
@@ -42,8 +38,6 @@ DISABLED_TESTS = {
     'sched.sched_setattr01_32bit', # b/200686092
     'syscalls.bpf_prog02_32bit',  # b/191867447
     'syscalls.bpf_prog02_64bit',  # b/191867447
-    'syscalls.bpf_prog05_32bit',  # b/191224899
-    'syscalls.bpf_prog05_64bit',  # b/191224899
     'syscalls.clone301_32bit',  # b/191236153
     'syscalls.clone301_64bit',  # b/191236153
     'syscalls.clone302_32bit',  # b/191236103
