@@ -241,8 +241,6 @@ STABLE_TESTS = {
     'cve.cve-2018-1000204_64bit': False,
     'cve.cve-2018-12896_32bit': True,
     'cve.cve-2018-12896_64bit': True,
-    'cve.cve-2018-13405_32bit': True,
-    'cve.cve-2018-13405_64bit': True,
     'cve.cve-2018-18445_32bit': False,
     'cve.cve-2018-18445_64bit': False,
     'cve.cve-2018-18559_32bit': False,
