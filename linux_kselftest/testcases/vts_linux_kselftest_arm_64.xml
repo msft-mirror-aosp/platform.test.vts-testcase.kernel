@@ -60,6 +60,8 @@
         <option name="test-command-line" key="vDSO_kselftest_vdso_test_clock_getres_arm_64" value="chmod 755 &ktest_dir;/vDSO/kselftest_vdso_test_clock_getres; cd &ktest_dir;/vDSO; ./kselftest_vdso_test_clock_getres" />
         <option name="test-command-line" key="vDSO_kselftest_vdso_test_getcpu_arm_64" value="chmod 755 &ktest_dir;/vDSO/kselftest_vdso_test_getcpu; cd &ktest_dir;/vDSO; ./kselftest_vdso_test_getcpu" />
         <option name="test-command-line" key="vDSO_kselftest_vdso_test_gettimeofday_arm_64" value="chmod 755 &ktest_dir;/vDSO/kselftest_vdso_test_gettimeofday; cd &ktest_dir;/vDSO; ./kselftest_vdso_test_gettimeofday" />
+        <option name="test-command-line" key="vm_mremap_dontunmap_arm_64" value="chmod 755 &ktest_dir;/vm/mremap_dontunmap; cd &ktest_dir;/vm; ./mremap_dontunmap" />
+        <option name="test-command-line" key="vm_mremap_test_arm_64" value="chmod 755 &ktest_dir;/vm/mremap_test; cd &ktest_dir;/vm; ./mremap_test" />
         <option name="test-command-line" key="vm_userfaultfd_anon_arm_64" value="chmod 755 &ktest_dir;/vm/userfaultfd; cd &ktest_dir;/vm; ./userfaultfd anon 32 99" />
         <option name="test-command-line" key="vm_userfaultfd_shmem_arm_64" value="chmod 755 &ktest_dir;/vm/userfaultfd; cd &ktest_dir;/vm; ./userfaultfd shmem 32 99" />
     </test>
