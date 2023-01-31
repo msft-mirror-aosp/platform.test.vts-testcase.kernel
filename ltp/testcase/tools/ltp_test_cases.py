@@ -99,7 +99,7 @@ class LtpTestCases(object):
         is_hwasan_template = '        <option name="is-hwasan" value="{}"/>'
         option_lines = arch_template + is_low_mem_template + is_hwasan_template
         if n_bit == '64':
-            n_bit_string = str(n_bit) if arch == 'arm' else ('_'+str(n_bit))
+            n_bit_string = str(n_bit) if arch == 'arm' or arch == 'riscv' else ('_'+str(n_bit))
         else:
             n_bit_string = ''
         arch_name = arch + n_bit_string
