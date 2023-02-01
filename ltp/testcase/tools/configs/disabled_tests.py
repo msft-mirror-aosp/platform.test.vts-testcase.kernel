@@ -16,20 +16,20 @@ DISABLED_TESTS = {
     'commands.unshare01_sh_64bit',  # b/191225496
     'commands.unzip01_sh_32bit',  # b/191227036
     'commands.unzip01_sh_64bit',  # b/191227036
+    'controllers.cgroup_core01_32bit',  # b/259557077
+    'controllers.cgroup_core01_64bit',  # b/259557077
     'controllers.cgroup_fj_function_blkio_32bit',  # b/191224883
     'controllers.cgroup_fj_function_blkio_64bit',  # b/191224883
     'controllers.cgroup_fj_function_memory_32bit',  # b/191867109
     'controllers.cgroup_fj_function_memory_64bit',  # b/191867109
     'controllers.cgroup_fj_function_net_prio_32bit',  # b/193172511
     'controllers.cgroup_fj_function_net_prio_64bit',  # b/193172511
-    'controllers.memcontrol01_32bit',  # b/241486404
-    'controllers.memcontrol01_64bit',  # b/241486404
-    'controllers.memcontrol02_32bit',  # b/241487456
-    'controllers.memcontrol02_64bit',  # b/241487456
     'cve.cve-2017-15649_32bit',  # b/191224884
     'cve.cve-2017-15649_64bit',  # b/191224884
     'cve.cve-2017-2636_32bit',  # b/191224903
     'cve.cve-2017-2636_64bit',  # b/191224903
+    'cve.cve-2018-13405_32bit',  # b/259558000
+    'cve.cve-2018-13405_64bit',  # b/259558000
     'cve.cve-2019-8912_32bit',  # b/191224904
     'cve.cve-2019-8912_64bit',  # b/191224904
     'cve.cve-2021-3444_32bit',  # b/191226866
@@ -38,16 +38,12 @@ DISABLED_TESTS = {
     'kernel_misc.zram01_64bit',  # b/191226875
     'kernel_misc.zram02_32bit',  # b/191227531
     'kernel_misc.zram02_64bit',  # b/191227531
-    'pty.pty03_32bit',  # b/191224822
-    'pty.pty03_64bit',  # b/191224822
-    'pty.pty05_32bit',  # b/191224341
-    'pty.pty05_64bit',  # b/191224341
     'sched.sched_getattr01_32bit', # b/200686092
     'sched.sched_setattr01_32bit', # b/200686092
     'syscalls.bpf_prog02_32bit',  # b/191867447
     'syscalls.bpf_prog02_64bit',  # b/191867447
-    'syscalls.bpf_prog05_32bit',  # b/191224899
-    'syscalls.bpf_prog05_64bit',  # b/191224899
+    'syscalls.bpf_prog06_32bit',  # b/259559270
+    'syscalls.bpf_prog06_64bit',  # b/259559270
     'syscalls.clone301_32bit',  # b/191236153
     'syscalls.clone301_64bit',  # b/191236153
     'syscalls.clone302_32bit',  # b/191236103
@@ -55,10 +51,6 @@ DISABLED_TESTS = {
     'syscalls.copy_file_range02_64bit',  # b/191236491
     'syscalls.epoll_pwait04_32bit',  # b/241310858
     'syscalls.epoll_pwait04_64bit',  # b/241310858
-    'syscalls.fcntl38_32bit',  # b/191236494
-    'syscalls.fcntl38_64_32bit',  # b/191236432
-    'syscalls.fcntl38_64_64bit',  # b/191236432
-    'syscalls.fcntl38_64bit',  # b/191236494
     'syscalls.ftruncate04_32bit',  # b/198611142
     'syscalls.ftruncate04_64_32bit',  # b/198611142
     'syscalls.ftruncate04_64_64bit',  # b/198611142
@@ -67,6 +59,8 @@ DISABLED_TESTS = {
     'syscalls.inotify07_64bit',  # b/191773884
     'syscalls.inotify08_32bit',  # b/191748474
     'syscalls.inotify08_64bit',  # b/191748474
+    'syscalls.inotify12_32bit',  # b/259561911
+    'syscalls.inotify12_64bit',  # b/259561911
     'syscalls.io_pgetevents01_32bit',  # b/191247131
     'syscalls.io_pgetevents02_32bit',  # b/191247132
     'syscalls.ioctl_loop01_32bit',  # b/191224819
@@ -91,8 +85,6 @@ DISABLED_TESTS = {
     'syscalls.sched_setattr01_32bit', # b/200686092
     'syscalls.semctl09_32bit',  # b/191227035
     'syscalls.semctl09_64bit',  # b/191227035
-    'syscalls.signal06_32bit',  # b/192048179
-    'syscalls.signal06_64bit',  # b/192048179
     'syscalls.statx07_32bit',  # b/191236106
     'syscalls.statx07_64bit',  # b/191236106
 }

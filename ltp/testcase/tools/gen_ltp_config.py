@@ -44,7 +44,7 @@ if __name__ == '__main__':
     arg_parser.add_argument('--arch',
                             dest='arch',
                             type=str,
-                            choices=['arm', 'x86'],
+                            choices=['arm', 'riscv', 'x86'],
                             required=True,
                             help="Target device architecture")
     arg_parser.add_argument('--bitness',
