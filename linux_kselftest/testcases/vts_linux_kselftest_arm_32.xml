@@ -52,6 +52,7 @@
         <option name="test-command-line" key="timers_set-timer-lat_arm_32" value="chmod 755 &ktest_dir;/timers/set-timer-lat; cd &ktest_dir;/timers; ./set-timer-lat" />
         <option name="test-command-line" key="timers_threadtest_arm_32" value="chmod 755 &ktest_dir;/timers/threadtest; cd &ktest_dir;/timers; ./threadtest" />
         <option name="test-command-line" key="timers_valid-adjtimex_arm_32" value="chmod 755 &ktest_dir;/timers/valid-adjtimex; cd &ktest_dir;/timers; ./valid-adjtimex" />
+        <option name="test-command-line" key="vm_mremap_dontunmap_arm_32" value="chmod 755 &ktest_dir;/vm/mremap_dontunmap; cd &ktest_dir;/vm; ./mremap_dontunmap" />
         <option name="test-command-line" key="vm_userfaultfd_anon_arm_32" value="chmod 755 &ktest_dir;/vm/userfaultfd; cd &ktest_dir;/vm; ./userfaultfd anon 32 99" />
         <option name="test-command-line" key="vm_userfaultfd_shmem_arm_32" value="chmod 755 &ktest_dir;/vm/userfaultfd; cd &ktest_dir;/vm; ./userfaultfd shmem 32 99" />
     </test>
