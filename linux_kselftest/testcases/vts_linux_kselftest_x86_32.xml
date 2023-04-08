@@ -14,8 +14,8 @@
     <!ENTITY ktest_dir "/data/local/tmp/vts_kernel_tests/DATA/nativetest/linux-kselftest">
 ]>
 <configuration description="Runs vts_linux_kselftest.">
-    <target_preparer class="com.android.tradefed.targetprep.RootTargetPreparer">
-    </target_preparer>
+    <target_preparer class="com.android.tradefed.targetprep.RootTargetPreparer" />
+    <target_preparer class="com.android.tradefed.targetprep.StopServicesSetup" />
 
     <object type="module_controller" class="com.android.tradefed.testtype.suite.module.KernelTestModuleController" >
         <option name="arch" value="x86"/>
