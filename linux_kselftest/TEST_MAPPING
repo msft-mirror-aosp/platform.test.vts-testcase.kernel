@@ -1,0 +1,36 @@
+{
+  "presubmit": [
+    {
+      "name": "vts_linux_kselftest_arm_32"
+    },
+    {
+      "name": "vts_linux_kselftest_arm_64"
+    },
+    {
+      "name": "vts_linux_kselftest_riscv_64"
+    },
+    {
+      "name": "vts_linux_kselftest_x86_32"
+    },
+    {
+      "name": "vts_linux_kselftest_x86_64"
+    }
+  ],
+  "kernel-presubmit": [
+    {
+      "name": "vts_linux_kselftest_arm_32"
+    },
+    {
+      "name": "vts_linux_kselftest_arm_64"
+    },
+    {
+      "name": "vts_linux_kselftest_riscv_64"
+    },
+    {
+      "name": "vts_linux_kselftest_x86_32"
+    },
+    {
+      "name": "vts_linux_kselftest_x86_64"
+    }
+  ]
+}
