@@ -81,6 +81,8 @@ DISABLED_TESTS = {
     'syscalls.ioctl_ns06_64bit',  # b/191224339
     'syscalls.madvise06_32bit',  # b/191227034
     'syscalls.madvise06_64bit',  # b/191227034
+    'syscalls.mount03_32bit',  # b/275747273
+    'syscalls.mount03_64bit',  # b/275747273
     'syscalls.rt_sigprocmask01_32bit',  # b/191248975
     'syscalls.rt_sigtimedwait01_32bit',  # b/191247810
     'syscalls.sched_getattr01_32bit',  # b/200686092
