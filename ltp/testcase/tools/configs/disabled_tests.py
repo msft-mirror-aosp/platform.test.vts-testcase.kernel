@@ -89,6 +89,8 @@ DISABLED_TESTS = {
     'syscalls.sched_setattr01_32bit',  # b/200686092
     'syscalls.semctl09_32bit',  # b/191227035
     'syscalls.semctl09_64bit',  # b/191227035
+    'syscalls.setpgid02_32bit',  # b/276300873
+    'syscalls.setpgid02_64bit',  # b/276300873
     'syscalls.statx07_32bit',  # b/191236106
     'syscalls.statx07_64bit',  # b/191236106
 }

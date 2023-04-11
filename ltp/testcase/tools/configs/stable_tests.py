@@ -2473,8 +2473,6 @@ STABLE_TESTS = {
     'syscalls.setns01_64bit': True,
     'syscalls.setpgid01_32bit': True,
     'syscalls.setpgid01_64bit': True,
-    'syscalls.setpgid02_32bit': True,
-    'syscalls.setpgid02_64bit': True,
     'syscalls.setpgid03_32bit': True,
     'syscalls.setpgid03_64bit': True,
     'syscalls.setpgrp01_32bit': False,
