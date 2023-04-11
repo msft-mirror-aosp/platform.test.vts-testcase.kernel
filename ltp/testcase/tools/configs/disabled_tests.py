@@ -49,6 +49,8 @@ DISABLED_TESTS = {
     'syscalls.clone302_32bit',  # b/191236103
     'syscalls.clone302_64bit',  # b/191236103
     'syscalls.copy_file_range02_64bit',  # b/191236491
+    'syscalls.epoll_pwait01_32bit',  # b/277586905
+    'syscalls.epoll_pwait01_64bit',  # b/277586905
     'syscalls.epoll_pwait04_32bit',  # b/241310858
     'syscalls.epoll_pwait04_64bit',  # b/241310858
     'syscalls.ftruncate04_32bit',  # b/198611142

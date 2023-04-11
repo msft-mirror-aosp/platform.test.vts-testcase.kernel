@@ -862,8 +862,6 @@ STABLE_TESTS = {
     'syscalls.epoll_ctl04_64bit': True,
     'syscalls.epoll_ctl05_32bit': True,
     'syscalls.epoll_ctl05_64bit': True,
-    'syscalls.epoll_pwait01_32bit': False,
-    'syscalls.epoll_pwait01_64bit': False,
     'syscalls.epoll_pwait02_32bit': False,
     'syscalls.epoll_pwait02_64bit': False,
     'syscalls.epoll_pwait03_32bit': False,
