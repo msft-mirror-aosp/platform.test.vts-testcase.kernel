@@ -1902,8 +1902,6 @@ STABLE_TESTS = {
     'syscalls.openat01_64bit': True,
     'syscalls.openat03_32bit': True,
     'syscalls.openat03_64bit': True,
-    'syscalls.openat04_32bit': False,
-    'syscalls.openat04_64bit': False,
     'syscalls.openat201_32bit': False,
     'syscalls.openat201_64bit': False,
     'syscalls.openat202_32bit': False,
