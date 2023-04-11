@@ -38,8 +38,8 @@ DISABLED_TESTS = {
     'kernel_misc.zram01_64bit',  # b/191226875
     'kernel_misc.zram02_32bit',  # b/191227531
     'kernel_misc.zram02_64bit',  # b/191227531
-    'sched.sched_getattr01_32bit', # b/200686092
-    'sched.sched_setattr01_32bit', # b/200686092
+    'sched.sched_getattr01_32bit',  # b/200686092
+    'sched.sched_setattr01_32bit',  # b/200686092
     'syscalls.bpf_prog02_32bit',  # b/191867447
     'syscalls.bpf_prog02_64bit',  # b/191867447
     'syscalls.bpf_prog06_32bit',  # b/259559270
@@ -81,8 +81,8 @@ DISABLED_TESTS = {
     'syscalls.madvise06_64bit',  # b/191227034
     'syscalls.rt_sigprocmask01_32bit',  # b/191248975
     'syscalls.rt_sigtimedwait01_32bit',  # b/191247810
-    'syscalls.sched_getattr01_32bit', # b/200686092
-    'syscalls.sched_setattr01_32bit', # b/200686092
+    'syscalls.sched_getattr01_32bit',  # b/200686092
+    'syscalls.sched_setattr01_32bit',  # b/200686092
     'syscalls.semctl09_32bit',  # b/191227035
     'syscalls.semctl09_64bit',  # b/191227035
     'syscalls.statx07_32bit',  # b/191236106
