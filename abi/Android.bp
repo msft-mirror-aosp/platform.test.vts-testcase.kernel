@@ -21,9 +21,11 @@ java_test_host {
     name: "KernelAbilistTest",
     libs: [
         "tradefed",
+        "compatibility-host-util",
     ],
     srcs: ["src/**/*.java"],
     test_suites: [
+        "general-tests",
         "vts",
     ],
     test_config: "KernelAbilistTest.xml",
