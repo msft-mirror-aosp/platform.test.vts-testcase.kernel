@@ -21,6 +21,7 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import android.platform.test.annotations.RequiresDevice;
+import com.android.compatibility.common.util.VsrTest;
 import com.android.tradefed.device.ITestDevice;
 import com.android.tradefed.testtype.DeviceJUnit4ClassRunner;
 import com.android.tradefed.testtype.junit4.BaseHostJUnit4Test;
@@ -38,6 +39,7 @@ public class KernelAbilistTest extends BaseHostJUnit4Test {
     private static final String ABILIST64_PROP = "ro.product.cpu.abilist64";
     private static final int TIRAMISU_API_LEVEL = 33;
 
+    @VsrTest(requirements = {"VSR-3.12-002"})
     @RequiresDevice
     @Test
     public void testAbilistOnArmv9() throws Exception {
