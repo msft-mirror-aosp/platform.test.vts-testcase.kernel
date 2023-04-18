@@ -1146,8 +1146,6 @@ STABLE_TESTS = {
     'syscalls.fcntl35_64_32bit': True,
     'syscalls.fcntl35_64_64bit': True,
     'syscalls.fcntl35_64bit': True,
-    'syscalls.fcntl36_32bit': True,
-    'syscalls.fcntl36_64_32bit': True,
     'syscalls.fcntl36_64_64bit': True,
     'syscalls.fcntl36_64bit': True,
     'syscalls.fcntl37_32bit': True,
