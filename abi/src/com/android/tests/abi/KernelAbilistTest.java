@@ -34,6 +34,7 @@ import org.junit.runner.RunWith;
 @RunWith(DeviceJUnit4ClassRunner.class)
 public class KernelAbilistTest extends BaseHostJUnit4Test {
     private static final String FIRST_API_LEVEL_PROP = "ro.product.first_api_level";
+    private static final String ABI_PROP = "ro.product.cpu.abi";
     private static final String ABILIST_PROP = "ro.product.cpu.abilist";
     private static final String ABILIST32_PROP = "ro.product.cpu.abilist32";
     private static final String ABILIST64_PROP = "ro.product.cpu.abilist64";
@@ -43,6 +44,12 @@ public class KernelAbilistTest extends BaseHostJUnit4Test {
     @RequiresDevice
     @Test
     public void testAbilistOnArmv9() throws Exception {
+        String abi = getDevice().getProperty(ABI_PROP);
+        if (!abi.startsWith("arm")) {
+            // Only Arm currently has 64-bit-only cores.
+            return;
+        }
+
         String first_api_level_str = getDevice().getProperty(FIRST_API_LEVEL_PROP);
 
         int first_api_level = Integer.parseInt(first_api_level_str);
