@@ -16,8 +16,6 @@
 
 package com.android.tests.abi;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import android.platform.test.annotations.RequiresDevice;
@@ -25,72 +23,48 @@ import com.android.compatibility.common.util.VsrTest;
 import com.android.tradefed.device.ITestDevice;
 import com.android.tradefed.testtype.DeviceJUnit4ClassRunner;
 import com.android.tradefed.testtype.junit4.BaseHostJUnit4Test;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-// Verify that the abilist of an armv9 core does not include any 32 bit abis.
 @RunWith(DeviceJUnit4ClassRunner.class)
 public class KernelAbilistTest extends BaseHostJUnit4Test {
-    private static final String FIRST_API_LEVEL_PROP = "ro.product.first_api_level";
-    private static final String ABI_PROP = "ro.product.cpu.abi";
-    private static final String ABILIST_PROP = "ro.product.cpu.abilist";
-    private static final String ABILIST32_PROP = "ro.product.cpu.abilist32";
-    private static final String ABILIST64_PROP = "ro.product.cpu.abilist64";
-    private static final int TIRAMISU_API_LEVEL = 33;
-
     @VsrTest(requirements = {"VSR-3.12-002"})
     @RequiresDevice
     @Test
-    public void testAbilistOnArmv9() throws Exception {
-        String abi = getDevice().getProperty(ABI_PROP);
+    public void testAbilist() throws Exception {
+        String abi = getProp("ro.product.cpu.abi");
         if (!abi.startsWith("arm")) {
             // Only Arm currently has 64-bit-only cores.
             return;
         }
 
-        String first_api_level_str = getDevice().getProperty(FIRST_API_LEVEL_PROP);
-
-        int first_api_level = Integer.parseInt(first_api_level_str);
-        // Only run this test on devices that initially installed on U or later.
-        if (first_api_level <= TIRAMISU_API_LEVEL) {
-            // Installed before UDC, skip any checking.
+        // ro.vendor.api_level is the VSR requirement API level
+        // calculated from ro.product.first_api_level, ro.board.api_level,
+        // and ro.board.first_api_level.
+        int api_level = Integer.parseInt(getProp("ro.vendor.api_level"));
+        if (api_level < 34) {
+            // Only chipsets that first shipped with API level 34 or later are affected.
             return;
         }
 
-        // Check to see if this is an armv9 processor by looking for bti support.
-        String cpuinfo_output = getDevice().executeShellCommand("cat /proc/cpuinfo");
-        Pattern p = Pattern.compile("Features\\s*:(.*)");
-        Matcher m = p.matcher(cpuinfo_output);
-        assertTrue("Cannot find CPU features in /proc/cpuinfo output", m.find());
-        // Look for bti in the output.
-        p = Pattern.compile("\\bbti\\b");
-        m = p.matcher(m.group(1));
-        if (!m.find()) {
-            // Not armv9, no checking necessary.
-            return;
-        }
+        // Verify at least one 64 bit ABI is supported.
+        String abilist64 = getProp("ro.product.cpu.abilist");
+        assertTrue("VSR-3.12: must support at least one 64 bit ABI", !abilist64.isEmpty());
 
-        // Verify that this supports 64 bit ABI.
-        String abilist64 = getDevice().getProperty(ABILIST64_PROP);
-        if (abilist64 == null) {
-            abilist64 = "";
-        }
-        assertTrue("Arvm9 must support at least one 64 bit ABI", !abilist64.isEmpty());
-
-        // Verify no 32 bit ABIs supported.
-        String abilist32 = getDevice().getProperty(ABILIST32_PROP);
-        if (abilist32 == null) {
-            abilist32 = "";
-        }
-        assertTrue("Armv9 devices must not support any 32 bit ABIs \"" + abilist32 + "\"",
+        // Verify no 32 bit ABIs are supported.
+        String abilist32 = getProp("ro.product.cpu.abilist32");
+        assertTrue("VSR-3.12: must not support any 32 bit ABIs; found \"" + abilist32 + "\"",
                 abilist32.isEmpty());
 
-        // Verify the fully supported ABI list is the same as the 64 bit ABI list.
-        String abilist = getDevice().getProperty(ABILIST_PROP);
-        assertTrue("Armv9 devices must have the 64 bit ABIs the same as the ABIs: ABIs \"" + abilist
-                        + "\" versus 64 bit ABIs \"" + abilist64 + "\"",
+        // Verify the full supported ABI list is the same as the 64 bit ABI list.
+        String abilist = getProp("ro.product.cpu.abilist64");
+        assertTrue("VSR-3.12: supported ABIs must be the 64-bit ABIs; supported ABIs=\"" + abilist
+                        + "\", 64 bit ABIs=\"" + abilist64 + "\"",
                 abilist.equals(abilist64));
+    }
+
+    private String getProp(String name) throws Exception {
+        String result = getDevice().getProperty(name);
+        return result != null ? result : "";
     }
 }
