@@ -60,6 +60,8 @@ TEST(KernelISATest, KernelUses64BitISA) {
   ASSERT_NE(nullptr, runtime_info);
 
   const auto& configs = runtime_info->kernelConfigs();
-  ASSERT_EQ(get_config(configs, "CONFIG_64BIT"), "y") << "Devices launching with Android 14+ "
-                                                      << "must use a 64-bit kernel.";
+  ASSERT_EQ(get_config(configs, "CONFIG_64BIT"), "y") << "VSR-3.12: Devices "
+                                                      << "launching with Android 14+ "
+                                                      << "must support 64-bit ABIs and "
+                                                      << "thus must use a 64-bit kernel.";
 }
