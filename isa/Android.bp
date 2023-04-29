@@ -30,7 +30,7 @@ cc_test {
         "libbase",
     ],
     static_libs: [
-	"libvintf",
+        "libvintf",
     ],
     test_suites: [
         "general-tests",
