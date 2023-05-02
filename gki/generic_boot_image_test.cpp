@@ -145,7 +145,7 @@ std::set<std::string> GetAllowListBySdkLevel(uint32_t target_sdk_level) {
   // contain.
   static const std::map<uint32_t, std::set<std::string>> allow_by_level = {
       {__ANDROID_API_T__, {"system/bin/snapuserd_ramdisk"}},
-      {__ANDROID_API_U__, {"dev/console", "dev/null"}},
+      {__ANDROID_API_U__, {"dev/console", "dev/null", "dev/urandom"}},
   };
   auto res = GetRequirementBySdkLevel(target_sdk_level);
   for (const auto& [level, requirements] : allow_by_level) {
