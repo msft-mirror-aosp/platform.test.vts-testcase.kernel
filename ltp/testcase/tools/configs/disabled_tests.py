@@ -38,8 +38,8 @@ DISABLED_TESTS = {
     'kernel_misc.zram01_64bit',  # b/191226875
     'kernel_misc.zram02_32bit',  # b/191227531
     'kernel_misc.zram02_64bit',  # b/191227531
-    'sched.sched_getattr01_32bit', # b/200686092
-    'sched.sched_setattr01_32bit', # b/200686092
+    'sched.sched_getattr01_32bit',  # b/200686092
+    'sched.sched_setattr01_32bit',  # b/200686092
     'syscalls.bpf_prog02_32bit',  # b/191867447
     'syscalls.bpf_prog02_64bit',  # b/191867447
     'syscalls.bpf_prog06_32bit',  # b/259559270
@@ -49,8 +49,14 @@ DISABLED_TESTS = {
     'syscalls.clone302_32bit',  # b/191236103
     'syscalls.clone302_64bit',  # b/191236103
     'syscalls.copy_file_range02_64bit',  # b/191236491
+    'syscalls.epoll_pwait01_32bit',  # b/277586905
+    'syscalls.epoll_pwait01_64bit',  # b/277586905
     'syscalls.epoll_pwait04_32bit',  # b/241310858
     'syscalls.epoll_pwait04_64bit',  # b/241310858
+    'syscalls.fcntl34_32bit',  # b/278714055
+    'syscalls.fcntl34_64_32bit',  # b/278714055
+    'syscalls.fcntl36_32bit',  # b/278714055
+    'syscalls.fcntl36_64_32bit',  # b/278714055
     'syscalls.ftruncate04_32bit',  # b/198611142
     'syscalls.ftruncate04_64_32bit',  # b/198611142
     'syscalls.ftruncate04_64_64bit',  # b/198611142
@@ -79,12 +85,18 @@ DISABLED_TESTS = {
     'syscalls.ioctl_ns06_64bit',  # b/191224339
     'syscalls.madvise06_32bit',  # b/191227034
     'syscalls.madvise06_64bit',  # b/191227034
+    'syscalls.mount03_32bit',  # b/275747273
+    'syscalls.mount03_64bit',  # b/275747273
+    'syscalls.openat04_32bit',  # b/277806579
+    'syscalls.openat04_64bit',  # b/277806579
     'syscalls.rt_sigprocmask01_32bit',  # b/191248975
     'syscalls.rt_sigtimedwait01_32bit',  # b/191247810
-    'syscalls.sched_getattr01_32bit', # b/200686092
-    'syscalls.sched_setattr01_32bit', # b/200686092
+    'syscalls.sched_getattr01_32bit',  # b/200686092
+    'syscalls.sched_setattr01_32bit',  # b/200686092
     'syscalls.semctl09_32bit',  # b/191227035
     'syscalls.semctl09_64bit',  # b/191227035
+    'syscalls.setpgid02_32bit',  # b/276300873
+    'syscalls.setpgid02_64bit',  # b/276300873
     'syscalls.statx07_32bit',  # b/191236106
     'syscalls.statx07_64bit',  # b/191236106
 }
