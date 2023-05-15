@@ -22,8 +22,7 @@ sh_test {
     name: "vendor_elf_alignment_test",
     src: "vendor_elf_alignment_test.sh",
     test_suites: [
-        "device-tests",
-        "vts",
+        "general-tests",
     ],
     test_config: "vendor_elf_alignment_test.xml",
 }
