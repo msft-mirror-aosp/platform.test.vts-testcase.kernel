@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2020 The Android Open Source Project
+// Copyright (C) 2023 The Android Open Source Project
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,30 +18,11 @@ package {
     default_applicable_licenses: ["Android-Apache-2.0"],
 }
 
-cc_defaults {
-    name: "binary_zram_defaults",
-    srcs: ["ZramTest.cpp"],
-    shared_libs: [
-        "libbase",
-    ],
-    cflags: [
-        "-fno-strict-aliasing",
-        "-Wall",
-        "-Werror",
-        "-Wno-unused-variable",
-    ],
-}
-
-cc_test {
-    name: "zram_module_test",
-    defaults: ["binary_zram_defaults"],
-    test_config: "zram_module_test.xml",
+sh_test {
+    name: "vendor_elf_alignment_test",
+    src: "vendor_elf_alignment_test.sh",
     test_suites: [
         "general-tests",
     ],
-}
-
-cc_test {
-    name: "vts_test_binary_zram_module",
-    defaults: ["binary_zram_defaults"],
+    test_config: "vendor_elf_alignment_test.xml",
 }
