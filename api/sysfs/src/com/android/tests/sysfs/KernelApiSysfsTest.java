@@ -27,6 +27,7 @@ import com.android.tradefed.testtype.junit4.BaseHostJUnit4Test;
 import com.android.tradefed.util.FileUtil;
 import com.android.tradefed.util.TargetFileUtils;
 import com.android.tradefed.util.TargetFileUtils.FilePermission;
+import com.android.tradefed.log.LogUtil.CLog;
 import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -281,6 +282,17 @@ public class KernelApiSysfsTest extends BaseHostJUnit4Test {
         // Do not require KFENCE for kernels < 5.10.
         if ((kernel_major < 5) || ((kernel_major == 5) && (kernel_minor < 10)))
             return;
+
+        String executeShellKernelARM64 =
+            "cat /proc/config.gz | gzip -d | grep CONFIG_ARM64=y";
+
+        boolean isKernelARM64 = getDevice().executeShellCommand(executeShellKernelARM64)
+                                           .contains("CONFIG_ARM64");
+
+        if (!isKernelARM64) {
+            CLog.d("Kernel not 64bit skip");
+            return;
+        }
 
         String filePath = "/sys/module/kfence/parameters/sample_interval";
         assertTrue("Failed readwrite check of " + filePath,
