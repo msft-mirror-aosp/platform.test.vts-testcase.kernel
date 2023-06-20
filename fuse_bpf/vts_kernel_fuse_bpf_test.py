@@ -31,7 +31,7 @@ class VtsKernelFuseBpfTest(unittest.TestCase):
         self.adb = adb.ADB(serial_number)
 
     def testFuseBpfEnabled(self):
-        out_api, err, return_code = self.dut.Execute("getprop ro.product.first_api_level")
+        out_api, err, return_code = self.dut.Execute("getprop ro.vendor.api_level")
         first_api_level = 0
         try:
             first_api_level = int(out_api)
