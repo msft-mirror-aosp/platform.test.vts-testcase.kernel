@@ -83,6 +83,9 @@ class GenericBootImageTest : public testing::Test {
     const auto& configs = runtime_info->kernelConfigs();
     if (get_config(configs, "CONFIG_ARM") == "y") {
       GTEST_SKIP() << "Skipping on 32-bit ARM devices";
+    } else if (get_config(configs, "CONFIG_X86") == "y" ||
+               get_config(configs, "CONFIG_X86_64") == "y") {
+      GTEST_SKIP() << "Skipping on X86 & X86_64 devices";
     }
     // Technically, the test should also be skipped on CONFIG_X86 and
     // CONFIG_X86_64, and only run on CONFIG_ARM64,
@@ -140,10 +143,10 @@ std::set<std::string> GetAllowListBySdkLevel(uint32_t target_sdk_level) {
   // Files that are allowed in generic ramdisk(but not necessarily required)
   // This list acts as an upper bound for what the device's ramdisk can possibly
   // contain.
-  static const std::map<uint32_t, std::set<std::string>> allow_by_level = {{
-      __ANDROID_API_T__,
-      {"system/bin/snapuserd_ramdisk"},
-  }};
+  static const std::map<uint32_t, std::set<std::string>> allow_by_level = {
+      {__ANDROID_API_T__, {"system/bin/snapuserd_ramdisk"}},
+      {__ANDROID_API_U__, {"dev/console", "dev/null", "dev/urandom"}},
+  };
   auto res = GetRequirementBySdkLevel(target_sdk_level);
   for (const auto& [level, requirements] : allow_by_level) {
     if (level > target_sdk_level) {
@@ -207,8 +210,6 @@ TEST_F(GenericBootImageTest, GenericRamdisk) {
   const std::filesystem::path extracted_ramdisk_path((*extracted_ramdisk)->path);
   for (auto& p : recursive_directory_iterator(extracted_ramdisk_path)) {
     if (p.is_directory()) continue;
-    EXPECT_TRUE(p.is_regular_file())
-        << "Unexpected non-regular file " << p.path();
     auto rel_path = p.path().lexically_relative(extracted_ramdisk_path);
     actual_files.insert(rel_path.string());
   }
