@@ -1,5 +1,4 @@
-//
-// Copyright (C) 2020 The Android Open Source Project
+// Copyright (C) 2023 The Android Open Source Project
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,36 +11,31 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-//
 
 package {
     default_applicable_licenses: ["Android-Apache-2.0"],
 }
 
-cc_defaults {
-    name: "binary_zram_defaults",
-    srcs: ["ZramTest.cpp"],
+cc_test {
+    name: "vts_kernel_isa_test",
+    srcs: ["vts_kernel_isa_test.cpp"],
+    defaults: [
+        "libvintf_static_user_defaults",
+    ],
+    cflags: [
+        "-Wall",
+        "-Werror",
+    ],
     shared_libs: [
         "libbase",
     ],
-    cflags: [
-        "-fno-strict-aliasing",
-        "-Wall",
-        "-Werror",
-        "-Wno-unused-variable",
+    static_libs: [
+        "libvintf",
     ],
-}
-
-cc_test {
-    name: "zram_module_test",
-    defaults: ["binary_zram_defaults"],
-    test_config: "zram_module_test.xml",
     test_suites: [
         "general-tests",
+        "vts",
     ],
-}
-
-cc_test {
-    name: "vts_test_binary_zram_module",
-    defaults: ["binary_zram_defaults"],
+    require_root: true,
+    auto_gen_config: true,
 }
