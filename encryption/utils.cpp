@@ -37,6 +37,36 @@ using namespace android::dm;
 
 namespace android {
 namespace kernel {
+// Context in fixed input string comprises of software provided context,
+// padding to eight bytes (if required) and the key policy.
+static const std::vector<std::vector<uint8_t>> HwWrappedEncryptionKeyContexts =
+    {
+        {'i',  'n',  'l',  'i',  'n',  'e',  ' ',  'e',  'n', 'c', 'r', 'y',
+         'p',  't',  'i',  'o',  'n',  ' ',  'k',  'e',  'y', 0x0, 0x0, 0x0,
+         0x00, 0x00, 0x00, 0x02, 0x43, 0x00, 0x82, 0x50, 0x0, 0x0, 0x0, 0x0},
+        // Below for "legacy && kdf tied to Trusted Execution
+        // Environment(TEE)".
+        // Where as above caters ( "all latest targets" || ("legacy && kdf
+        // not tied to TEE)).
+        {'i',  'n',  'l',  'i',  'n',  'e',  ' ',  'e',  'n', 'c', 'r', 'y',
+         'p',  't',  'i',  'o',  'n',  ' ',  'k',  'e',  'y', 0x0, 0x0, 0x0,
+         0x00, 0x00, 0x00, 0x01, 0x43, 0x00, 0x82, 0x18, 0x0, 0x0, 0x0, 0x0},
+};
+
+static bool GetKdfContext(std::vector<uint8_t> *ctx) {
+  std::string kdf =
+      android::base::GetProperty("ro.crypto.hw_wrapped_keys.kdf", "v1");
+  if (kdf == "v1") {
+    *ctx = HwWrappedEncryptionKeyContexts[0];
+    return true;
+  }
+  if (kdf == "legacykdf") {
+    *ctx = HwWrappedEncryptionKeyContexts[1];
+    return true;
+  }
+  ADD_FAILURE() << "Unknown KDF: " << kdf;
+  return false;
+}
 
 // Offset in bytes to the filesystem superblock, relative to the beginning of
 // the block device
@@ -403,17 +433,12 @@ bool DeriveHwWrappedEncryptionKey(const std::vector<uint8_t> &master_key,
                                   std::vector<uint8_t> *enc_key) {
   std::vector<uint8_t> label{0x00, 0x00, 0x40, 0x00, 0x00, 0x00,
                              0x00, 0x00, 0x00, 0x00, 0x20};
-  // Context in fixed input string comprises of software provided context,
-  // padding to eight bytes (if required) and the key policy.
-  std::vector<uint8_t> context = {
-      'i', 'n', 'l', 'i', 'n', 'e', ' ', 'e',
-      'n', 'c', 'r', 'y', 'p', 't', 'i', 'o',
-      'n', ' ', 'k', 'e', 'y', 0x0, 0x0, 0x0,
-      0x00, 0x00, 0x00, 0x02, 0x43, 0x00, 0x82, 0x50,
-      0x0,  0x0,  0x0,  0x0};
 
-  return AesCmacKdfHelper(master_key, label, context, kAes256XtsKeySize,
-                          enc_key);
+  std::vector<uint8_t> ctx;
+
+  if (!GetKdfContext(&ctx)) return false;
+
+  return AesCmacKdfHelper(master_key, label, ctx, kAes256XtsKeySize, enc_key);
 }
 
 bool DeriveHwWrappedRawSecret(const std::vector<uint8_t> &master_key,
