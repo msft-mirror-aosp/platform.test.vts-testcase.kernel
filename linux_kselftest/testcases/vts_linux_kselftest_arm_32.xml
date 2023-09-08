@@ -32,7 +32,7 @@
 
     <test class="com.android.tradefed.testtype.binary.ExecutableTargetTest" >
         <option name="test-command-line" key="capabilities_test_execve_arm_32" value="chmod 755 &ktest_dir;/capabilities/test_execve; cd &ktest_dir;/capabilities; ./test_execve" />
-        <option name="test-command-line" key="futex_functional_run.sh_arm_32" value="chmod 755 &ktest_dir;/futex/functional/run.sh; cd &ktest_dir;/futex/functional; ./run.sh" />
+        <option name="test-command-line" key="futex_functional_run.sh_arm_32" value="chmod 755 &ktest_dir;/futex/functional/run.sh; cd &ktest_dir;/futex/functional; USE_COLOR=0 ./run.sh" />
         <option name="test-command-line" key="kcmp_kcmp_test_arm_32" value="chmod 755 &ktest_dir;/kcmp/kcmp_test; cd &ktest_dir;/kcmp; ./kcmp_test" />
         <option name="test-command-line" key="net_reuseaddr_conflict_arm_32" value="chmod 755 &ktest_dir;/net/reuseaddr_conflict; cd &ktest_dir;/net; ./reuseaddr_conflict" />
         <option name="test-command-line" key="net_socket_arm_32" value="chmod 755 &ktest_dir;/net/socket; cd &ktest_dir;/net; ./socket" />
