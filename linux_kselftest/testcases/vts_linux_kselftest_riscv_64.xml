@@ -34,7 +34,7 @@
         <option name="exit-code-skip" value="4" />
         <option name="skip-binary-check" value="true" />
         <option name="test-command-line" key="capabilities_test_execve_riscv_64" value="chmod 755 &ktest_dir;/capabilities/test_execve; cd &ktest_dir;/capabilities; ./test_execve" />
-        <option name="test-command-line" key="futex_functional_run.sh_riscv_64" value="chmod 755 &ktest_dir;/futex/functional/run.sh; cd &ktest_dir;/futex/functional; ./run.sh" />
+        <option name="test-command-line" key="futex_functional_run.sh_riscv_64" value="chmod 755 &ktest_dir;/futex/functional/run.sh; cd &ktest_dir;/futex/functional; USE_COLOR=0 ./run.sh" />
         <option name="test-command-line" key="kcmp_kcmp_test_riscv_64" value="chmod 755 &ktest_dir;/kcmp/kcmp_test; cd &ktest_dir;/kcmp; ./kcmp_test" />
         <option name="test-command-line" key="net_psock_tpacket_riscv_64" value="chmod 755 &ktest_dir;/net/psock_tpacket; cd &ktest_dir;/net; ./psock_tpacket" />
         <option name="test-command-line" key="net_reuseaddr_conflict_riscv_64" value="chmod 755 &ktest_dir;/net/reuseaddr_conflict; cd &ktest_dir;/net; ./reuseaddr_conflict" />
