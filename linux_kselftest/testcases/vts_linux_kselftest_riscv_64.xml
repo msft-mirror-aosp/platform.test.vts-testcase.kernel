@@ -11,7 +11,7 @@
      limitations under the License.
 -->
 <!DOCTYPE configuration [
-    <!ENTITY ktest_dir "/data/local/tmp/vts_kernel_tests/DATA/nativetest64/linux-kselftest">
+    <!ENTITY ktest_dir "/data/local/tmp/vts_kernel_kselftest_tests/DATA/nativetest64/linux-kselftest">
 ]>
 <configuration description="Runs vts_linux_kselftest.">
     <target_preparer class="com.android.tradefed.targetprep.RootTargetPreparer" />
@@ -23,16 +23,18 @@
 
     <target_preparer class="com.android.tradefed.targetprep.PushFilePreparer">
         <option name="cleanup" value="true" />
-        <option name="push" value="vts_kernel_tests->/data/local/tmp/vts_kernel_tests" />
+        <option name="push" value="vts_kernel_kselftest_tests->/data/local/tmp/vts_kernel_kselftest_tests" />
     </target_preparer>
 
     <target_preparer class="com.android.tradefed.targetprep.RunCommandTargetPreparer">
         <option name="run-command" value='find &ktest_dir; -type f | xargs grep -l -e "bin/sh" -e "bin/bash" | xargs sed -i -e "s?/bin/echo?echo?" -i -e "s?#!/bin/sh?#!/system/bin/sh?" -i -e "s?#!/bin/bash?#!/system/bin/sh?"' />
     </target_preparer>
 
-    <test class="com.android.tradefed.testtype.binary.ExecutableTargetTest" >
+    <test class="com.android.tradefed.testtype.binary.KernelTargetTest" >
+        <option name="exit-code-skip" value="4" />
+        <option name="skip-binary-check" value="true" />
         <option name="test-command-line" key="capabilities_test_execve_riscv_64" value="chmod 755 &ktest_dir;/capabilities/test_execve; cd &ktest_dir;/capabilities; ./test_execve" />
-        <option name="test-command-line" key="futex_functional_run.sh_riscv_64" value="chmod 755 &ktest_dir;/futex/functional/run.sh; cd &ktest_dir;/futex/functional; ./run.sh" />
+        <option name="test-command-line" key="futex_functional_run.sh_riscv_64" value="chmod 755 &ktest_dir;/futex/functional/run.sh; cd &ktest_dir;/futex/functional; USE_COLOR=0 ./run.sh" />
         <option name="test-command-line" key="kcmp_kcmp_test_riscv_64" value="chmod 755 &ktest_dir;/kcmp/kcmp_test; cd &ktest_dir;/kcmp; ./kcmp_test" />
         <option name="test-command-line" key="net_psock_tpacket_riscv_64" value="chmod 755 &ktest_dir;/net/psock_tpacket; cd &ktest_dir;/net; ./psock_tpacket" />
         <option name="test-command-line" key="net_reuseaddr_conflict_riscv_64" value="chmod 755 &ktest_dir;/net/reuseaddr_conflict; cd &ktest_dir;/net; ./reuseaddr_conflict" />
@@ -51,7 +53,7 @@
         <option name="test-command-line" key="timers_set-timer-lat_riscv_64" value="chmod 755 &ktest_dir;/timers/set-timer-lat; cd &ktest_dir;/timers; ./set-timer-lat" />
         <option name="test-command-line" key="timers_threadtest_riscv_64" value="chmod 755 &ktest_dir;/timers/threadtest; cd &ktest_dir;/timers; ./threadtest" />
         <option name="test-command-line" key="timers_valid-adjtimex_riscv_64" value="chmod 755 &ktest_dir;/timers/valid-adjtimex; cd &ktest_dir;/timers; ./valid-adjtimex" />
-        <option name="test-command-line" key="vDSO_kselftest_vdso_test_riscv_64" value="chmod 755 &ktest_dir;/vDSO/kselftest_vdso_test; cd &ktest_dir;/vDSO; ./kselftest_vdso_test" />
+        <option name="test-command-line" key="vDSO_kselftest_vdso_test_abi_risc_64" value="chmod 755 &ktest_dir;/vDSO/kselftest_vdso_test_abi; cd &ktest_dir;/vDSO; ./kselftest_vdso_test_abi" />
     </test>
 </configuration>
 
