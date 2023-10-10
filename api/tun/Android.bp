@@ -23,7 +23,10 @@ cc_test {
     shared_libs: [
         "libbase",
     ],
-    test_suites: ["vts"],
+    test_suites: [
+        "general-tests",
+        "vts",
+    ],
     auto_gen_config: true,
     require_root: true,
 }
