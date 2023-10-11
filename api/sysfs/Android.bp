@@ -25,6 +25,7 @@ java_test_host {
     ],
     srcs: ["src/**/*.java"],
     test_suites: [
+        "general-tests",
         "vts",
     ],
     test_config: "KernelApiSysfsTest.xml",
