@@ -228,18 +228,26 @@ class ScopedFsFreezer {
         fd_ = fd;
         return;
       }
-      if (errno == EBUSY) {
-        // Filesystem is already frozen, perhaps by a concurrent execution of
-        // this same test.  Since we don't have control over exactly when
-        // another process unfreezes the filesystem, we don't continue on with
-        // the test but rather just keep retrying the freeze until it works.
+      if (errno == EBUSY || errno == EINVAL) {
+        // EBUSY means the filesystem is already frozen, perhaps by a concurrent
+        // execution of this same test.  Since we don't have control over
+        // exactly when another process unfreezes the filesystem, we don't
+        // continue on with the test but rather just keep retrying the freeze
+        // until it works.
+        //
+        // Very rarely, on f2fs FIFREEZE fails with EINVAL (b/255800104).
+        // Unfortunately, the reason for this is still unknown.  Enter the retry
+        // loop in this case too, in the hope that it helps.
+        //
+        // Both of these errors are rare, so this sleep should not normally be
+        // executed.
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         continue;
       }
       ADD_FAILURE() << "Failed to freeze filesystem" << Errno();
       return;
     } while (std::chrono::steady_clock::now() - start <
-             std::chrono::seconds(10));
+             std::chrono::seconds(20));
     ADD_FAILURE() << "Timed out while waiting to freeze filesystem";
   }
 
