@@ -17,16 +17,13 @@
 import argparse
 import os
 import sys
-from distutils.util import strtobool
 
 import ltp_test_cases
 from common import filter_utils
 
-def run(android_build_top: str, arch: str, n_bit: int, is_low_mem: bool, is_hwasan: bool, run_staging: bool, output_file: str):
+def run(arch: str, n_bit: int, is_low_mem: bool, is_hwasan: bool, run_staging: bool, output_file: str):
 
-    android_build_top = android_build_top
-    ltp_tests = ltp_test_cases.LtpTestCases(
-        android_build_top, None)
+    ltp_tests = ltp_test_cases.LtpTestCases(None)
 
     test_filter = filter_utils.Filter()
     ltp_tests.GenConfig(
@@ -72,14 +69,12 @@ if __name__ == '__main__':
                             default="False",
                             help="Run all the tests, except from the disabled ones")
     arg_parser.add_argument('output_file_path',
-                            nargs=1,
                             help="Path for the output file")
     args = arg_parser.parse_args()
 
-    run(android_build_top=os.environ['ANDROID_BUILD_TOP'],
-        arch=args.arch,
+    run(arch=args.arch,
         n_bit=str(args.bitness),
-        is_low_mem=strtobool(args.is_low_mem),
-        is_hwasan=strtobool(args.is_hwasan),
-        run_staging=strtobool(args.run_staging),
-        output_file=args.output_file_path[0])
+        is_low_mem=args.is_low_mem == 'True',
+        is_hwasan=args.is_hwasan == 'True',
+        run_staging=args.run_staging == 'True',
+        output_file=args.output_file_path)
