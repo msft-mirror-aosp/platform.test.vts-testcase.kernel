@@ -16,6 +16,8 @@
 
 import os
 import logging
+import pkgutil
+from importlib import resources
 
 import ltp_configs
 import ltp_enums
@@ -39,8 +41,7 @@ class LtpTestCases(object):
         _ltp_config_lines: list of string: the context of the generated config
     """
 
-    def __init__(self, android_build_top: str, filter_func: Callable):
-        self._android_build_top = android_build_top
+    def __init__(self, filter_func: Callable):
         self._filter_func = filter_func
         self._ltp_tests_filter = filter_utils.Filter(
             set(stable_tests.STABLE_TESTS.keys()),
@@ -77,10 +78,8 @@ class LtpTestCases(object):
         Returns:
             String.
         """
-        file_name = ltp_configs.LTP_CONFIG_TEMPLATE_FILE_NAME
-        file_path = os.path.join(self._android_build_top, ltp_configs.LTP_CONFIG_TEMPLATE_DIR, file_name)
-        with open(file_path, 'r') as f:
-            return f.read()
+        # This gets bundled into the gen_ltp_config tool during the build
+        return pkgutil.get_data('template', 'template.xml').decode()
 
     def GetKernelModuleControllerOption(self, arch: str, n_bit: int, is_low_mem: bool = False, is_hwasan: bool = False) -> str:
         """Get the Option of KernelModuleController.
@@ -116,8 +115,7 @@ class LtpTestCases(object):
         Args:
             command: String, the test command
         """
-        gen_bp_path = os.path.join(self._android_build_top, ltp_configs.LTP_GEN_BINARY_BP)
-        for line in open(gen_bp_path, 'r'):
+        for line in pkgutil.get_data('android.tools', 'gen.bp').decode().splitlines():
             line = line.strip()
             if not line or line.startswith('#'):
                 continue
@@ -263,25 +261,6 @@ class LtpTestCases(object):
         with open(output_file, 'w') as f:
             f.write(config_lines)
 
-    def ReadCommentedTxt(self, filepath: str) -> Optional[Set[str]]:
-        '''Read a lines of a file that are not commented by #.
-
-        Args:
-            filepath: string, path of file to read
-
-        Returns:
-            A set of string representing non-commented lines in given file
-        '''
-        if not filepath:
-            logging.error('Invalid file path')
-            return None
-
-        with open(filepath, 'r') as f:
-            lines_gen = (line.strip() for line in f)
-            return set(
-                line for line in lines_gen
-                if line and not line.startswith('#'))
-
     def GenerateLtpTestCases(self, testsuite: str, disabled_tests_list: List[str]) -> List[str]:
         '''Generate test cases for each ltp test suite.
 
@@ -291,11 +270,8 @@ class LtpTestCases(object):
         Returns:
             A list of string
         '''
-        testsuite_script = os.path.join(self._android_build_top,
-                                        ltp_configs.LTP_RUNTEST_DIR, testsuite)
-
         result = []
-        for line in open(testsuite_script, 'r'):
+        for line in pkgutil.get_data('runtest', testsuite).decode().splitlines():
             line = line.strip()
             if not line or line.startswith('#'):
                 continue
@@ -318,9 +294,11 @@ class LtpTestCases(object):
         Returns:
             A list of string
         '''
-        disabled_tests_path = os.path.join(
-            self._android_build_top, ltp_configs.LTP_DISABLED_BUILD_TESTS_CONFIG_PATH)
-        disabled_tests_list = self.ReadCommentedTxt(disabled_tests_path)
+        disabled_tests_list = pkgutil.get_data('android.tools', 'disabled_tests.txt').decode().splitlines()
+        disabled_tests_list = [line.strip() for line in disabled_tests_list]
+        disabled_tests_list = set(
+            line for line in disabled_tests_list
+            if line and not line.startswith('#'))
 
         result = []
         for testsuite in scenario_groups:
