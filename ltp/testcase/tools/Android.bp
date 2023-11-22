@@ -32,3 +32,22 @@ python_test_host {
         }
     },
 }
+
+python_binary_host {
+    name: "gen_ltp_config",
+    main: "gen_ltp_config.py",
+    srcs: [
+        "**/*.py",
+    ],
+    data: [
+        "template/template.xml",
+        ":ltp_gen_bp_file",
+        ":ltp_disabled_tests",
+        ":ltp_runtests",
+    ],
+    version: {
+        py3: {
+            embedded_launcher: true,
+        }
+    },
+}
