@@ -34,6 +34,8 @@ DISABLED_TESTS = {
     'cve.cve-2019-8912_64bit',  # b/191224904
     'cve.cve-2021-3444_32bit',  # b/191226866
     'cve.cve-2021-3444_64bit',  # b/191226866
+    'cve.cve-2021-4197_1_32bit',  # b/259557077
+    'cve.cve-2021-4197_1_64bit',  # b/259557077
     'kernel_misc.zram01_32bit',  # b/191226875
     'kernel_misc.zram01_64bit',  # b/191226875
     'kernel_misc.zram02_32bit',  # b/191227531
