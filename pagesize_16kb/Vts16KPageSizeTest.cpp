@@ -32,6 +32,12 @@ class Vts16KPageSizeTest : public ::testing::Test {
         return android::base::GetIntProperty("ro.vendor.api_level", __ANDROID_API_S__);
     }
 
+    static bool NoBionicPageSizeMacroProperty() {
+        // "ro.product.build.no_bionic_page_size_macro" was added in Android V and is
+        // set to true when Android is build with PRODUCT_NO_BIONIC_PAGE_SIZE_MACRO := true.
+        return android::base::GetBoolProperty("ro.product.build.no_bionic_page_size_macro", false);
+    }
+
     static std::string Architecture() { return android::base::GetProperty("ro.bionic.arch", ""); }
 
     static ssize_t MaxPageSize(const std::string& filepath) {
@@ -94,4 +100,17 @@ TEST_F(Vts16KPageSizeTest, InitMaxPageSizeTest) {
 
     ASSERT_EQ(initMaxPageSize, expectedMaxPageSize)
             << "ELF " << initPath << " was not built with the required max-page-size";
+}
+
+/**
+ * Checks if the vendor's build was compiled with the define
+ * PRODUCT_NO_BIONIC_PAGE_SIZE_MACRO based on the product property
+ * ro.product.build.no_bionic_page_size_macro.
+ */
+TEST_F(Vts16KPageSizeTest, NoBionicPageSizeMacro) {
+    /**
+     * TODO(b/315034809): switch to error when final decision is made.
+     */
+    if (!NoBionicPageSizeMacroProperty())
+        GTEST_SKIP() << "Device was not built with: PRODUCT_NO_BIONIC_PAGE_SIZE_MACRO := true";
 }
