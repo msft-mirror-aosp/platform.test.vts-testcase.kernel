@@ -31,11 +31,42 @@ std::optional<std::string> get_config(
   return it->second;
 }
 
+// Returns true if the device has the specified feature.
+static bool deviceSupportsFeature(const char* feature) {
+  bool device_supports_feature = false;
+  FILE* p = popen("pm list features", "re");
+  if (p) {
+    char* line = NULL;
+    size_t len = 0;
+    while (getline(&line, &len, p) > 0) {
+      if (strstr(line, feature)) {
+        device_supports_feature = true;
+        break;
+      }
+    }
+    if (line) {
+      free(line);
+      line = NULL;
+    }
+    pclose(p);
+  }
+  return device_supports_feature;
+}
+
+static bool isTV() {
+  return deviceSupportsFeature("android.software.leanback");
+}
+
 /*
  * Tests that the kernel in use is meant to run on CPUs that support a
  * 64-bit Instruction Set Architecture (ISA).
  */
 TEST(KernelISATest, KernelUses64BitISA) {
+  /*
+   * Exclude VSR-3.12 from Android TV
+   */
+
+  if (isTV()) GTEST_SKIP() << "Exempt from TV devices";
   /*
    * ro.vendor.api_level is the VSR API level, which is calculated
    * as:
