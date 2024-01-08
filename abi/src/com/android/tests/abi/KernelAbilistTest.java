@@ -28,6 +28,9 @@ import org.junit.runner.RunWith;
 
 @RunWith(DeviceJUnit4ClassRunner.class)
 public class KernelAbilistTest extends BaseHostJUnit4Test {
+    private static final String FEATURE_LEANBACK = "android.software.leanback";
+    private static final String FEATURE_TV = "android.hardware.type.television";
+
     @VsrTest(requirements = {"VSR-3.12-002"})
     @RequiresDevice
     @Test
@@ -35,6 +38,11 @@ public class KernelAbilistTest extends BaseHostJUnit4Test {
         String abi = getProp("ro.product.cpu.abi");
         if (!abi.startsWith("arm")) {
             // Only Arm currently has 64-bit-only cores.
+            return;
+        }
+
+        // Exclude VSR-3.12 for Android TV
+        if (hasDeviceFeature(FEATURE_LEANBACK) || hasDeviceFeature(FEATURE_TV)) {
             return;
         }
 
