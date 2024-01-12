@@ -130,11 +130,15 @@ TEST(drop_caches, set_perf_property) {
       usage_after_minor.ru_minflt - usage_before_minor.ru_minflt;
   long without_cache_major_faults =
       usage_after_major.ru_majflt - usage_before_major.ru_majflt;
-  bool failure = abs(with_cache_minor_faults - without_cache_major_faults) > 2;
-  ALOGI("There were %ld minor faults and %ld major faults.",
-        with_cache_minor_faults, without_cache_major_faults);
-  ASSERT_EQ(failure, false)
-      << "The difference between minor and major faults was too large.";
+
+  long with_cache_major_faults =
+      usage_after_minor.ru_majflt - usage_before_minor.ru_majflt;
+  long without_cache_minor_faults =
+      usage_after_major.ru_minflt - usage_before_major.ru_minflt;
+
+  ASSERT_NEAR(with_cache_minor_faults, without_cache_major_faults, 2)
+    << "with_cache_major_faults=" << with_cache_major_faults
+    << " without_cache_minor_faults=" << without_cache_minor_faults;
 
   // Try to clean up the garbage.data file from the device.
   remove("/data/local/tmp/garbage.data");
