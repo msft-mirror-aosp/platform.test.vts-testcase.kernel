@@ -28,6 +28,7 @@ cc_test {
     ],
     static_libs: [
         "libgmock",
+        "libkver",
     ],
     test_suites: [
         "device-tests",
