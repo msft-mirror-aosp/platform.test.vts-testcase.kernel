@@ -24,6 +24,7 @@ import com.android.tradefed.testtype.junit4.BaseHostJUnit4Test;
 import com.android.tradefed.util.CommandResult;
 import com.android.tradefed.util.CommandStatus;
 import java.util.Scanner;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -54,6 +55,10 @@ public final class SdcardfsTest extends BaseHostJUnit4Test {
         return minor >= MIN_KERNEL_MINOR;
     }
 
+    // This test cannot currently determine launch kernel version
+    // To avoid false positives now that devices update kernels in the
+    // field, skipping this test for now.
+    @Ignore("b/319914104")
     @Test
     public void testSdcardfsNotPresent() throws Exception {
         CommandResult result = getDevice().executeShellV2Command("uname -r");
