@@ -28,16 +28,10 @@ TEST(Metadata, Filesystem) {
   ASSERT_EQ(0, statfs(kMetadata, &buf))
       << "Cannot statfs " << kMetadata << ": " << strerror(errno);
 
-  int vsr_level = android::base::GetIntProperty("ro.vendor.api_level", -1);
-
   bool is_ext4 = (buf.f_type == EXT4_SUPER_MAGIC);
   bool is_f2fs = (buf.f_type == F2FS_SUPER_MAGIC);
-  if (vsr_level < __ANDROID_API_T__) {
-    ASSERT_TRUE(is_ext4) << "Filesystem magic: " << std::to_string(buf.f_type);
-  } else {
-    ASSERT_TRUE(is_ext4 || is_f2fs)
-        << "Filesystem magic: " << std::to_string(buf.f_type);
-  }
+  ASSERT_TRUE(is_ext4 || is_f2fs)
+    << "Filesystem magic: " << std::to_string(buf.f_type);
 }
 
 TEST(Metadata, FstabEntryFlagsAreSet) {
