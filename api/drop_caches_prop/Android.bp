@@ -25,7 +25,10 @@ cc_test {
         "libcutils",
         "liblog",
     ],
-    test_suites: ["vts"],
+    test_suites: [
+        "general-tests",
+        "vts",
+    ],
     auto_gen_config: true,
     require_root: false,
 }

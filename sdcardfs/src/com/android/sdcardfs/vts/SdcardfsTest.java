@@ -17,12 +17,14 @@
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
+import com.android.tradefed.device.DeviceNotAvailableException;
 import com.android.tradefed.log.LogUtil.CLog;
 import com.android.tradefed.testtype.DeviceJUnit4ClassRunner;
 import com.android.tradefed.testtype.junit4.BaseHostJUnit4Test;
 import com.android.tradefed.util.CommandResult;
 import com.android.tradefed.util.CommandStatus;
 import java.util.Scanner;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -32,8 +34,17 @@ public final class SdcardfsTest extends BaseHostJUnit4Test {
 
     private static final int MIN_KERNEL_MAJOR = 5;
     private static final int MIN_KERNEL_MINOR = 4;
+    private static final int MIN_FIRST_API_LEVEL = 30; // Android 11
 
-    private boolean should_run(String str) {
+    private boolean should_run(String str) throws DeviceNotAvailableException {
+        String result = getDevice().getProperty("ro.product.first_api_level");
+        if (result != null && !result.isEmpty()) {
+            int first_api_level = Integer.parseInt(result);
+
+            if (first_api_level < MIN_FIRST_API_LEVEL)
+                return false;
+        }
+
         Scanner versionScanner = new Scanner(str).useDelimiter("\\.");
         int major = versionScanner.nextInt();
         int minor = versionScanner.nextInt();
@@ -44,6 +55,10 @@ public final class SdcardfsTest extends BaseHostJUnit4Test {
         return minor >= MIN_KERNEL_MINOR;
     }
 
+    // This test cannot currently determine launch kernel version
+    // To avoid false positives now that devices update kernels in the
+    // field, skipping this test for now.
+    @Ignore("b/319914104")
     @Test
     public void testSdcardfsNotPresent() throws Exception {
         CommandResult result = getDevice().executeShellV2Command("uname -r");
