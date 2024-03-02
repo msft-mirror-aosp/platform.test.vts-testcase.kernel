@@ -78,7 +78,7 @@ TEST_F(KernelVersionTest, IsLLD) {
   ASSERT_THAT(version_, ::testing::HasSubstr(needle));
 }
 
-// TODO(b/303658309): Add VSR item number
+// @VsrTest = 3.4.2
 TEST_F(KernelVersionTest, IsKleaf) {
   constexpr uint64_t kMinAndroidRelease = 15;  // Android 15
   const auto kernel_release =
