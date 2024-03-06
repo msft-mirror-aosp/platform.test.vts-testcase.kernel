@@ -93,10 +93,10 @@ public class KernelApiSysfsTest extends BaseHostJUnit4Test {
      */
     @Test
     public void testPerCpuCpufreq() throws Exception {
-        String filePath = "/sys/devices/system/cpu/present";
+        String filePath = "/sys/devices/system/cpu/online";
         assertTrue(TargetFileUtils.isReadOnly(filePath, getDevice()));
-        String presentCpus = getDevice().pullFileContents(filePath).trim();
-        String[] cpuRanges = presentCpus.split(",");
+        String onlineCpus = getDevice().pullFileContents(filePath).trim();
+        String[] cpuRanges = onlineCpus.split(",");
         List<Integer> cpuList = new ArrayList<>();
         Pattern p = Pattern.compile("(\\d+)(-\\d+)?");
         for (String range : cpuRanges) {
