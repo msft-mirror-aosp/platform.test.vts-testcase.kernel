@@ -95,6 +95,8 @@ DISABLED_TESTS = {
     'syscalls.semctl09_64bit',  # b/191227035
     'syscalls.setpgid02_32bit',  # b/276300873
     'syscalls.setpgid02_64bit',  # b/276300873
+    'syscalls.splice07_32bit',  # b/328315662
+    'syscalls.splice07_64bit',  # b/328315662
     'syscalls.statx07_32bit',  # b/191236106
     'syscalls.statx07_64bit',  # b/191236106
 }
