@@ -2749,8 +2749,6 @@ STABLE_TESTS = {
     'syscalls.splice05_64bit': True,
     'syscalls.splice06_32bit': False,
     'syscalls.splice06_64bit': False,
-    'syscalls.splice07_32bit': False,
-    'syscalls.splice07_64bit': False,
     'syscalls.ssetmask01_32bit': False,
     'syscalls.ssetmask01_64bit': False,
     'syscalls.stat01_32bit': True,
