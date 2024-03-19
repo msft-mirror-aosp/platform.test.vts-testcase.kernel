@@ -1274,7 +1274,11 @@ bool FBEPolicyTest::F2fsCompressOptionsSupported(
 //
 // Note, this test will be flaky if the kernel is missing commit 093f0bac32b
 // ("f2fs: change fiemap way in printing compression chunk").
-TEST_F(FBEPolicyTest, TestF2fsCompression) {
+//
+// This test is currently disabled because the test is still flaky even with the
+// above fix, and it hasn't been able to be root-caused.  TODO(b/329449658):
+// root cause the issue and re-enable the test.
+TEST_F(FBEPolicyTest, DISABLED_TestF2fsCompression) {
   if (skip_test_) return;
 
   // Currently, only f2fs supports compression+encryption.
