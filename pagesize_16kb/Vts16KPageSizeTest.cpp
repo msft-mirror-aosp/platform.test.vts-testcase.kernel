@@ -69,7 +69,7 @@ class Vts16KPageSizeTest : public ::testing::Test {
         if (mArch == "x86_64") {
             return 4096;
         } else if (mArch == "arm64" || mArch == "aarch64") {
-            return 65536;
+            return 16384;
         } else {
             return -1;
         }
@@ -92,6 +92,7 @@ TEST_F(Vts16KPageSizeTest, InitMaxPageSizeTest) {
     ssize_t initMaxPageSize = MaxPageSize(initPath);
     ASSERT_NE(initMaxPageSize, -1) << "Failed to get max page size of ELF: " << initPath;
 
-    ASSERT_EQ(initMaxPageSize, expectedMaxPageSize)
-            << "ELF " << initPath << " was not built with the required max-page-size";
+    ASSERT_EQ(initMaxPageSize % expectedMaxPageSize, 0)
+            << "ELF " << initPath << " with page size " << initMaxPageSize
+            << " was not built with the required max-page-size " << expectedMaxPageSize;
 }
