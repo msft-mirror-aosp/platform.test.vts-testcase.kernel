@@ -22,10 +22,6 @@
 
 class Vts16KPageSizeTest : public ::testing::Test {
   protected:
-    static bool IsLowRamDevice() {
-        return android::base::GetBoolProperty("ro.config.low_ram", false);
-    }
-
     static int VendorApiLevel() {
         // "ro.vendor.api_level" is added in Android T.
         // Undefined indicates S or below
@@ -60,8 +56,6 @@ class Vts16KPageSizeTest : public ::testing::Test {
     static void SetUpTestSuite() {
         if (VendorApiLevel() < __ANDROID_API_V__) {
             GTEST_SKIP() << "16kB support is only required on V and later releases.";
-        } else if (IsLowRamDevice()) {
-            GTEST_SKIP() << "Low Ram devices only support 4kB page size";
         }
     }
 
