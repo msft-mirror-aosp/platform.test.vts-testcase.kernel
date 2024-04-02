@@ -299,8 +299,6 @@ STABLE_TESTS = {
     'cve.cve-2021-38604_64bit': True,
     'cve.cve-2021-4034_32bit': False,
     'cve.cve-2021-4034_64bit': False,
-    'cve.cve-2021-4197_1_32bit': False,
-    'cve.cve-2021-4197_1_64bit': False,
     'cve.cve-2021-4197_2_32bit': False,
     'cve.cve-2021-4197_2_64bit': False,
     'cve.cve-2021-4204_32bit': False,
