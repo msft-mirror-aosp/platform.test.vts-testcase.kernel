@@ -59,13 +59,15 @@ class Vts16KPageSizeTest : public ::testing::Test {
         }
     }
 
+    /*
+     * x86_64 also needs to be at least 16KB aligned, since Android
+     * supports page size emulation in x86_64 for app development.
+     */
     size_t RequiredMaxPageSize() {
-        if (mArch == "x86_64") {
-            return 4096;
-        } else if (mArch == "arm64" || mArch == "aarch64") {
-            return 16384;
+        if (mArch == "arm64" || mArch == "aarch64" || mArch == "x86_64") {
+            return 0x4000;
         } else {
-            return -1;
+            return 0x1000;
         }
     }
 
@@ -75,6 +77,7 @@ class Vts16KPageSizeTest : public ::testing::Test {
 /**
  * Checks the max-page-size of init against the architecture's
  * required max-page-size.
+ *
  */
 TEST_F(Vts16KPageSizeTest, InitMaxPageSizeTest) {
     constexpr char initPath[] = "/system/bin/init";
