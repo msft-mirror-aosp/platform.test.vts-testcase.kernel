@@ -84,7 +84,11 @@ class Vts16KPageSizeTest : public ::testing::Test {
  * Checks the max-page-size of init against the architecture's
  * required max-page-size.
  *
+ * Note: a more comprehensive version of this test exists in
+ * elf_alignment_test. This has turned out to be a canary test
+ * to give visibility on this when checking all 16K tests.
  */
+// @VsrTest = 3.14.1
 TEST_F(Vts16KPageSizeTest, InitMaxPageSizeTest) {
     constexpr char initPath[] = "/system/bin/init";
 
@@ -105,6 +109,7 @@ TEST_F(Vts16KPageSizeTest, InitMaxPageSizeTest) {
  * PRODUCT_NO_BIONIC_PAGE_SIZE_MACRO based on the product property
  * ro.product.build.no_bionic_page_size_macro.
  */
+// @VsrTest = 3.14.2
 TEST_F(Vts16KPageSizeTest, NoBionicPageSizeMacro) {
     /**
      * TODO(b/315034809): switch to error when final decision is made.
