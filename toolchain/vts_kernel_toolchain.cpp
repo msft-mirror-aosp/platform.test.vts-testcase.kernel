@@ -21,6 +21,7 @@
 #include <android/api-level.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include <kver/kernel_release.h>
 
 namespace android {
 namespace kernel {
@@ -75,6 +76,27 @@ TEST_F(KernelVersionTest, IsLLD) {
   if (!should_run_linker_test_) return;
   const std::string needle = "LLD";
   ASSERT_THAT(version_, ::testing::HasSubstr(needle));
+}
+
+// @VsrTest = 3.4.2
+TEST_F(KernelVersionTest, IsKleaf) {
+  constexpr uint64_t kMinAndroidRelease = 15;  // Android 15
+  const auto kernel_release =
+      android::kver::KernelRelease::Parse(version_, /* allow_suffix = */ true);
+  if (!kernel_release.has_value()) {
+    GTEST_SKIP()
+        << "The test only applies to android" << kMinAndroidRelease
+        << " or later kernels. The kernel release string does not have the"
+        << " GKI kernel release format: " << version_;
+  }
+  if (kernel_release->android_release() < kMinAndroidRelease) {
+    GTEST_SKIP() << "The test only applies to android" << kMinAndroidRelease
+                 << " or later kernels. This kernel declares android"
+                 << kernel_release->android_release() << ": " << version_;
+  }
+  ASSERT_THAT(version_, ::testing::HasSubstr("kleaf@"))
+      << "android" << kernel_release->android_release()
+      << " kernel is required to be built with Kleaf.";
 }
 
 }  // namespace kernel
