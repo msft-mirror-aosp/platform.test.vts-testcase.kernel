@@ -28,9 +28,6 @@ import org.junit.runner.RunWith;
 
 @RunWith(DeviceJUnit4ClassRunner.class)
 public class KernelAbilistTest extends BaseHostJUnit4Test {
-    private static final String FEATURE_LEANBACK = "android.software.leanback";
-    private static final String FEATURE_TV = "android.hardware.type.television";
-
     @VsrTest(requirements = {"VSR-3.12-002"})
     @RequiresDevice
     @Test
@@ -41,17 +38,11 @@ public class KernelAbilistTest extends BaseHostJUnit4Test {
             return;
         }
 
-        // Exclude VSR-3.12 for Android TV
-        if (hasDeviceFeature(FEATURE_LEANBACK) || hasDeviceFeature(FEATURE_TV)) {
-            return;
-        }
-
         // ro.vendor.api_level is the VSR requirement API level
         // calculated from ro.product.first_api_level, ro.board.api_level,
         // and ro.board.first_api_level.
         int api_level = Integer.parseInt(getProp("ro.vendor.api_level"));
-        if (api_level < 34) {
-            // Only chipsets that first shipped with API level 34 or later are affected.
+        if (api_level < first64BitOnlyApiLevel()) {
             return;
         }
 
@@ -69,6 +60,27 @@ public class KernelAbilistTest extends BaseHostJUnit4Test {
         assertTrue("VSR-3.12: supported ABIs must be the 64-bit ABIs; supported ABIs=\"" + abilist
                         + "\", 64 bit ABIs=\"" + abilist64 + "\"",
                 abilist.equals(abilist64));
+    }
+
+    private int first64BitOnlyApiLevel() throws Exception {
+        // Android Go and other low-ram devices haven't finished
+        // the transition to 64-bit yet.
+        if (hasDeviceFeature("android.hardware.ram.low")) {
+            return 36;
+        }
+
+        // Android TV hasn't finished the transition to 64-bit yet.
+        if (hasDeviceFeature("android.software.leanback") || hasDeviceFeature("android.hardware.type.television")) {
+            return 36;
+        }
+
+        // Android Wear hasn't finished the transition to 64-bit yet.
+        if (hasDeviceFeature("android.hardware.type.watch")) {
+            return 36;
+        }
+
+        // For regular "mobile", the transition finished in API level 34.
+        return 34;
     }
 
     private String getProp(String name) throws Exception {
