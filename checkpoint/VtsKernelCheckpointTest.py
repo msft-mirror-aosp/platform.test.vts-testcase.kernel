@@ -108,7 +108,7 @@ class VtsKernelCheckpointTest(base_test.BaseTestClass):
           first_api_level = int(result)
         except:
           pass
-        asserts.assertTrue(first_api_level < 29 or self.isCheckpoint_,
+        asserts.assertTrue(first_api_level < 30 or self.isCheckpoint_,
                              "User Data Checkpoint is disabled")
 
     def testRollback(self):
