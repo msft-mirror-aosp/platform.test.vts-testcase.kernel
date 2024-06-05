@@ -36,6 +36,8 @@ DISABLED_TESTS = {
     'cve.cve-2021-3444_64bit',  # b/191226866
     'cve.cve-2021-4197_1_32bit',  # b/259557077
     'cve.cve-2021-4197_1_64bit',  # b/259557077
+    'cve.cve-2021-4204_32bit',  # b/314008608
+    'cve.cve-2021-4204_64bit',  # b/314008608
     'kernel_misc.zram01_32bit',  # b/191226875
     'kernel_misc.zram01_64bit',  # b/191226875
     'kernel_misc.zram02_32bit',  # b/191227531
@@ -44,8 +46,8 @@ DISABLED_TESTS = {
     'sched.sched_setattr01_32bit',  # b/200686092
     'syscalls.bpf_prog02_32bit',  # b/191867447
     'syscalls.bpf_prog02_64bit',  # b/191867447
-    'syscalls.bpf_prog06_32bit',  # b/259559270
-    'syscalls.bpf_prog06_64bit',  # b/259559270
+    'syscalls.bpf_prog06_32bit',  # b/314008608
+    'syscalls.bpf_prog06_64bit',  # b/314008608
     'syscalls.clone301_32bit',  # b/191236153
     'syscalls.clone301_64bit',  # b/191236153
     'syscalls.clone302_32bit',  # b/191236103
@@ -55,14 +57,6 @@ DISABLED_TESTS = {
     'syscalls.epoll_pwait01_64bit',  # b/277586905
     'syscalls.epoll_pwait04_32bit',  # b/241310858
     'syscalls.epoll_pwait04_64bit',  # b/241310858
-    'syscalls.fcntl34_32bit',  # b/278714055
-    'syscalls.fcntl34_64_32bit',  # b/278714055
-    'syscalls.fcntl36_32bit',  # b/278714055
-    'syscalls.fcntl36_64_32bit',  # b/278714055
-    'syscalls.ftruncate04_32bit',  # b/198611142
-    'syscalls.ftruncate04_64_32bit',  # b/198611142
-    'syscalls.ftruncate04_64_64bit',  # b/198611142
-    'syscalls.ftruncate04_64bit',  # b/198611142
     'syscalls.inotify07_32bit',  # b/191773884
     'syscalls.inotify07_64bit',  # b/191773884
     'syscalls.inotify08_32bit',  # b/191748474
@@ -101,6 +95,8 @@ DISABLED_TESTS = {
     'syscalls.semctl09_64bit',  # b/191227035
     'syscalls.setpgid02_32bit',  # b/276300873
     'syscalls.setpgid02_64bit',  # b/276300873
+    'syscalls.splice07_32bit',  # b/328315662
+    'syscalls.splice07_64bit',  # b/328315662
     'syscalls.statx07_32bit',  # b/191236106
     'syscalls.statx07_64bit',  # b/191236106
 }

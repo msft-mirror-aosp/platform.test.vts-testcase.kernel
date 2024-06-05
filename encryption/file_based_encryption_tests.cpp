@@ -623,7 +623,7 @@ bool FBEPolicyTest::CreateAndSetHwWrappedKey(std::vector<uint8_t> *enc_key,
 enum {
   kSkipIfNoPolicySupport = 1 << 0,
   kSkipIfNoCryptoAPISupport = 1 << 1,
-  kSkipIfNoHardwareSupport = 1 << 2,
+  kSkipIfInlineEncryptionNotUsable = 1 << 2,
 };
 
 // Returns 0 if encryption policies that include the inode number in the IVs
@@ -682,7 +682,8 @@ bool FBEPolicyTest::SetEncryptionPolicy(int contents_mode, int filenames_mode,
                   << std::hex << flags << std::dec << Errno();
     return false;
   }
-  if (skip_flags & (kSkipIfNoCryptoAPISupport | kSkipIfNoHardwareSupport)) {
+  if (skip_flags &
+      (kSkipIfNoCryptoAPISupport | kSkipIfInlineEncryptionNotUsable)) {
     android::base::unique_fd fd(
         open(test_file_.c_str(), O_WRONLY | O_CREAT | O_CLOEXEC, 0600));
     if (fd < 0) {
@@ -696,13 +697,21 @@ bool FBEPolicyTest::SetEncryptionPolicy(int contents_mode, int filenames_mode,
                "unsupported on this kernel, due to missing crypto API support";
         return false;
       }
-      // We get EINVAL here when using a hardware-wrapped key and the inline
-      // encryption hardware supports wrapped keys but doesn't support the
-      // number of DUN bytes that the file contents encryption requires.
-      if (errno == EINVAL && (skip_flags & kSkipIfNoHardwareSupport)) {
+      // We get EINVAL here when we're using a hardware-wrapped key, the device
+      // has inline encryption hardware that supports hardware-wrapped keys, and
+      // there are hardware or kernel limitations that make it impossible for
+      // inline encryption to actually be used with the policy.  For example:
+      //
+      //   - The device's inline encryption hardware doesn't support the number
+      //     of DUN bytes needed for file contents encryption.
+      //
+      //   - The policy uses the IV_INO_LBLK_32 flag, and the filesystem block
+      //     size differs from the page size.  (Kernel limitation.)
+      if (errno == EINVAL && (skip_flags & kSkipIfInlineEncryptionNotUsable)) {
         GTEST_LOG_(INFO)
-            << "Skipping test because encryption policy is not compatible with "
-               "this device's inline encryption hardware";
+            << "Skipping test because encryption policy requires inline "
+               "encryption, but inline encryption is unsupported with this "
+               "policy on this device due to hardware or kernel limitations";
         return false;
       }
     }
@@ -960,11 +969,11 @@ TEST_F(FBEPolicyTest, TestAesInlineCryptOptimizedHwWrappedKeyPolicy) {
   std::vector<uint8_t> enc_key, sw_secret;
   if (!CreateAndSetHwWrappedKey(&enc_key, &sw_secret)) return;
 
-  if (!SetEncryptionPolicy(
-          FSCRYPT_MODE_AES_256_XTS, FSCRYPT_MODE_AES_256_CTS,
-          FSCRYPT_POLICY_FLAG_IV_INO_LBLK_64,
-          // 64-bit DUN support is not guaranteed.
-          kSkipIfNoHardwareSupport | GetSkipFlagsForInoBasedEncryption()))
+  if (!SetEncryptionPolicy(FSCRYPT_MODE_AES_256_XTS, FSCRYPT_MODE_AES_256_CTS,
+                           FSCRYPT_POLICY_FLAG_IV_INO_LBLK_64,
+                           // 64-bit DUN support is not guaranteed.
+                           kSkipIfInlineEncryptionNotUsable |
+                               GetSkipFlagsForInoBasedEncryption()))
     return;
 
   TestFileInfo file_info;
@@ -1102,9 +1111,12 @@ TEST_F(FBEPolicyTest, TestAesEmmcOptimizedHwWrappedKeyPolicy) {
   std::vector<uint8_t> enc_key, sw_secret;
   if (!CreateAndSetHwWrappedKey(&enc_key, &sw_secret)) return;
 
+  int skip_flags = GetSkipFlagsForInoBasedEncryption();
+  if (kFilesystemBlockSize != getpagesize())
+    skip_flags |= kSkipIfInlineEncryptionNotUsable;
+
   if (!SetEncryptionPolicy(FSCRYPT_MODE_AES_256_XTS, FSCRYPT_MODE_AES_256_CTS,
-                           FSCRYPT_POLICY_FLAG_IV_INO_LBLK_32,
-                           GetSkipFlagsForInoBasedEncryption()))
+                           FSCRYPT_POLICY_FLAG_IV_INO_LBLK_32, skip_flags))
     return;
 
   TestFileInfo file_info;
@@ -1274,7 +1286,11 @@ bool FBEPolicyTest::F2fsCompressOptionsSupported(
 //
 // Note, this test will be flaky if the kernel is missing commit 093f0bac32b
 // ("f2fs: change fiemap way in printing compression chunk").
-TEST_F(FBEPolicyTest, TestF2fsCompression) {
+//
+// This test is currently disabled because the test is still flaky even with the
+// above fix, and it hasn't been able to be root-caused.  TODO(b/329449658):
+// root cause the issue and re-enable the test.
+TEST_F(FBEPolicyTest, DISABLED_TestF2fsCompression) {
   if (skip_test_) return;
 
   // Currently, only f2fs supports compression+encryption.

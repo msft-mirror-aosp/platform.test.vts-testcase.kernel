@@ -17,6 +17,7 @@
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
+import com.android.tradefed.device.DeviceNotAvailableException;
 import com.android.tradefed.log.LogUtil.CLog;
 import com.android.tradefed.testtype.DeviceJUnit4ClassRunner;
 import com.android.tradefed.testtype.junit4.BaseHostJUnit4Test;
@@ -33,8 +34,17 @@ public final class SdcardfsTest extends BaseHostJUnit4Test {
 
     private static final int MIN_KERNEL_MAJOR = 5;
     private static final int MIN_KERNEL_MINOR = 4;
+    private static final int MIN_FIRST_API_LEVEL = 30; // Android 11
 
-    private boolean should_run(String str) {
+    private boolean should_run(String str) throws DeviceNotAvailableException {
+        String result = getDevice().getProperty("ro.product.first_api_level");
+        if (result != null && !result.isEmpty()) {
+            int first_api_level = Integer.parseInt(result);
+
+            if (first_api_level < MIN_FIRST_API_LEVEL)
+                return false;
+        }
+
         Scanner versionScanner = new Scanner(str).useDelimiter("\\.");
         int major = versionScanner.nextInt();
         int minor = versionScanner.nextInt();

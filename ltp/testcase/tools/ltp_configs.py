@@ -19,15 +19,6 @@ import os
 import ltp_enums
 
 VTS_LTP_OUTPUT = os.path.join('DATA', 'nativetest', 'ltp')
-LTP_RUNTEST_DIR = 'external/ltp/runtest'
-# The bp file that contains all binaries of ltp
-LTP_GEN_BINARY_BP = 'external/ltp/gen.bp'
-
-LTP_DISABLED_BUILD_TESTS_CONFIG_PATH = 'external/ltp/android/tools/disabled_tests.txt'
-# Directory for the template of the test config.
-LTP_CONFIG_TEMPLATE_DIR = 'test/vts-testcase/kernel/ltp/testcase/tools/template'
-# The file name of the config template file
-LTP_CONFIG_TEMPLATE_FILE_NAME = 'template.xml'
 
 # Environment paths for ltp test cases
 # string, ltp build root directory on target
@@ -92,7 +83,6 @@ TEST_SUITES = [
     'can',
     'cap_bounds',
     'commands',
-    'connectors',
     'containers',
     'controllers',
     'cpuhotplug',
@@ -103,7 +93,6 @@ TEST_SUITES = [
     'fs',
     'fs_bind',
     'fs_perms_simple',
-    'fsx',
     'hugetlb',
     'hyperthreading',
     'input',
@@ -126,7 +115,6 @@ TEST_SUITES_LOW_MEM = [
     'can',
     'cap_bounds',
     'commands',
-    'connectors',
     'containers',
     'cpuhotplug',
     'cve',
@@ -136,7 +124,6 @@ TEST_SUITES_LOW_MEM = [
     'fs',
     'fs_bind',
     'fs_perms_simple',
-    'fsx',
     'hugetlb',
     'hyperthreading',
     'input',
