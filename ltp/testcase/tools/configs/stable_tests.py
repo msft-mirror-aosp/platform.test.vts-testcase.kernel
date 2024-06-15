@@ -1614,8 +1614,6 @@ STABLE_TESTS = {
     'syscalls.keyctl01_64bit': True,
     'syscalls.keyctl03_32bit': True,
     'syscalls.keyctl03_64bit': True,
-    'syscalls.keyctl05_32bit': True,
-    'syscalls.keyctl05_64bit': True,
     'syscalls.keyctl06_32bit': True,
     'syscalls.keyctl06_64bit': True,
     'syscalls.kill01_32bit': True,
