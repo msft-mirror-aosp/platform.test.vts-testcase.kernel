@@ -97,3 +97,8 @@ cc_test {
         "libstorage_literals_headers",
     ],
 }
+
+filegroup {
+    name: "WtsDlkmPartitionTestCasesSrc",
+    srcs: ["vts_dlkm_partition_test.cpp"],
+}
