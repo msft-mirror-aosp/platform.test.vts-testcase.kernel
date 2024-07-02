@@ -16,8 +16,12 @@
 
 // Utility functions for VtsKernelEncryptionTest.
 
+#include <fstream>
+
 #include <LzmaLib.h>
+#include <android-base/parseint.h>
 #include <android-base/properties.h>
+#include <android-base/strings.h>
 #include <android-base/unique_fd.h>
 #include <errno.h>
 #include <ext4_utils/ext4.h>
@@ -33,6 +37,9 @@
 #include "Keymaster.h"
 #include "vts_kernel_encryption.h"
 
+using android::base::ParseInt;
+using android::base::Split;
+using android::base::StartsWith;
 using namespace android::dm;
 
 namespace android {
@@ -137,33 +144,8 @@ bool GetFirstApiLevel(int *first_api_level) {
   return true;
 }
 
-// Gets the block device and type of the filesystem mounted on |mountpoint|.
-// This block device is the one on which the filesystem is directly located.  In
-// the case of device-mapper that means something like /dev/mapper/dm-5, not the
-// underlying device like /dev/block/by-name/userdata.
-static bool GetFsBlockDeviceAndType(const std::string &mountpoint,
-                                    std::string *fs_blk_device,
-                                    std::string *fs_type) {
-  std::unique_ptr<FILE, int (*)(FILE *)> mnts(setmntent("/proc/mounts", "re"),
-                                              endmntent);
-  if (!mnts) {
-    ADD_FAILURE() << "Failed to open /proc/mounts" << Errno();
-    return false;
-  }
-  struct mntent *mnt;
-  while ((mnt = getmntent(mnts.get())) != nullptr) {
-    if (mnt->mnt_dir == mountpoint) {
-      *fs_blk_device = mnt->mnt_fsname;
-      *fs_type = mnt->mnt_type;
-      return true;
-    }
-  }
-  ADD_FAILURE() << "No /proc/mounts entry found for " << mountpoint;
-  return false;
-}
-
-// Gets the UUID of the filesystem of type |fs_type| that's located on
-// |fs_blk_device|.
+// Gets the UUID of the filesystem that uses |fs_blk_device| as its main block
+// device. |fs_type| gives the filesystem type.
 //
 // Unfortunately there's no kernel API to get the UUID; instead we have to read
 // it from the filesystem superblock.
@@ -219,12 +201,13 @@ static bool GetFilesystemUuid(const std::string &fs_blk_device,
   return true;
 }
 
-// Gets the raw block device of the filesystem that is mounted from
-// |fs_blk_device|.  By "raw block device" we mean a block device from which we
-// can read the encrypted file contents and filesystem metadata.  When metadata
-// encryption is disabled, this is simply |fs_blk_device|.  When metadata
-// encryption is enabled, then |fs_blk_device| is a dm-default-key device and
-// the "raw block device" is the parent of this dm-default-key device.
+// Gets the raw block device corresponding to |fs_blk_device| that is one of a
+// filesystem's mounted block devices. By "raw block device" we mean a block
+// device from which we can read the encrypted file contents and filesystem
+// metadata.  When metadata encryption is disabled, this is simply
+// |fs_blk_device|.  When metadata encryption is enabled, then |fs_blk_device|
+// is a dm-default-key device and the "raw block device" is the parent of this
+// dm-default-key device.
 //
 // We don't just use the block device listed in the fstab, because (a) it can be
 // a logical partition name which needs extra code to map to a block device, and
@@ -281,21 +264,109 @@ static bool GetRawBlockDevice(const std::string &fs_blk_device,
   return true;
 }
 
+// Gets information about a filesystem's block devices
+static bool GetFsBlockDeviceList(FilesystemInfo *fs_info,
+                                 const std::string &mnt_fsname) {
+  // Add a default block device
+  DiskMapEntry map_entry;
+  map_entry.start_blkaddr = 0;
+  map_entry.end_blkaddr = INT64_MAX - 1;
+  map_entry.fs_blk_device = mnt_fsname;
+
+  if (!GetRawBlockDevice(map_entry.fs_blk_device, &map_entry.raw_blk_device)) {
+    ADD_FAILURE() << "Broken block device path of the default disk";
+    return false;
+  }
+  fs_info->disk_map.push_back(map_entry);
+
+  if (fs_info->type != "f2fs") return true;
+
+  // This requires a kernel patch, f238eff95f48 ("f2fs: add a proc entry show
+  // disk layout"), merged in v6.9
+  static constexpr std::string_view kDevBlockPrefix("/dev/block/");
+  const std::string proc_path = "/proc/fs/f2fs/" +
+                                mnt_fsname.substr(kDevBlockPrefix.length()) +
+                                "/disk_map";
+  std::ifstream proc_fs(proc_path.c_str());
+  if (!proc_fs.is_open()) {
+    GTEST_LOG_(INFO) << proc_path
+                     << " does not exist (expected on pre-6.9 kernels)";
+    return true;
+  }
+
+  std::string line;
+  bool first_device = true;
+  while (std::getline(proc_fs, line)) {
+    if (!android::base::StartsWith(line, "Disk: ")) {
+      continue;
+    }
+    if (first_device) {
+      fs_info->disk_map.erase(fs_info->disk_map.begin());
+      first_device = false;
+    }
+    DiskMapEntry map_entry;
+    std::vector<std::string> data = Split(line, "\t ");
+    if (!ParseInt(data[3], &map_entry.start_blkaddr)) {
+      ADD_FAILURE() << "Broken first block address in the address range";
+      return false;
+    }
+    if (!ParseInt(data[5], &map_entry.end_blkaddr)) {
+      ADD_FAILURE() << "Broken last block address in the address range";
+      return false;
+    }
+    map_entry.fs_blk_device = data[7];
+    if (!GetRawBlockDevice(map_entry.fs_blk_device,
+                           &map_entry.raw_blk_device)) {
+      ADD_FAILURE() << "Broken block device path in the disk map entry";
+      return false;
+    }
+    fs_info->disk_map.push_back(map_entry);
+  }
+  return true;
+}
+
+// Gets the block device list and type of the filesystem mounted on
+// |mountpoint|. The block device list has all the block device information
+// along with the address space ranges configured by the mounted filesystem.
+static bool GetFsBlockDeviceListAndType(const std::string &mountpoint,
+                                        FilesystemInfo *fs_info) {
+  std::unique_ptr<FILE, int (*)(FILE *)> mnts(setmntent("/proc/mounts", "re"),
+                                              endmntent);
+  if (!mnts) {
+    ADD_FAILURE() << "Failed to open /proc/mounts" << Errno();
+    return false;
+  }
+  struct mntent *mnt;
+  while ((mnt = getmntent(mnts.get())) != nullptr) {
+    if (mnt->mnt_dir == mountpoint) {
+      fs_info->type = mnt->mnt_type;
+      return GetFsBlockDeviceList(fs_info, mnt->mnt_fsname);
+    }
+  }
+  ADD_FAILURE() << "No /proc/mounts entry found for " << mountpoint;
+  return false;
+}
+
 // Gets information about the filesystem mounted on |mountpoint|.
-bool GetFilesystemInfo(const std::string &mountpoint, FilesystemInfo *info) {
-  if (!GetFsBlockDeviceAndType(mountpoint, &info->fs_blk_device, &info->type))
+bool GetFilesystemInfo(const std::string &mountpoint, FilesystemInfo *fs_info) {
+  if (!GetFsBlockDeviceListAndType(mountpoint, fs_info)) return false;
+
+  // This disk_map[0] always indicates the main block device which the
+  // filesystem contains its superblock.
+  if (!GetFilesystemUuid(fs_info->disk_map[0].fs_blk_device, fs_info->type,
+                         &fs_info->uuid))
     return false;
 
-  if (!GetFilesystemUuid(info->fs_blk_device, info->type, &info->uuid))
-    return false;
+  GTEST_LOG_(INFO) << " Filesystem mounted on " << mountpoint
+                   << " has type: " << fs_info->type << ", UUID is "
+                   << BytesToHex(fs_info->uuid.bytes);
 
-  if (!GetRawBlockDevice(info->fs_blk_device, &info->raw_blk_device))
-    return false;
-
-  GTEST_LOG_(INFO) << info->fs_blk_device << " is mounted on " << mountpoint
-                   << " with type " << info->type << "; UUID is "
-                   << BytesToHex(info->uuid.bytes) << ", raw block device is "
-                   << info->raw_blk_device;
+  for (const DiskMapEntry &map_entry : fs_info->disk_map) {
+    GTEST_LOG_(INFO) << "Block device: " << map_entry.fs_blk_device << " ("
+                     << map_entry.raw_blk_device << ") ranging from "
+                     << map_entry.start_blkaddr << " to "
+                     << map_entry.end_blkaddr;
+  }
   return true;
 }
 
