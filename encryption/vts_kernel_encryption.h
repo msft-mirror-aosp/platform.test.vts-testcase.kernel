@@ -110,11 +110,27 @@ struct FilesystemUuid {
   uint8_t bytes[kFilesystemUuidSize];
 };
 
-struct FilesystemInfo {
+struct DiskMapEntry {
   std::string fs_blk_device;
+  std::string raw_blk_device;
+  int64_t start_blkaddr;
+  int64_t end_blkaddr;
+};
+
+struct FilesystemInfo {
   std::string type;
   FilesystemUuid uuid;
-  std::string raw_blk_device;
+
+  // The filesystem's block devices in sorted order of filesystem block address.
+  // The covered addresses are guaranteed to be contiguous and non-overlapping.
+  // The first device, starting at address 0, is the filesystem's "main" block
+  // device.
+  // Note, the disk_map's end_blkaddr is inclusive like below:
+  // [disk number]   [start_blkaddr]   [end_blkaddr]
+  // 0               0                 X - 1
+  // 1               X                 Y - 1
+  // 2               Y                 Z
+  std::vector<DiskMapEntry> disk_map;
 };
 
 bool GetFilesystemInfo(const std::string &mountpoint, FilesystemInfo *info);
