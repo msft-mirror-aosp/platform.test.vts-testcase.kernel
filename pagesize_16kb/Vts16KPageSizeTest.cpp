@@ -117,3 +117,18 @@ TEST_F(Vts16KPageSizeTest, NoBionicPageSizeMacro) {
     if (!NoBionicPageSizeMacroProperty())
         GTEST_SKIP() << "Device was not built with: PRODUCT_NO_BIONIC_PAGE_SIZE_MACRO := true";
 }
+
+/**
+ * Checks if the device has page size which was set using TARGET_BOOTS_16K
+ */
+TEST_F(Vts16KPageSizeTest, ProductPageSize) {
+    // We can't set the default value to be 4096 since device which will have 16KB page size and
+    // doesn't set TARGET_BOOTS_16K, won't have this property and will fail the test.
+    int requiredPageSize = android::base::GetIntProperty("ro.product.page_size", 0);
+    if (requiredPageSize != 0) {
+        int currentPageSize = getpagesize();
+        ASSERT_EQ(requiredPageSize, currentPageSize);
+    } else {
+        GTEST_SKIP() << "Device was not built with option TARGET_BOOTS_16K = true";
+    }
+}
