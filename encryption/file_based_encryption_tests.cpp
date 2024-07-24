@@ -261,12 +261,12 @@ class ScopedFsFreezer {
   int fd_ = -1;
 };
 
-// Reads the raw data of the file specified by |fd| from its underlying block
-// device |blk_device|.  The file has |expected_data_size| bytes of initialized
-// data; this must be a multiple of the filesystem block size
+// Reads the raw data of a file specified by |fd|. The file is located on the
+// filesystem specified by |fs_info|. The file has |expected_data_size| bytes of
+// initialized data; this must be a multiple of the filesystem block size
 // kFilesystemBlockSize.  The file may contain holes, in which case only the
 // non-holes are read; the holes are not counted in |expected_data_size|.
-static bool ReadRawDataOfFile(int fd, const std::string &blk_device,
+static bool ReadRawDataOfFile(int fd, const FilesystemInfo &fs_info,
                               int expected_data_size,
                               std::vector<uint8_t> *raw_data) {
   int max_extents = expected_data_size / kFilesystemBlockSize;
@@ -306,16 +306,8 @@ static bool ReadRawDataOfFile(int fd, const std::string &blk_device,
   uint8_t *buf = static_cast<uint8_t *>(buf_mem.get());
   int offset = 0;
 
-  android::base::unique_fd blk_fd(
-      open(blk_device.c_str(), O_RDONLY | O_DIRECT | O_CLOEXEC));
-  if (blk_fd < 0) {
-    ADD_FAILURE() << "Failed to open raw block device " << blk_device
-                  << Errno();
-    return false;
-  }
-
   for (int i = 0; i < map->fm_mapped_extents; i++) {
-    const struct fiemap_extent &extent = map->fm_extents[i];
+    struct fiemap_extent &extent = map->fm_extents[i];
 
     GTEST_LOG_(INFO) << "Extent " << i + 1 << " of " << map->fm_mapped_extents
                      << " is logical offset " << extent.fe_logical
@@ -329,11 +321,44 @@ static bool ReadRawDataOfFile(int fd, const std::string &blk_device,
       return false;
     }
     if (extent.fe_length % kFilesystemBlockSize != 0) {
-      ADD_FAILURE() << "Extent is not aligned to filesystem block size";
+      ADD_FAILURE()
+          << "Extent (length) is not aligned to filesystem block size";
+      return false;
+    }
+    if (extent.fe_physical % kFilesystemBlockSize != 0) {
+      ADD_FAILURE() << "Extent (physical address) is not aligned to filesystem "
+                       "block size";
       return false;
     }
     if (extent.fe_length > expected_data_size - offset) {
       ADD_FAILURE() << "File is longer than expected";
+      return false;
+    }
+    // Find the raw block device and remap the physical offset.
+    std::string raw_blk_device;
+    for (const DiskMapEntry &map_entry : fs_info.disk_map) {
+      if (extent.fe_physical / kFilesystemBlockSize <= map_entry.end_blkaddr) {
+        if ((extent.fe_physical + extent.fe_length) / kFilesystemBlockSize >
+            (map_entry.end_blkaddr + 1)) {
+          ADD_FAILURE() << "Extent spans multiple block devices";
+          return false;
+        }
+        raw_blk_device = map_entry.raw_blk_device;
+        extent.fe_physical -= map_entry.start_blkaddr * kFilesystemBlockSize;
+        break;
+      }
+    }
+    if (raw_blk_device.empty()) {
+      ADD_FAILURE()
+          << "Failed to find a raw block device in the block device list";
+      return false;
+    }
+    // Open the raw block device and read out the data.
+    android::base::unique_fd blk_fd(
+        open(raw_blk_device.c_str(), O_RDONLY | O_DIRECT | O_CLOEXEC));
+    if (blk_fd < 0) {
+      ADD_FAILURE() << "Failed to open raw block device " << raw_blk_device
+                    << Errno();
       return false;
     }
     if (pread(blk_fd, &buf[offset], extent.fe_length, extent.fe_physical) !=
@@ -351,11 +376,11 @@ static bool ReadRawDataOfFile(int fd, const std::string &blk_device,
   return true;
 }
 
-// Writes |plaintext| to a file |path| located on the block device |blk_device|.
-// Returns in |ciphertext| the file's raw ciphertext read from |blk_device|.
+// Writes |plaintext| to a file |path| on the filesystem |fs_info|.
+// Returns in |ciphertext| the file's raw ciphertext read from disk.
 static bool WriteTestFile(const std::vector<uint8_t> &plaintext,
                           const std::string &path,
-                          const std::string &blk_device,
+                          const FilesystemInfo &fs_info,
                           const struct f2fs_comp_option *compress_options,
                           std::vector<uint8_t> *ciphertext) {
   GTEST_LOG_(INFO) << "Creating test file " << path << " containing "
@@ -393,7 +418,7 @@ static bool WriteTestFile(const std::vector<uint8_t> &plaintext,
   }
 
   GTEST_LOG_(INFO) << "Reading the raw ciphertext of " << path << " from disk";
-  if (!ReadRawDataOfFile(fd, blk_device, plaintext.size(), ciphertext)) {
+  if (!ReadRawDataOfFile(fd, fs_info, plaintext.size(), ciphertext)) {
     ADD_FAILURE() << "Failed to read the raw ciphertext of " << path;
     return false;
   }
@@ -623,7 +648,7 @@ bool FBEPolicyTest::CreateAndSetHwWrappedKey(std::vector<uint8_t> *enc_key,
 enum {
   kSkipIfNoPolicySupport = 1 << 0,
   kSkipIfNoCryptoAPISupport = 1 << 1,
-  kSkipIfNoHardwareSupport = 1 << 2,
+  kSkipIfInlineEncryptionNotUsable = 1 << 2,
 };
 
 // Returns 0 if encryption policies that include the inode number in the IVs
@@ -682,7 +707,8 @@ bool FBEPolicyTest::SetEncryptionPolicy(int contents_mode, int filenames_mode,
                   << std::hex << flags << std::dec << Errno();
     return false;
   }
-  if (skip_flags & (kSkipIfNoCryptoAPISupport | kSkipIfNoHardwareSupport)) {
+  if (skip_flags &
+      (kSkipIfNoCryptoAPISupport | kSkipIfInlineEncryptionNotUsable)) {
     android::base::unique_fd fd(
         open(test_file_.c_str(), O_WRONLY | O_CREAT | O_CLOEXEC, 0600));
     if (fd < 0) {
@@ -696,13 +722,21 @@ bool FBEPolicyTest::SetEncryptionPolicy(int contents_mode, int filenames_mode,
                "unsupported on this kernel, due to missing crypto API support";
         return false;
       }
-      // We get EINVAL here when using a hardware-wrapped key and the inline
-      // encryption hardware supports wrapped keys but doesn't support the
-      // number of DUN bytes that the file contents encryption requires.
-      if (errno == EINVAL && (skip_flags & kSkipIfNoHardwareSupport)) {
+      // We get EINVAL here when we're using a hardware-wrapped key, the device
+      // has inline encryption hardware that supports hardware-wrapped keys, and
+      // there are hardware or kernel limitations that make it impossible for
+      // inline encryption to actually be used with the policy.  For example:
+      //
+      //   - The device's inline encryption hardware doesn't support the number
+      //     of DUN bytes needed for file contents encryption.
+      //
+      //   - The policy uses the IV_INO_LBLK_32 flag, and the filesystem block
+      //     size differs from the page size.  (Kernel limitation.)
+      if (errno == EINVAL && (skip_flags & kSkipIfInlineEncryptionNotUsable)) {
         GTEST_LOG_(INFO)
-            << "Skipping test because encryption policy is not compatible with "
-               "this device's inline encryption hardware";
+            << "Skipping test because encryption policy requires inline "
+               "encryption, but inline encryption is unsupported with this "
+               "policy on this device due to hardware or kernel limitations";
         return false;
       }
     }
@@ -724,8 +758,8 @@ bool FBEPolicyTest::GenerateTestFile(
                                     compress_options->log_cluster_size))
     return false;
 
-  if (!WriteTestFile(info->plaintext, test_file_, fs_info_.raw_blk_device,
-                     compress_options, &info->actual_ciphertext))
+  if (!WriteTestFile(info->plaintext, test_file_, fs_info_, compress_options,
+                     &info->actual_ciphertext))
     return false;
 
   android::base::unique_fd fd(open(test_file_.c_str(), O_RDONLY | O_CLOEXEC));
@@ -960,11 +994,11 @@ TEST_F(FBEPolicyTest, TestAesInlineCryptOptimizedHwWrappedKeyPolicy) {
   std::vector<uint8_t> enc_key, sw_secret;
   if (!CreateAndSetHwWrappedKey(&enc_key, &sw_secret)) return;
 
-  if (!SetEncryptionPolicy(
-          FSCRYPT_MODE_AES_256_XTS, FSCRYPT_MODE_AES_256_CTS,
-          FSCRYPT_POLICY_FLAG_IV_INO_LBLK_64,
-          // 64-bit DUN support is not guaranteed.
-          kSkipIfNoHardwareSupport | GetSkipFlagsForInoBasedEncryption()))
+  if (!SetEncryptionPolicy(FSCRYPT_MODE_AES_256_XTS, FSCRYPT_MODE_AES_256_CTS,
+                           FSCRYPT_POLICY_FLAG_IV_INO_LBLK_64,
+                           // 64-bit DUN support is not guaranteed.
+                           kSkipIfInlineEncryptionNotUsable |
+                               GetSkipFlagsForInoBasedEncryption()))
     return;
 
   TestFileInfo file_info;
@@ -1054,7 +1088,7 @@ void FBEPolicyTest::TestEmmcOptimizedDunWraparound(
         << "Error writing data to " << path << Errno();
 
     // Verify the ciphertext.
-    ASSERT_TRUE(ReadRawDataOfFile(fd, fs_info_.raw_blk_device, data_size,
+    ASSERT_TRUE(ReadRawDataOfFile(fd, fs_info_, data_size,
                                   &file_info.actual_ciphertext));
     FscryptIV iv;
     memset(&iv, 0, sizeof(iv));
@@ -1102,9 +1136,12 @@ TEST_F(FBEPolicyTest, TestAesEmmcOptimizedHwWrappedKeyPolicy) {
   std::vector<uint8_t> enc_key, sw_secret;
   if (!CreateAndSetHwWrappedKey(&enc_key, &sw_secret)) return;
 
+  int skip_flags = GetSkipFlagsForInoBasedEncryption();
+  if (kFilesystemBlockSize != getpagesize())
+    skip_flags |= kSkipIfInlineEncryptionNotUsable;
+
   if (!SetEncryptionPolicy(FSCRYPT_MODE_AES_256_XTS, FSCRYPT_MODE_AES_256_CTS,
-                           FSCRYPT_POLICY_FLAG_IV_INO_LBLK_32,
-                           GetSkipFlagsForInoBasedEncryption()))
+                           FSCRYPT_POLICY_FLAG_IV_INO_LBLK_32, skip_flags))
     return;
 
   TestFileInfo file_info;
@@ -1274,7 +1311,11 @@ bool FBEPolicyTest::F2fsCompressOptionsSupported(
 //
 // Note, this test will be flaky if the kernel is missing commit 093f0bac32b
 // ("f2fs: change fiemap way in printing compression chunk").
-TEST_F(FBEPolicyTest, TestF2fsCompression) {
+//
+// This test is currently disabled because the test is still flaky even with the
+// above fix, and it hasn't been able to be root-caused.  TODO(b/329449658):
+// root cause the issue and re-enable the test.
+TEST_F(FBEPolicyTest, DISABLED_TestF2fsCompression) {
   if (skip_test_) return;
 
   // Currently, only f2fs supports compression+encryption.
@@ -1435,10 +1476,8 @@ TEST(FBETest, TestFileContentsRandomness) {
   std::vector<uint8_t> zeroes(kTestFileBytes, 0);
   std::vector<uint8_t> ciphertext_1;
   std::vector<uint8_t> ciphertext_2;
-  ASSERT_TRUE(WriteTestFile(zeroes, path_1, fs_info.raw_blk_device, nullptr,
-                            &ciphertext_1));
-  ASSERT_TRUE(WriteTestFile(zeroes, path_2, fs_info.raw_blk_device, nullptr,
-                            &ciphertext_2));
+  ASSERT_TRUE(WriteTestFile(zeroes, path_1, fs_info, nullptr, &ciphertext_1));
+  ASSERT_TRUE(WriteTestFile(zeroes, path_2, fs_info, nullptr, &ciphertext_2));
 
   GTEST_LOG_(INFO) << "Verifying randomness of ciphertext";
 

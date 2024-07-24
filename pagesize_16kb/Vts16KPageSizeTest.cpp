@@ -22,14 +22,20 @@
 
 class Vts16KPageSizeTest : public ::testing::Test {
   protected:
-    static bool IsLowRamDevice() {
-        return android::base::GetBoolProperty("ro.config.low_ram", false);
-    }
-
     static int VendorApiLevel() {
         // "ro.vendor.api_level" is added in Android T.
         // Undefined indicates S or below
         return android::base::GetIntProperty("ro.vendor.api_level", __ANDROID_API_S__);
+    }
+
+    static int ProductPageSize() {
+        return android::base::GetIntProperty("ro.product.page_size", 0);
+    }
+
+    static bool NoBionicPageSizeMacroProperty() {
+        // "ro.product.build.no_bionic_page_size_macro" was added in Android V and is
+        // set to true when Android is build with PRODUCT_NO_BIONIC_PAGE_SIZE_MACRO := true.
+        return android::base::GetBoolProperty("ro.product.build.no_bionic_page_size_macro", false);
     }
 
     static std::string Architecture() { return android::base::GetProperty("ro.bionic.arch", ""); }
@@ -58,20 +64,21 @@ class Vts16KPageSizeTest : public ::testing::Test {
     }
 
     static void SetUpTestSuite() {
-        if (VendorApiLevel() < __ANDROID_API_V__) {
-            GTEST_SKIP() << "16kB support is only required on V and later releases.";
-        } else if (IsLowRamDevice()) {
-            GTEST_SKIP() << "Low Ram devices only support 4kB page size";
+        if (VendorApiLevel() < 202404 && ProductPageSize() != 16384) {
+            GTEST_SKIP() << "16kB support is only required on V and later releases as well as on "
+                            "products directly booting with 16kB kernels.";
         }
     }
 
+    /*
+     * x86_64 also needs to be at least 16KB aligned, since Android
+     * supports page size emulation in x86_64 for app development.
+     */
     size_t RequiredMaxPageSize() {
-        if (mArch == "x86_64") {
-            return 4096;
-        } else if (mArch == "arm64" || mArch == "aarch64") {
-            return 65536;
+        if (mArch == "arm64" || mArch == "aarch64" || mArch == "x86_64") {
+            return 0x4000;
         } else {
-            return -1;
+            return 0x1000;
         }
     }
 
@@ -81,7 +88,12 @@ class Vts16KPageSizeTest : public ::testing::Test {
 /**
  * Checks the max-page-size of init against the architecture's
  * required max-page-size.
+ *
+ * Note: a more comprehensive version of this test exists in
+ * elf_alignment_test. This has turned out to be a canary test
+ * to give visibility on this when checking all 16K tests.
  */
+// @VsrTest = 3.14.1
 TEST_F(Vts16KPageSizeTest, InitMaxPageSizeTest) {
     constexpr char initPath[] = "/system/bin/init";
 
@@ -92,6 +104,36 @@ TEST_F(Vts16KPageSizeTest, InitMaxPageSizeTest) {
     ssize_t initMaxPageSize = MaxPageSize(initPath);
     ASSERT_NE(initMaxPageSize, -1) << "Failed to get max page size of ELF: " << initPath;
 
-    ASSERT_EQ(initMaxPageSize, expectedMaxPageSize)
-            << "ELF " << initPath << " was not built with the required max-page-size";
+    ASSERT_EQ(initMaxPageSize % expectedMaxPageSize, 0)
+            << "ELF " << initPath << " with page size " << initMaxPageSize
+            << " was not built with the required max-page-size " << expectedMaxPageSize;
+}
+
+/**
+ * Checks if the vendor's build was compiled with the define
+ * PRODUCT_NO_BIONIC_PAGE_SIZE_MACRO based on the product property
+ * ro.product.build.no_bionic_page_size_macro.
+ */
+// @VsrTest = 3.14.2
+TEST_F(Vts16KPageSizeTest, NoBionicPageSizeMacro) {
+    /**
+     * TODO(b/315034809): switch to error when final decision is made.
+     */
+    if (!NoBionicPageSizeMacroProperty())
+        GTEST_SKIP() << "Device was not built with: PRODUCT_NO_BIONIC_PAGE_SIZE_MACRO := true";
+}
+
+/**
+ * Checks if the device has page size which was set using TARGET_BOOTS_16K
+ */
+TEST_F(Vts16KPageSizeTest, ProductPageSize) {
+    // We can't set the default value to be 4096 since device which will have 16KB page size and
+    // doesn't set TARGET_BOOTS_16K, won't have this property and will fail the test.
+    int requiredPageSize = ProductPageSize();
+    if (requiredPageSize != 0) {
+        int currentPageSize = getpagesize();
+        ASSERT_EQ(requiredPageSize, currentPageSize);
+    } else {
+        GTEST_SKIP() << "Device was not built with option TARGET_BOOTS_16K = true";
+    }
 }
