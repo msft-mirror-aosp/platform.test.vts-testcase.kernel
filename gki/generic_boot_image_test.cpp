@@ -178,8 +178,10 @@ TEST_F(GenericBootImageTest, GenericRamdisk) {
   ASSERT_NE(Level::UNSPECIFIED, kernel_level) << error_msg;
   std::string boot_path;
   if (kernel_level >= Level::T) {
-    if (std::stoi(android::base::GetProperty("ro.vendor.api_level", "0")) >=
-        __ANDROID_API_T__) {
+    int first_api_level = android::base::GetIntProperty(
+        "ro.board.first_api_level",
+        android::base::GetIntProperty("ro.vendor.api_level", 1000000));
+    if (first_api_level >= __ANDROID_API_T__) {
       boot_path = "/dev/block/by-name/init_boot" + slot_suffix;
     } else {
       // This is the case of a device launched before Android 13 that is
