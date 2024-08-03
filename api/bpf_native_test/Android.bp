@@ -52,10 +52,6 @@ bpf {
     name: "kern.o",
     include_dirs: ["packages/modules/Connectivity/bpf_progs"],
     srcs: ["kern.c"],
-    cflags: [
-        "-Wall",
-        "-Werror",
-    ],
 }
 
 cc_test {
