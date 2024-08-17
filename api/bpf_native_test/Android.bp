@@ -23,7 +23,6 @@ cc_defaults {
     name: "binary_bpf_defaults",
     srcs: ["BpfTest.cpp"],
     shared_libs: [
-        "libcgrouprc",
         "libcutils",
         "libutils",
         "liblog",
