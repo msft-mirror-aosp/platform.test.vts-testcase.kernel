@@ -49,7 +49,7 @@ cc_defaults {
 
 bpf {
     name: "kern.o",
-    include_dirs: ["packages/modules/Connectivity/bpf_progs"],
+    include_dirs: ["packages/modules/Connectivity/bpf/progs"],
     srcs: ["kern.c"],
 }
 
