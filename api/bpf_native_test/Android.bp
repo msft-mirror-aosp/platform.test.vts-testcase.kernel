@@ -49,7 +49,7 @@ cc_defaults {
 
 bpf {
     name: "kern.o",
-    include_dirs: ["packages/modules/Connectivity/bpf_progs"],
+    include_dirs: ["packages/modules/Connectivity/bpf/progs"],
     srcs: ["kern.c"],
 }
 
@@ -58,7 +58,7 @@ cc_test {
     defaults: ["binary_bpf_defaults"],
     test_config: "bpf_module_test.xml",
     test_suites: [
-        "device-tests",
+        "general-tests",
         "vts",
     ],
 }
