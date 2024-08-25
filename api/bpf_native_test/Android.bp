@@ -23,7 +23,6 @@ cc_defaults {
     name: "binary_bpf_defaults",
     srcs: ["BpfTest.cpp"],
     shared_libs: [
-        "libcgrouprc",
         "libcutils",
         "libutils",
         "liblog",
@@ -50,7 +49,7 @@ cc_defaults {
 
 bpf {
     name: "kern.o",
-    include_dirs: ["packages/modules/Connectivity/bpf_progs"],
+    include_dirs: ["packages/modules/Connectivity/bpf/progs"],
     srcs: ["kern.c"],
 }
 
@@ -62,9 +61,4 @@ cc_test {
         "device-tests",
         "vts",
     ],
-}
-
-cc_test {
-    name: "vts_test_binary_bpf_module",
-    defaults: ["binary_bpf_defaults"],
 }
