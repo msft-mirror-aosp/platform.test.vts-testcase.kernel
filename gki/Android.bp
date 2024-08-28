@@ -50,6 +50,31 @@ cc_test {
 }
 
 cc_test {
+    name: "vts_eol_enforcement_test",
+    test_suites: [
+        "device-tests",
+        "vts",
+    ],
+    srcs: [
+        "eol_enforcement_test.cpp",
+    ],
+    defaults: [
+        "libvintf_static_user_defaults",
+    ],
+    static_libs: [
+        "libbase",
+        "libkver",
+        "libtinyxml2",
+        "libvintf",
+    ],
+    cflags: [
+        "-Wall",
+        "-Werror",
+    ],
+    test_config: "eol_enforcement_test.xml",
+}
+
+cc_test {
     name: "vts_generic_boot_image_test",
     require_root: true,
 
