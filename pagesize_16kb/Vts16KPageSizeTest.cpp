@@ -45,6 +45,11 @@ class Vts16KPageSizeTest : public ::testing::Test {
 
         android::elf64::Elf64Binary elf;
 
+        // 32bit ELFs only need to support a max-page-size of 4KiB
+        if (!android::elf64::Elf64Parser::IsElf64(filepath)) {
+            return 4096;
+        }
+
         if (!android::elf64::Elf64Parser::ParseElfFile(filepath, elf)) {
             return -1;
         }
