@@ -32,6 +32,10 @@ class Vts16KPageSizeTest : public ::testing::Test {
         return android::base::GetIntProperty("ro.product.page_size", 0);
     }
 
+    static int BootPageSize() {
+        return android::base::GetIntProperty("ro.boot.hardware.cpu.pagesize", 0);
+    }
+
     static bool NoBionicPageSizeMacroProperty() {
         // "ro.product.build.no_bionic_page_size_macro" was added in Android V and is
         // set to true when Android is build with PRODUCT_NO_BIONIC_PAGE_SIZE_MACRO := true.
@@ -44,6 +48,11 @@ class Vts16KPageSizeTest : public ::testing::Test {
         ssize_t maxPageSize = -1;
 
         android::elf64::Elf64Binary elf;
+
+        // 32bit ELFs only need to support a max-page-size of 4KiB
+        if (!android::elf64::Elf64Parser::IsElf64(filepath)) {
+            return 4096;
+        }
 
         if (!android::elf64::Elf64Parser::ParseElfFile(filepath, elf)) {
             return -1;
@@ -136,4 +145,11 @@ TEST_F(Vts16KPageSizeTest, ProductPageSize) {
     } else {
         GTEST_SKIP() << "Device was not built with option TARGET_BOOTS_16K = true";
     }
+}
+
+/**
+ * Check boot reported or CPU reported page size that is currently being used.
+ */
+TEST_F(Vts16KPageSizeTest, BootPageSize) {
+    ASSERT_EQ(BootPageSize(), getpagesize());
 }
