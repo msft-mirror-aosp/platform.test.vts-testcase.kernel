@@ -175,7 +175,7 @@ void DmDefaultKeyTest::SetUp() {
 
   FilesystemInfo fs_info;
   ASSERT_TRUE(GetFilesystemInfo(kTestMountpoint, &fs_info));
-  raw_blk_device_ = fs_info.raw_blk_device;
+  raw_blk_device_ = fs_info.disk_map[0].raw_blk_device;
 
   dm_->DeleteDevice(test_dm_device_name_.c_str());
 }
@@ -321,8 +321,10 @@ TEST(MetadataEncryptionTest, TestRandomness) {
   std::vector<uint8_t> raw_data;
   FilesystemInfo fs_info;
   ASSERT_TRUE(GetFilesystemInfo(mountpoint, &fs_info));
-  ASSERT_TRUE(
-      ReadBlockDevice(fs_info.raw_blk_device, kFilesystemBlockSize, &raw_data));
+  // The first block of the filesystem's main block device should always be
+  // metadata-encrypted.
+  ASSERT_TRUE(ReadBlockDevice(fs_info.disk_map[0].raw_blk_device,
+                              kFilesystemBlockSize, &raw_data));
   ASSERT_TRUE(VerifyDataRandomness(raw_data));
 }
 
