@@ -169,7 +169,7 @@ TEST_F(EolEnforcementTest, KernelNotEol) {
   for (auto release = lts_versions->FirstChildElement("release"); release;
        release = release->NextSiblingElement("release")) {
     if (release->Attribute("version", release_version.c_str())) {
-      EXPECT_TRUE(isReleaseEol(release->Attribute("eol")));
+      EXPECT_FALSE(isReleaseEol(release->Attribute("eol")));
       return;
     } else if (auto kernel_version =
                    parseKernelVersion(release->Attribute("version"));
@@ -185,7 +185,7 @@ TEST_F(EolEnforcementTest, KernelNotEol) {
   // release config. Test against the latest kernel release version if this is
   // the case.
   if (kernel_version > latest_kernel_version) {
-    EXPECT_TRUE(isReleaseEol(latest_release->Attribute("eol")));
+    EXPECT_FALSE(isReleaseEol(latest_release->Attribute("eol")));
   } else {
     FAIL() << "Kernel release '" << release_version << "' is not recognised";
   }
