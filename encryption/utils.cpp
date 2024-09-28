@@ -16,6 +16,7 @@
 
 // Utility functions for VtsKernelEncryptionTest.
 
+#include <algorithm>
 #include <fstream>
 
 #include <LzmaLib.h>
@@ -44,10 +45,19 @@ using namespace android::dm;
 
 namespace android {
 namespace kernel {
+
+enum KdfVariant {
+  KDF_VARIANT_V1 = 0,
+  KDF_VARIANT_LEGACY = 1,
+  KDF_VARIANT_REARRANGED = 2,
+  KDF_VARIANT_COUNT,
+};
+
 // Context in fixed input string comprises of software provided context,
 // padding to eight bytes (if required) and the key policy.
 static const std::vector<std::vector<uint8_t>> HwWrappedEncryptionKeyContexts =
     {
+        // "v1"
         {'i',  'n',  'l',  'i',  'n',  'e',  ' ',  'e',  'n', 'c', 'r', 'y',
          'p',  't',  'i',  'o',  'n',  ' ',  'k',  'e',  'y', 0x0, 0x0, 0x0,
          0x00, 0x00, 0x00, 0x02, 0x43, 0x00, 0x82, 0x50, 0x0, 0x0, 0x0, 0x0},
@@ -55,24 +65,92 @@ static const std::vector<std::vector<uint8_t>> HwWrappedEncryptionKeyContexts =
         // Environment(TEE)".
         // Where as above caters ( "all latest targets" || ("legacy && kdf
         // not tied to TEE)).
+        // "legacykdf"
         {'i',  'n',  'l',  'i',  'n',  'e',  ' ',  'e',  'n', 'c', 'r', 'y',
          'p',  't',  'i',  'o',  'n',  ' ',  'k',  'e',  'y', 0x0, 0x0, 0x0,
          0x00, 0x00, 0x00, 0x01, 0x43, 0x00, 0x82, 0x18, 0x0, 0x0, 0x0, 0x0},
+        // "rearranged"
+        {
+            'i',  'n',  'l',  'i',  'n',  'e',  ' ',  'e',  'n',
+            'c',  'r',  'y',  'p',  't',  'i',  'o',  'n',  ' ',
+            's',  't',  'o',  'r',  'a',  'g',  'e',  'k',  'e',
+            'y',  ' ',  'c',  't',  'x',  0x00, 0x00, 0x00, 0x00,
+            0x00, 0x10, 0x70, 0x18, 0x72, 0x00, 0x00, 0x00, 0x00,
+        }};
+
+static const std::vector<std::vector<uint8_t>> HwWrappedEncryptionKeyLabels = {
+    // "v1"
+    {0x00, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20},
+    // "legacykdf"
+    {0x00, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20},
+    // "rearranged"
+    {
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    },
 };
 
-static bool GetKdfContext(std::vector<uint8_t> *ctx) {
+static const std::vector<std::vector<uint8_t>> SwSecretContexts = {
+    // "v1"
+    {
+        'r',  'a',  'w',  ' ',  's', 'e', 'c',  'r',  'e',  't',
+        0x0,  0x0,  0x0,  0x0,  0x0, 0x0, 0x00, 0x00, 0x00, 0x02,
+        0x17, 0x00, 0x80, 0x50, 0x0, 0x0, 0x0,  0x0,
+    },
+    // "legacykdf"
+    {
+        'r',  'a',  'w',  ' ',  's', 'e', 'c',  'r',  'e',  't',
+        0x0,  0x0,  0x0,  0x0,  0x0, 0x0, 0x00, 0x00, 0x00, 0x02,
+        0x17, 0x00, 0x80, 0x50, 0x0, 0x0, 0x0,  0x0,
+    },
+    // "rearranged"
+    {
+        'd', 'e', 'r', 'i', 'v', 'e', ' ', 'r', 'a', 'w', ' ',
+        's', 'e', 'c', 'r', 'e', 't', ' ', 'c', 'o', 'n', 't',
+        'e', 'x', 't', ' ', 'a', 'b', 'c', 'd', 'e', 'f',
+    }};
+
+static const std::vector<std::vector<uint8_t>> SwSecretLabels = {
+    // "v1"
+    {0x00, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20},
+    // "legacykdf"
+    {0x00, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20},
+    // "rearranged"
+    {
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    },
+};
+
+static bool GetKdfVariantId(KdfVariant *kdf_id) {
   std::string kdf =
       android::base::GetProperty("ro.crypto.hw_wrapped_keys.kdf", "v1");
+
   if (kdf == "v1") {
-    *ctx = HwWrappedEncryptionKeyContexts[0];
-    return true;
+    *kdf_id = KDF_VARIANT_V1;
+  } else if (kdf == "legacykdf") {
+    *kdf_id = KDF_VARIANT_LEGACY;
+  } else if (kdf == "rearranged") {
+    *kdf_id = KDF_VARIANT_REARRANGED;
+  } else {
+    ADD_FAILURE() << "Unknown KDF: " << kdf;
+    return false;
   }
-  if (kdf == "legacykdf") {
-    *ctx = HwWrappedEncryptionKeyContexts[1];
-    return true;
-  }
-  ADD_FAILURE() << "Unknown KDF: " << kdf;
-  return false;
+  return true;
+}
+
+static void GetKdfContextLabelByKdfId(KdfVariant kdf_id,
+                                      std::vector<uint8_t> *ctx,
+                                      std::vector<uint8_t> *lbl) {
+  *ctx = HwWrappedEncryptionKeyContexts[kdf_id];
+  *lbl = HwWrappedEncryptionKeyLabels[kdf_id];
+}
+
+static void GetSwSecretContextLabelByKdfId(KdfVariant kdf_id,
+                                           std::vector<uint8_t> *ctx,
+                                           std::vector<uint8_t> *lbl) {
+  *ctx = SwSecretContexts[kdf_id];
+  *lbl = SwSecretLabels[kdf_id];
 }
 
 // Offset in bytes to the filesystem superblock, relative to the beginning of
@@ -465,7 +543,28 @@ static void PushBigEndian32(uint32_t val, std::vector<uint8_t> *vec) {
   }
 }
 
-static void GetFixedInputString(uint32_t counter,
+static void RearrangeFixedInputString(
+    KdfVariant kdf_id, std::vector<uint8_t> *fixed_input_string) {
+  if (kdf_id != KDF_VARIANT_REARRANGED) {
+    return;
+  }
+
+  // Rearrange the fixed-input string, reversing the order that the blocks are
+  // processed:
+  // ABCD-EFGH-IJKL-MNO
+  // into
+  // LMNO-HIJK-DEFG-ABC
+  size_t len = fixed_input_string->size();
+  std::vector<uint8_t> tmp(len);
+  for (size_t j = 0; j < len; j += kAesBlockSize) {
+    size_t to_copy = std::min((size_t)kAesBlockSize, len - j);
+    std::copy(fixed_input_string->cbegin() + len - j - to_copy,
+              fixed_input_string->cbegin() + len - j, tmp.begin() + j);
+  }
+  std::copy(tmp.cbegin(), tmp.cend(), fixed_input_string->begin());
+}
+
+static void GetFixedInputString(KdfVariant kdf_id, uint32_t counter,
                                 const std::vector<uint8_t> &label,
                                 const std::vector<uint8_t> &context,
                                 uint32_t derived_key_len,
@@ -477,18 +576,24 @@ static void GetFixedInputString(uint32_t counter,
   fixed_input_string->insert(fixed_input_string->end(), context.begin(),
                              context.end());
   PushBigEndian32(derived_key_len, fixed_input_string);
+
+  // If applicable, rearrange the fixed-input string
+  RearrangeFixedInputString(kdf_id, fixed_input_string);
 }
 
-static bool AesCmacKdfHelper(const std::vector<uint8_t> &key,
+static bool AesCmacKdfHelper(KdfVariant kdf_id, const std::vector<uint8_t> &key,
                              const std::vector<uint8_t> &label,
                              const std::vector<uint8_t> &context,
                              uint32_t output_key_size,
                              std::vector<uint8_t> *output_data) {
+  GTEST_LOG_(INFO) << "KDF ID = " << kdf_id;
   output_data->resize(output_key_size);
   for (size_t count = 0; count < (output_key_size / kAesBlockSize); count++) {
     std::vector<uint8_t> fixed_input_string;
-    GetFixedInputString(count + 1, label, context, (output_key_size * 8),
-                        &fixed_input_string);
+    GetFixedInputString(kdf_id, count + 1, label, context,
+                        (output_key_size * 8), &fixed_input_string);
+    GTEST_LOG_(INFO) << "Fixed Input (block: " << count
+                     << "): " << BytesToHex(fixed_input_string);
     if (!AES_CMAC(output_data->data() + (kAesBlockSize * count), key.data(),
                   key.size(), fixed_input_string.data(),
                   fixed_input_string.size())) {
@@ -500,30 +605,128 @@ static bool AesCmacKdfHelper(const std::vector<uint8_t> &key,
   return true;
 }
 
+static bool DeriveHwWrappedEncryptionKeyByKdfId(
+    KdfVariant kdf_id, const std::vector<uint8_t> &master_key,
+    std::vector<uint8_t> *enc_key) {
+  std::vector<uint8_t> ctx;
+  std::vector<uint8_t> label;
+  GetKdfContextLabelByKdfId(kdf_id, &ctx, &label);
+  return AesCmacKdfHelper(kdf_id, master_key, label, ctx, kAes256XtsKeySize,
+                          enc_key);
+}
+
 bool DeriveHwWrappedEncryptionKey(const std::vector<uint8_t> &master_key,
                                   std::vector<uint8_t> *enc_key) {
-  std::vector<uint8_t> label{0x00, 0x00, 0x40, 0x00, 0x00, 0x00,
-                             0x00, 0x00, 0x00, 0x00, 0x20};
+  KdfVariant kdf_id;
+  if (!GetKdfVariantId(&kdf_id)) {
+    return false;
+  }
+  return DeriveHwWrappedEncryptionKeyByKdfId(kdf_id, master_key, enc_key);
+}
 
+static bool DeriveHwWrappedRawSecretByKdfId(
+    KdfVariant kdf_id, const std::vector<uint8_t> &master_key,
+    std::vector<uint8_t> *secret) {
   std::vector<uint8_t> ctx;
-
-  if (!GetKdfContext(&ctx)) return false;
-
-  return AesCmacKdfHelper(master_key, label, ctx, kAes256XtsKeySize, enc_key);
+  std::vector<uint8_t> label;
+  GetSwSecretContextLabelByKdfId(kdf_id, &ctx, &label);
+  return AesCmacKdfHelper(kdf_id, master_key, label, ctx, kAes256KeySize,
+                          secret);
 }
 
 bool DeriveHwWrappedRawSecret(const std::vector<uint8_t> &master_key,
                               std::vector<uint8_t> *secret) {
-  std::vector<uint8_t> label{0x00, 0x00, 0x40, 0x00, 0x00, 0x00,
-                             0x00, 0x00, 0x00, 0x00, 0x20};
-  // Context in fixed input string comprises of software provided context,
-  // padding to eight bytes (if required) and the key policy.
-  std::vector<uint8_t> context = {'r',  'a',  'w',  ' ',  's',  'e',  'c',
-                                  'r',  'e',  't',  0x0,  0x0,  0x0,  0x0,
-                                  0x0,  0x0,  0x00, 0x00, 0x00, 0x02, 0x17,
-                                  0x00, 0x80, 0x50, 0x0,  0x0,  0x0,  0x0};
+  KdfVariant kdf_id;
+  if (!GetKdfVariantId(&kdf_id)) {
+    return false;
+  }
+  return DeriveHwWrappedRawSecretByKdfId(kdf_id, master_key, secret);
+}
 
-  return AesCmacKdfHelper(master_key, label, context, kAes256KeySize, secret);
+TEST(UtilsTest, TestKdfVariants) {
+  std::vector<KdfVariant> kdf_ids = {
+      KDF_VARIANT_V1,
+      KDF_VARIANT_LEGACY,
+      KDF_VARIANT_REARRANGED,
+  };
+
+  std::vector<std::vector<uint8_t>> expected_keys = {
+      // "v1"
+      {
+          0xcb, 0xe5, 0xdb, 0x40, 0x21, 0x5a, 0x3d, 0x38, 0x6d, 0x61, 0xe5,
+          0x4e, 0xf2, 0xf8, 0xa7, 0x81, 0x4b, 0x00, 0xba, 0xcf, 0x35, 0xb3,
+          0x16, 0xf8, 0x8e, 0x68, 0xe8, 0x9a, 0x47, 0xab, 0xba, 0xb4, 0x83,
+          0x4c, 0x27, 0xda, 0xc8, 0xa9, 0x1a, 0xe1, 0xc3, 0x30, 0x4f, 0x31,
+          0xb5, 0xf2, 0x20, 0x2c, 0x14, 0x98, 0x96, 0x61, 0xba, 0xfc, 0xcc,
+          0x56, 0xcf, 0x62, 0x12, 0xd8, 0xb1, 0xf7, 0x26, 0x91,
+      },
+      // "legacykdf"
+      {
+          0x63, 0x61, 0xf8, 0x02, 0xb3, 0x7a, 0xa6, 0x4a, 0x07, 0x57, 0x84,
+          0xbe, 0xde, 0x23, 0x41, 0xf1, 0xd9, 0x23, 0x6e, 0x64, 0x6c, 0x70,
+          0x46, 0x0f, 0x15, 0xb3, 0x7c, 0xe5, 0xff, 0x43, 0xa5, 0x4f, 0x15,
+          0xd9, 0x56, 0x93, 0x34, 0x3d, 0x52, 0x8b, 0x67, 0x37, 0x2a, 0x7f,
+          0x38, 0x3e, 0xd8, 0xe7, 0xc4, 0x5e, 0xd0, 0x89, 0x9e, 0x02, 0x82,
+          0x54, 0x53, 0xc9, 0x41, 0x9a, 0xaf, 0xa3, 0x69, 0x5f,
+      },
+      // "rearranged"
+      {
+          0xdb, 0xa0, 0xa6, 0x7e, 0x47, 0x1b, 0xe3, 0x9f, 0xd1, 0xec, 0x28,
+          0x99, 0x45, 0xf5, 0x21, 0x45, 0xdf, 0x12, 0x93, 0x7a, 0x0b, 0x42,
+          0x91, 0x5f, 0x7c, 0x71, 0x1f, 0xeb, 0x47, 0x40, 0x3e, 0x6a, 0xe5,
+          0xb7, 0xb5, 0x29, 0x68, 0xa8, 0xcc, 0x63, 0x5d, 0x10, 0xab, 0x8b,
+          0x87, 0x24, 0xef, 0x5d, 0xec, 0x62, 0x36, 0xd8, 0x1a, 0x1b, 0x38,
+          0x78, 0x08, 0xc4, 0x07, 0xce, 0x01, 0xc5, 0x63, 0x88,
+      },
+  };
+
+  std::vector<std::vector<uint8_t>> expected_secrets = {
+      // "v1"
+      {
+          0xe2, 0x6f, 0xb1, 0x9b, 0x4f, 0xb6, 0x26, 0x6f, 0xc7, 0xc5, 0xfc,
+          0x96, 0x54, 0xef, 0xad, 0x64, 0x3c, 0xfe, 0xbc, 0x64, 0xc0, 0x97,
+          0x34, 0x11, 0x55, 0x19, 0x55, 0x95, 0xc2, 0x8d, 0x5e, 0xc9,
+      },
+      // "legacykdf"
+      {
+          0xe2, 0x6f, 0xb1, 0x9b, 0x4f, 0xb6, 0x26, 0x6f, 0xc7, 0xc5, 0xfc,
+          0x96, 0x54, 0xef, 0xad, 0x64, 0x3c, 0xfe, 0xbc, 0x64, 0xc0, 0x97,
+          0x34, 0x11, 0x55, 0x19, 0x55, 0x95, 0xc2, 0x8d, 0x5e, 0xc9,
+      },
+      // "rearranged"
+      {
+          0x4e, 0xf0, 0x6e, 0x6a, 0xa9, 0x84, 0x10, 0x46, 0x67, 0x86, 0x3f,
+          0x15, 0x08, 0x7c, 0x12, 0xbb, 0xfb, 0x8e, 0x47, 0x15, 0x14, 0x5b,
+          0xc0, 0x6b, 0x59, 0x82, 0xab, 0xd4, 0x19, 0x83, 0x85, 0xb4,
+      },
+  };
+
+  ASSERT_EQ(kdf_ids.size(), KDF_VARIANT_COUNT);
+  ASSERT_EQ(expected_keys.size(), KDF_VARIANT_COUNT);
+  ASSERT_EQ(expected_secrets.size(), KDF_VARIANT_COUNT);
+
+  const std::vector<uint8_t> master_key = {
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  };
+
+  GTEST_LOG_(INFO) << "Master Key: " << BytesToHex(master_key);
+  for (size_t i = 0; i < KDF_VARIANT_COUNT; i++) {
+    std::vector<uint8_t> out_key;
+    EXPECT_TRUE(
+        DeriveHwWrappedEncryptionKeyByKdfId(kdf_ids[i], master_key, &out_key));
+    GTEST_LOG_(INFO) << "Key        (id: " << i << "): " << BytesToHex(out_key);
+    GTEST_LOG_(INFO) << "Exp Key    (id: " << i
+                     << "): " << BytesToHex(expected_keys[i]);
+    EXPECT_EQ(out_key, expected_keys[i]);
+    std::vector<uint8_t> out_sec;
+    EXPECT_TRUE(
+        DeriveHwWrappedRawSecretByKdfId(kdf_ids[i], master_key, &out_sec));
+    GTEST_LOG_(INFO) << "Secret     (id: " << i << "): " << BytesToHex(out_sec);
+    GTEST_LOG_(INFO) << "Exp Secret (id: " << i
+                     << "): " << BytesToHex(expected_secrets[i]);
+    EXPECT_EQ(out_sec, expected_secrets[i]);
+  }
 }
 
 }  // namespace kernel
