@@ -45,6 +45,8 @@
     <!-- Mandatory tests (must pass and cannot skip). -->
     <test class="com.android.tradefed.testtype.binary.KernelTargetTest">
         <option name="skip-binary-check" value="true" />
+        <option name="abort-if-device-lost" value="true" />
+        <option name="abort-if-root-lost" value="true" />
         <!-- Set binary timeout to be 18 min which is greater than the default 5 min timeout. Otherwise TF will retry to the command and attempt to do device recovery. -->
         <option name="per-binary-timeout" value="1080000" />
 {mandatory_test_cases}
@@ -54,6 +56,8 @@
         <!-- Identify LTP's TCONF code (incompatible configuration) as a skip. -->
         <option name="exit-code-skip" value="32" />
         <option name="skip-binary-check" value="true" />
+        <option name="abort-if-device-lost" value="true" />
+        <option name="abort-if-root-lost" value="true" />
         <!-- Set binary timeout to be 18 min which is greater than the default 5 min timeout. Otherwise TF will retry to the command and attempt to do device recovery. -->
         <option name="per-binary-timeout" value="1080000" />
 {skippable_test_cases}
