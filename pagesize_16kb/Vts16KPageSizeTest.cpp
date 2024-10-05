@@ -15,10 +15,12 @@
  */
 
 #include <android-base/properties.h>
+#include <android-base/test_utils.h>
 #include <android/api-level.h>
 #include <elf.h>
 #include <gtest/gtest.h>
 #include <libelf64/parse.h>
+#include <procinfo/process_map.h>
 
 class Vts16KPageSizeTest : public ::testing::Test {
   protected:
@@ -152,4 +154,62 @@ TEST_F(Vts16KPageSizeTest, ProductPageSize) {
  */
 TEST_F(Vts16KPageSizeTest, BootPageSize) {
     ASSERT_EQ(BootPageSize(), getpagesize());
+}
+
+/**
+ * Check that the process VMAs are page aligned. This is mostly to ensure
+ * x86_64 16KiB page size emulation is working correctly.
+ */
+TEST_F(Vts16KPageSizeTest, ProcessVmasArePageAligned) {
+    ASSERT_TRUE(android::procinfo::ReadProcessMaps(
+            getpid(), [&](const android::procinfo::MapInfo& mapinfo) {
+                EXPECT_EQ(mapinfo.start % getpagesize(), 0u) << mapinfo.start;
+                EXPECT_EQ(mapinfo.end % getpagesize(), 0u) << mapinfo.end;
+            }));
+}
+
+/**
+ * The platform ELFs are built with separate loadable segments.
+ * This means that the ELF mappings should be completely covered by
+ * the backing file, and should not generate a SIGBUS on reading.
+ */
+void fault_file_pages(const android::procinfo::MapInfo& mapinfo) {
+    std::vector<uint8_t> first_bytes;
+
+    for (size_t i = mapinfo.start; i < mapinfo.end; i += getpagesize()) {
+        first_bytes.push_back(*(reinterpret_cast<uint8_t*>(i)));
+    }
+
+    if (first_bytes.size() > 0) exit(0);
+
+    exit(1);
+}
+
+/**
+ * Ensure that apps don't crash with SIGBUS when attempting to read
+ * file mapped platform ELFs.
+ */
+TEST_F(Vts16KPageSizeTest, CanReadProcessFileMappedContents) {
+    // random accesses may trigger MTE on hwasan builds
+    SKIP_WITH_HWASAN;
+
+    std::vector<android::procinfo::MapInfo> maps;
+
+    ASSERT_TRUE(android::procinfo::ReadProcessMaps(
+            getpid(), [&](const android::procinfo::MapInfo& mapinfo) {
+                if ((mapinfo.flags & PROT_READ) == 0) return;
+
+                // Don't check anonymous mapping.
+                if (!android::base::StartsWith(mapinfo.name, "/")) return;
+
+                // Skip devices
+                if (android::base::StartsWith(mapinfo.name, "/dev/")) return;
+
+                maps.push_back(mapinfo);
+            }));
+
+    for (const auto& map : maps) {
+        ASSERT_EXIT(fault_file_pages(map), ::testing::ExitedWithCode(0), "")
+                << "Failed to read maps: " << map.name;
+    }
 }

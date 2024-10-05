@@ -33,6 +33,7 @@ cc_test {
 
     static_libs: [
         "libelf64",
+        "libprocinfo",
     ],
 
     shared_libs: [
