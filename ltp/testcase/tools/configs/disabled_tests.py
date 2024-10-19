@@ -57,12 +57,6 @@ DISABLED_TESTS = {
     'syscalls.epoll_pwait01_64bit',  # b/277586905
     'syscalls.epoll_pwait04_32bit',  # b/241310858
     'syscalls.epoll_pwait04_64bit',  # b/241310858
-    'syscalls.inotify07_32bit',  # b/191773884
-    'syscalls.inotify07_64bit',  # b/191773884
-    'syscalls.inotify08_32bit',  # b/191748474
-    'syscalls.inotify08_64bit',  # b/191748474
-    'syscalls.inotify12_32bit',  # b/259561911
-    'syscalls.inotify12_64bit',  # b/259561911
     'syscalls.io_pgetevents01_32bit',  # b/191247131
     'syscalls.io_pgetevents02_32bit',  # b/191247132
     'syscalls.ioctl_loop01_32bit',  # b/191224819

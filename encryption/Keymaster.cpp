@@ -59,11 +59,12 @@ static bool logKeystore2ExceptionIfPresent(::ndk::ScopedAStatus& rc,
 }
 
 Keymaster::Keymaster() {
-  ::ndk::SpAIBinder binder(AServiceManager_getService(keystore2_service_name));
+  ::ndk::SpAIBinder binder(
+      AServiceManager_waitForService(keystore2_service_name));
   auto keystore2Service = ks2::IKeystoreService::fromBinder(binder);
 
   if (!keystore2Service) {
-    LOG(ERROR) << "Vold unable to connect to keystore2.";
+    LOG(ERROR) << "Unable to connect to keystore2.";
     return;
   }
 
@@ -81,15 +82,15 @@ Keymaster::Keymaster() {
   auto rc = keystore2Service->getSecurityLevel(
       km::SecurityLevel::TRUSTED_ENVIRONMENT, &securityLevel);
   if (logKeystore2ExceptionIfPresent(rc, "getSecurityLevel"))
-    LOG(ERROR) << "Vold unable to get security level from keystore2.";
+    LOG(ERROR) << "Unable to get security level from keystore2.";
 }
 
 bool Keymaster::generateKey(const km::AuthorizationSet& inParams,
                             std::string* key) {
   ks2::KeyDescriptor in_key = {
       .domain = ks2::Domain::BLOB,
-      .alias = std::nullopt,
       .nspace = ROOT_NAMESPACE,
+      .alias = std::nullopt,
       .blob = std::nullopt,
   };
   ks2::KeyMetadata keyMetadata;
@@ -114,8 +115,8 @@ bool Keymaster::importKey(const km::AuthorizationSet& inParams,
                           const std::string& key, std::string* outKeyBlob) {
   ks2::KeyDescriptor key_desc = {
       .domain = ks2::Domain::BLOB,
-      .alias = std::nullopt,
       .nspace = ROOT_NAMESPACE,
+      .alias = std::nullopt,
       .blob = std::nullopt,
   };
   std::vector<uint8_t> key_vec(key.begin(), key.end());
@@ -141,8 +142,8 @@ bool Keymaster::exportKey(const std::string& kmKey, std::string* key) {
   bool ret = false;
   ks2::KeyDescriptor storageKey = {
       .domain = ks2::Domain::BLOB,
-      .alias = std::nullopt,
       .nspace = ROOT_NAMESPACE,
+      .alias = std::nullopt,
   };
   storageKey.blob =
       std::make_optional<std::vector<uint8_t>>(kmKey.begin(), kmKey.end());
