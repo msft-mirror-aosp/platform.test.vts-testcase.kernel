@@ -38,7 +38,9 @@ class VtsKernelFuseBpfTest(unittest.TestCase):
         except:
             pass
         out_running, err, return_code = self.dut.Execute("getprop ro.fuse.bpf.is_running")
-        self.assertTrue(first_api_level < 34 or out_running.strip() == "true",
+        # Legacy devices that are using sdcardfs are unable to simply swap to fuse-bpf
+        out_sdcardfs, err, return_code = self.dut.Execute("mount | grep \"type sdcardfs\"")
+        self.assertTrue(first_api_level < 34 or out_sdcardfs.strip() != "" or out_running.strip() == "true",
                            "fuse-bpf is disabled")
 
 
