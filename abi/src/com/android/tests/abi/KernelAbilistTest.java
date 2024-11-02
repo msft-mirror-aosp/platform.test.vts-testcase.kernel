@@ -46,6 +46,19 @@ public class KernelAbilistTest extends BaseHostJUnit4Test {
             return;
         }
 
+        // Allow OEMs to keep shipping 32/64 mixed systems if they update their
+        // vendor partition to a newer API level, as long as the device was
+        // first launched before this VSR requirement was added in API 34.
+        // (In that case they wouldn't get the `api_level < 34` early return
+        // that comes next because they updated their vendor partition.)
+        String ro_board_first_api_level = getProp("ro.board.first_api_level");
+        if (!ro_board_first_api_level.isEmpty()) {
+            int originalVsr = Integer.parseInt(ro_board_first_api_level);
+            int deviceFirstLaunched = Integer.parseInt(getProp("ro.product.first_api_level"));
+            boolean isUsingOldBsp = deviceFirstLaunched != originalVsr;
+            if (originalVsr < 34 && isUsingOldBsp) return;
+        }
+
         // ro.vendor.api_level is the VSR requirement API level
         // calculated from ro.product.first_api_level, ro.board.api_level,
         // and ro.board.first_api_level.
