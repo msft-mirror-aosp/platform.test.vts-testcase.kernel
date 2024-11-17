@@ -53,6 +53,7 @@ cc_test {
         "liblzma",
     ],
     test_suites: [
+        "automotive-sdv-tests",
         "general-tests",
         "vts",
     ],
