@@ -54,19 +54,19 @@ if __name__ == '__main__':
                             dest='is_low_mem',
                             type=str,
                             choices=['True', 'False'],
-                            required=True,
+                            default='False',
                             help="Target device is low memory device")
     arg_parser.add_argument('--hwasan',
                             dest='is_hwasan',
                             type=str,
                             choices=['True', 'False'],
-                            required=True,
+                            default='False',
                             help="Target device is hwasan")
     arg_parser.add_argument('--staging',
                             dest='run_staging',
                             type=str,
                             choices=['True', 'False'],
-                            default="False",
+                            default='False',
                             help="Run all the tests, except from the disabled ones")
     arg_parser.add_argument('output_file_path',
                             help="Path for the output file")

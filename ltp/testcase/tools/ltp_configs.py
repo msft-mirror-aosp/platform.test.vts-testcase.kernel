@@ -35,6 +35,20 @@ TMPDIR = os.path.join(TMP, 'tmpdir')
 # File name suffix for low memory scenario group scripts
 LOW_MEMORY_SCENARIO_GROUP_SUFFIX = '_low_mem'
 
+TARGET_LIST = {
+    'x86': {
+        '32': 'x86',
+        '64': 'x86_64',
+    },
+    'arm': {
+        '32': 'arm',
+        '64': 'x86_64',
+    },
+    'riscv': {
+        '64': 'riscv64',
+    }
+}
+
 # Requirement to testcase dictionary.
 REQUIREMENTS_TO_TESTCASE = {
     ltp_enums.Requirements.LOOP_DEVICE_SUPPORT: [

@@ -30,6 +30,7 @@
 #include <vintf/VintfObject.h>
 
 using android::vintf::KernelVersion;
+using android::vintf::Level;
 using android::vintf::RuntimeInfo;
 using android::vintf::Version;
 using android::vintf::VintfObject;
@@ -125,6 +126,10 @@ TEST_F(EolEnforcementTest, KernelNotEol) {
   if (kernel_version.dropMinor() < Version{5, 4}) {
     branch_name = std::format("android-{}.{}", kernel_version.version,
                               kernel_version.majorRev);
+  } else if (kernel_version.dropMinor() == Version{5, 4} &&
+             VintfObject::GetInstance()->getKernelLevel() == Level::R) {
+    // Kernel release string on Android 11 is not GKI compatible.
+    branch_name = "android11-5.4";
   } else {
     const auto kernel_release = android::kver::KernelRelease::Parse(
         android::vintf::VintfObject::GetRuntimeInfo()->osRelease(),
