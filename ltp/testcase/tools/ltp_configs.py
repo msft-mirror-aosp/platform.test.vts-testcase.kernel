@@ -35,6 +35,20 @@ TMPDIR = os.path.join(TMP, 'tmpdir')
 # File name suffix for low memory scenario group scripts
 LOW_MEMORY_SCENARIO_GROUP_SUFFIX = '_low_mem'
 
+TARGET_LIST = {
+    'x86': {
+        '32': 'x86',
+        '64': 'x86_64',
+    },
+    'arm': {
+        '32': 'arm',
+        '64': 'x86_64',
+    },
+    'riscv': {
+        '64': 'riscv64',
+    }
+}
+
 # Requirement to testcase dictionary.
 REQUIREMENTS_TO_TESTCASE = {
     ltp_enums.Requirements.LOOP_DEVICE_SUPPORT: [
@@ -81,7 +95,7 @@ REQUIREMENT_TO_TESTSUITE = {}
 # List of LTP test suites to run
 TEST_SUITES = [
     'can',
-    'cap_bounds',
+    'capability',
     'commands',
     'containers',
     'controllers',
@@ -89,14 +103,12 @@ TEST_SUITES = [
     'cve',
     'dio',
     'fcntl-locktests_android',
-    'filecaps',
     'fs',
     'fs_bind',
     'fs_perms_simple',
     'hugetlb',
     'hyperthreading',
     'input',
-    'io',
     'ipc',
     'kernel_misc',
     'math',
@@ -105,7 +117,6 @@ TEST_SUITES = [
     'power_management_tests',
     'pty',
     'sched',
-    'securebits',
     'syscalls',
     'tracing',
 ]
@@ -113,21 +124,19 @@ TEST_SUITES = [
 # List of LTP test suites to run
 TEST_SUITES_LOW_MEM = [
     'can',
-    'cap_bounds',
+    'capability',
     'commands',
     'containers',
     'cpuhotplug',
     'cve',
     'dio',
     'fcntl-locktests_android',
-    'filecaps',
     'fs',
     'fs_bind',
     'fs_perms_simple',
     'hugetlb',
     'hyperthreading',
     'input',
-    'io',
     'ipc',
     'kernel_misc',
     'math',
@@ -136,7 +145,6 @@ TEST_SUITES_LOW_MEM = [
     'power_management_tests',
     'pty',
     'sched_low_mem',
-    'securebits',
     'syscalls',
     'tracing',
 ]
