@@ -33,6 +33,7 @@
 #include <linux/magic.h>
 #include <mntent.h>
 #include <openssl/cmac.h>
+#include <sys/statvfs.h>
 #include <unistd.h>
 
 #include "Keymaster.h"
@@ -435,10 +436,17 @@ bool GetFilesystemInfo(const std::string &mountpoint, FilesystemInfo *fs_info) {
                          &fs_info->uuid))
     return false;
 
-  GTEST_LOG_(INFO) << " Filesystem mounted on " << mountpoint
-                   << " has type: " << fs_info->type << ", UUID is "
-                   << BytesToHex(fs_info->uuid.bytes);
+  struct statvfs stbuf;
+  if (statvfs(mountpoint.c_str(), &stbuf) != 0) {
+    ADD_FAILURE() << "Failed to statvfs " << mountpoint << Errno();
+    return false;
+  }
+  fs_info->block_size = stbuf.f_bsize;
 
+  GTEST_LOG_(INFO) << "Filesystem mounted on " << mountpoint
+                   << " has type: " << fs_info->type
+                   << ", block_size: " << fs_info->block_size
+                   << ", uuid: " << BytesToHex(fs_info->uuid.bytes);
   for (const DiskMapEntry &map_entry : fs_info->disk_map) {
     GTEST_LOG_(INFO) << "Block device: " << map_entry.fs_blk_device << " ("
                      << map_entry.raw_blk_device << ") ranging from "

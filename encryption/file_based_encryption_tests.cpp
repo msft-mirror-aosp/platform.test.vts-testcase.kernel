@@ -103,14 +103,8 @@ constexpr const char *kUnencryptedDir = "/data/unencrypted";
 // encryption settings that Android is configured to use.
 constexpr const char *kTmpDir = "/data/local/tmp";
 
-// Assumed size of filesystem blocks, in bytes
-constexpr int kFilesystemBlockSize = 4096;
-
-// Size of the test file in filesystem blocks
-constexpr int kTestFileBlocks = 256;
-
-// Size of the test file in bytes
-constexpr int kTestFileBytes = kFilesystemBlockSize * kTestFileBlocks;
+// Test file size in bytes.  Must be a multiple of the filesystem block size.
+constexpr int kTestFileSize = 1 << 20;
 
 // fscrypt master key size in bytes
 constexpr int kFscryptMasterKeySize = 64;
@@ -263,15 +257,15 @@ class ScopedFsFreezer {
 
 // Reads the raw data of a file specified by |fd|. The file is located on the
 // filesystem specified by |fs_info|. The file has |expected_data_size| bytes of
-// initialized data; this must be a multiple of the filesystem block size
-// kFilesystemBlockSize.  The file may contain holes, in which case only the
-// non-holes are read; the holes are not counted in |expected_data_size|.
+// initialized data; this must be a multiple of the filesystem block size.  The
+// file may contain holes, in which case only the non-holes are read; the holes
+// are not counted in |expected_data_size|.
 static bool ReadRawDataOfFile(int fd, const FilesystemInfo &fs_info,
                               int expected_data_size,
                               std::vector<uint8_t> *raw_data) {
-  int max_extents = expected_data_size / kFilesystemBlockSize;
+  int max_extents = expected_data_size / fs_info.block_size;
 
-  EXPECT_TRUE(expected_data_size % kFilesystemBlockSize == 0);
+  EXPECT_TRUE(expected_data_size % fs_info.block_size == 0);
 
   if (fsync(fd) != 0) {
     ADD_FAILURE() << "Failed to sync file" << Errno();
@@ -298,7 +292,7 @@ static bool ReadRawDataOfFile(int fd, const FilesystemInfo &fs_info,
   // Direct I/O requires using a block size aligned buffer.
 
   std::unique_ptr<void, void (*)(void *)> buf_mem(
-      aligned_alloc(kFilesystemBlockSize, expected_data_size), free);
+      aligned_alloc(fs_info.block_size, expected_data_size), free);
   if (buf_mem == nullptr) {
     ADD_FAILURE() << "Out of memory";
     return false;
@@ -320,12 +314,12 @@ static bool ReadRawDataOfFile(int fd, const FilesystemInfo &fs_info,
                     << extent.fe_flags << std::dec;
       return false;
     }
-    if (extent.fe_length % kFilesystemBlockSize != 0) {
+    if (extent.fe_length % fs_info.block_size != 0) {
       ADD_FAILURE()
           << "Extent (length) is not aligned to filesystem block size";
       return false;
     }
-    if (extent.fe_physical % kFilesystemBlockSize != 0) {
+    if (extent.fe_physical % fs_info.block_size != 0) {
       ADD_FAILURE() << "Extent (physical address) is not aligned to filesystem "
                        "block size";
       return false;
@@ -337,14 +331,14 @@ static bool ReadRawDataOfFile(int fd, const FilesystemInfo &fs_info,
     // Find the raw block device and remap the physical offset.
     std::string raw_blk_device;
     for (const DiskMapEntry &map_entry : fs_info.disk_map) {
-      if (extent.fe_physical / kFilesystemBlockSize <= map_entry.end_blkaddr) {
-        if ((extent.fe_physical + extent.fe_length) / kFilesystemBlockSize >
+      if (extent.fe_physical / fs_info.block_size <= map_entry.end_blkaddr) {
+        if ((extent.fe_physical + extent.fe_length) / fs_info.block_size >
             (map_entry.end_blkaddr + 1)) {
           ADD_FAILURE() << "Extent spans multiple block devices";
           return false;
         }
         raw_blk_device = map_entry.raw_blk_device;
-        extent.fe_physical -= map_entry.start_blkaddr * kFilesystemBlockSize;
+        extent.fe_physical -= map_entry.start_blkaddr * fs_info.block_size;
         break;
       }
     }
@@ -438,9 +432,10 @@ static bool IsCompressibleCluster(int cluster_num) {
 // test that the encryption works correctly with both.  We also don't make the
 // data *too* compressible, since we want to have enough compressed blocks in
 // each cluster to see the IVs being incremented.
-static bool MakeSomeCompressibleClusters(std::vector<uint8_t> &bytes,
-                                         int log_cluster_size) {
-  int cluster_bytes = kFilesystemBlockSize << log_cluster_size;
+static bool MakeSomeCompressibleClusters(const FilesystemInfo &fs_info,
+                                         int log_cluster_size,
+                                         std::vector<uint8_t> &bytes) {
+  int cluster_bytes = fs_info.block_size << log_cluster_size;
   if (bytes.size() % cluster_bytes != 0) {
     ADD_FAILURE() << "Test file size (" << bytes.size()
                   << " bytes) is not divisible by compression cluster size ("
@@ -450,7 +445,7 @@ static bool MakeSomeCompressibleClusters(std::vector<uint8_t> &bytes,
   int num_clusters = bytes.size() / cluster_bytes;
   for (int i = 0; i < num_clusters; i++) {
     if (IsCompressibleCluster(i)) {
-      memset(&bytes[i * cluster_bytes], 0, 2 * kFilesystemBlockSize);
+      memset(&bytes[i * cluster_bytes], 0, 2 * fs_info.block_size);
     }
   }
   return true;
@@ -464,12 +459,12 @@ struct f2fs_compressed_cluster {
 } __attribute__((packed));
 
 static bool DecompressLZ4Cluster(const uint8_t *in, uint8_t *out,
-                                 int cluster_bytes) {
+                                 int block_size, int cluster_bytes) {
   const struct f2fs_compressed_cluster *cluster =
       reinterpret_cast<const struct f2fs_compressed_cluster *>(in);
   uint32_t clen = __le32_to_cpu(cluster->clen);
 
-  if (clen > cluster_bytes - kFilesystemBlockSize - sizeof(*cluster)) {
+  if (clen > cluster_bytes - block_size - sizeof(*cluster)) {
     ADD_FAILURE() << "Invalid compressed cluster (bad compressed size)";
     return false;
   }
@@ -484,9 +479,8 @@ static bool DecompressLZ4Cluster(const uint8_t *in, uint8_t *out,
   // ("f2fs: fix leaking uninitialized memory in compressed clusters").
   // Note that if this fails, we can still continue with the rest of the test.
   size_t full_clen = offsetof(struct f2fs_compressed_cluster, cdata[clen]);
-  if (full_clen % kFilesystemBlockSize != 0) {
-    size_t remainder =
-        kFilesystemBlockSize - (full_clen % kFilesystemBlockSize);
+  if (full_clen % block_size != 0) {
+    size_t remainder = block_size - (full_clen % block_size);
     std::vector<uint8_t> zeroes(remainder, 0);
     std::vector<uint8_t> actual(&cluster->cdata[clen],
                                 &cluster->cdata[clen + remainder]);
@@ -730,6 +724,9 @@ bool FBEPolicyTest::SetEncryptionPolicy(int contents_mode, int filenames_mode,
       //   - The device's inline encryption hardware doesn't support the number
       //     of DUN bytes needed for file contents encryption.
       //
+      //   - The device's inline encryption hardware doesn't support the data
+      //     unit size needed for file contents encryption.
+      //
       //   - The policy uses the IV_INO_LBLK_32 flag, and the filesystem block
       //     size differs from the page size.  (Kernel limitation.)
       if (errno == EINVAL && (skip_flags & kSkipIfInlineEncryptionNotUsable)) {
@@ -750,12 +747,12 @@ bool FBEPolicyTest::SetEncryptionPolicy(int contents_mode, int filenames_mode,
 // disk, and other information about the file.
 bool FBEPolicyTest::GenerateTestFile(
     TestFileInfo *info, const struct f2fs_comp_option *compress_options) {
-  info->plaintext.resize(kTestFileBytes);
+  info->plaintext.resize(kTestFileSize);
   RandomBytesForTesting(info->plaintext);
 
   if (compress_options != nullptr &&
-      !MakeSomeCompressibleClusters(info->plaintext,
-                                    compress_options->log_cluster_size))
+      !MakeSomeCompressibleClusters(
+          fs_info_, compress_options->log_cluster_size, info->plaintext))
     return false;
 
   if (!WriteTestFile(info->plaintext, test_file_, fs_info_, compress_options,
@@ -888,9 +885,9 @@ void FBEPolicyTest::VerifyCiphertext(const std::vector<uint8_t> &enc_key,
   std::vector<uint8_t> computed_ciphertext(plaintext.size());
 
   // Encrypt each filesystem block of file contents.
-  for (size_t i = 0; i < plaintext.size(); i += kFilesystemBlockSize) {
+  for (size_t i = 0; i < plaintext.size(); i += fs_info_.block_size) {
     int block_size =
-        std::min<size_t>(kFilesystemBlockSize, plaintext.size() - i);
+        std::min<size_t>(fs_info_.block_size, plaintext.size() - i);
 
     ASSERT_GE(sizeof(iv.bytes), cipher.ivsize());
     ASSERT_TRUE(cipher.Encrypt(enc_key, iv.bytes, &plaintext[i],
@@ -1022,13 +1019,13 @@ void FBEPolicyTest::TestEmmcOptimizedDunWraparound(
   constexpr uint32_t block_count_1 = 3;
   constexpr uint32_t block_count_2 = 7;
   constexpr uint32_t block_count = block_count_1 + block_count_2;
-  constexpr size_t data_size = block_count * kFilesystemBlockSize;
+  const size_t data_size = block_count * fs_info_.block_size;
 
   // Assumed maximum file size.  Unfortunately there isn't a syscall to get
   // this.  ext4 allows ~16TB and f2fs allows ~4TB.  However, an underestimate
   // works fine for our purposes, so just go with 1TB.
   constexpr off_t max_file_size = 1000000000000;
-  constexpr off_t max_file_blocks = max_file_size / kFilesystemBlockSize;
+  const off_t max_file_blocks = max_file_size / fs_info_.block_size;
 
   // Repeatedly create empty files until we find one that can be used for DUN
   // wraparound testing, due to SipHash(inode_number) being almost UINT32_MAX.
@@ -1079,11 +1076,11 @@ void FBEPolicyTest::TestEmmcOptimizedDunWraparound(
 
     // Write the test data.  To support O_DIRECT, use a block-aligned buffer.
     std::unique_ptr<void, void (*)(void *)> buf_mem(
-        aligned_alloc(kFilesystemBlockSize, data_size), free);
+        aligned_alloc(fs_info_.block_size, data_size), free);
     ASSERT_TRUE(buf_mem != nullptr);
     memcpy(buf_mem.get(), &file_info.plaintext[0], data_size);
     off_t pos = static_cast<off_t>(lblk_with_dun_0 - block_count_1) *
-                kFilesystemBlockSize;
+                fs_info_.block_size;
     ASSERT_EQ(data_size, pwrite(fd, buf_mem.get(), data_size, pos))
         << "Error writing data to " << path << Errno();
 
@@ -1136,12 +1133,10 @@ TEST_F(FBEPolicyTest, TestAesEmmcOptimizedHwWrappedKeyPolicy) {
   std::vector<uint8_t> enc_key, sw_secret;
   if (!CreateAndSetHwWrappedKey(&enc_key, &sw_secret)) return;
 
-  int skip_flags = GetSkipFlagsForInoBasedEncryption();
-  if (kFilesystemBlockSize != getpagesize())
-    skip_flags |= kSkipIfInlineEncryptionNotUsable;
-
   if (!SetEncryptionPolicy(FSCRYPT_MODE_AES_256_XTS, FSCRYPT_MODE_AES_256_CTS,
-                           FSCRYPT_POLICY_FLAG_IV_INO_LBLK_32, skip_flags))
+                           FSCRYPT_POLICY_FLAG_IV_INO_LBLK_32,
+                           kSkipIfInlineEncryptionNotUsable |
+                               GetSkipFlagsForInoBasedEncryption()))
     return;
 
   TestFileInfo file_info;
@@ -1343,7 +1338,7 @@ TEST_F(FBEPolicyTest, DISABLED_TestF2fsCompression) {
   // important for this test.  We just (somewhat arbitrarily) chose a setting
   // which is commonly used and for which a decompression library is available.
   const int log_cluster_size = 2;
-  const int cluster_bytes = kFilesystemBlockSize << log_cluster_size;
+  const int cluster_bytes = fs_info_.block_size << log_cluster_size;
   struct f2fs_comp_option comp_opt;
   memset(&comp_opt, 0, sizeof(comp_opt));
   comp_opt.algorithm = F2FS_COMPRESS_LZ4;
@@ -1351,23 +1346,23 @@ TEST_F(FBEPolicyTest, DISABLED_TestF2fsCompression) {
   if (!F2fsCompressOptionsSupported(comp_opt)) return;
 
   // Generate the test file and retrieve its on-disk data.  Note: despite being
-  // compressed, the on-disk data here will still be |kTestFileBytes| long.
-  // This is because FS_IOC_FIEMAP doesn't natively support compression, and the
-  // way that f2fs handles it on compressed files results in us reading extra
-  // blocks appended to the compressed clusters.  It works out in the end
-  // though, since these extra blocks get ignored during decompression.
+  // compressed, the on-disk data here will still be |kTestFileSize| long.  This
+  // is because FS_IOC_FIEMAP doesn't natively support compression, and the way
+  // that f2fs handles it on compressed files results in us reading extra blocks
+  // appended to the compressed clusters.  It works out in the end though, since
+  // these extra blocks get ignored during decompression.
   TestFileInfo file_info;
   ASSERT_TRUE(GenerateTestFile(&file_info, &comp_opt));
 
   GTEST_LOG_(INFO) << "Decrypting the blocks of the compressed file";
   std::vector<uint8_t> enc_key(kAes256XtsKeySize);
   ASSERT_TRUE(DerivePerFileEncryptionKey(master_key, file_info.nonce, enc_key));
-  std::vector<uint8_t> decrypted_data(kTestFileBytes);
+  std::vector<uint8_t> decrypted_data(kTestFileSize);
   FscryptIV iv;
   memset(&iv, 0, sizeof(iv));
-  ASSERT_EQ(0, kTestFileBytes % kFilesystemBlockSize);
-  for (int i = 0; i < kTestFileBytes; i += kFilesystemBlockSize) {
-    int block_num = i / kFilesystemBlockSize;
+  ASSERT_EQ(0, kTestFileSize % fs_info_.block_size);
+  for (int i = 0; i < kTestFileSize; i += fs_info_.block_size) {
+    int block_num = i / fs_info_.block_size;
     int cluster_num = i / cluster_bytes;
 
     // In compressed clusters, IVs start at 1 higher than the expected value.
@@ -1377,19 +1372,20 @@ TEST_F(FBEPolicyTest, DISABLED_TestF2fsCompression) {
     iv.lblk_num = __cpu_to_le32(block_num);
     ASSERT_TRUE(Aes256XtsCipher().Decrypt(
         enc_key, iv.bytes, &file_info.actual_ciphertext[i], &decrypted_data[i],
-        kFilesystemBlockSize));
+        fs_info_.block_size));
   }
 
   GTEST_LOG_(INFO) << "Decompressing the decrypted blocks of the file";
-  std::vector<uint8_t> decompressed_data(kTestFileBytes);
-  ASSERT_EQ(0, kTestFileBytes % cluster_bytes);
-  for (int i = 0; i < kTestFileBytes; i += cluster_bytes) {
+  std::vector<uint8_t> decompressed_data(kTestFileSize);
+  ASSERT_EQ(0, kTestFileSize % cluster_bytes);
+  for (int i = 0; i < kTestFileSize; i += cluster_bytes) {
     int cluster_num = i / cluster_bytes;
     if (IsCompressibleCluster(cluster_num)) {
       // We had filled this cluster with compressible data, so it should have
       // been stored compressed.
       ASSERT_TRUE(DecompressLZ4Cluster(&decrypted_data[i],
-                                       &decompressed_data[i], cluster_bytes));
+                                       &decompressed_data[i],
+                                       fs_info_.block_size, cluster_bytes));
     } else {
       // We had filled this cluster with random data, so it should have been
       // incompressible and thus stored uncompressed.
@@ -1473,7 +1469,7 @@ TEST(FBETest, TestFileContentsRandomness) {
   FilesystemInfo fs_info;
   ASSERT_TRUE(GetFilesystemInfo(kTestMountpoint, &fs_info));
 
-  std::vector<uint8_t> zeroes(kTestFileBytes, 0);
+  std::vector<uint8_t> zeroes(kTestFileSize, 0);
   std::vector<uint8_t> ciphertext_1;
   std::vector<uint8_t> ciphertext_2;
   ASSERT_TRUE(WriteTestFile(zeroes, path_1, fs_info, nullptr, &ciphertext_1));
