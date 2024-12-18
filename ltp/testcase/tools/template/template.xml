@@ -11,10 +11,8 @@
      limitations under the License.
 -->
 <!DOCTYPE configuration [
-    <!ENTITY ltp_root "/data/local/tmp/ltp">
-    <!ENTITY ltp_dir "/data/local/tmp/ltp/DATA/nativetest{nativetest_bit_path}/ltp">
-    <!ENTITY ltp_bin_dir "&ltp_dir;/testcases/bin">
-    <!ENTITY env_setup_cmd "export TMP=&ltp_dir;/tmp LTPTMP=&ltp_dir;/tmp/ltptemp PATH=/system/bin:&ltp_dir;/testcases/bin LTP_DEV_FS_TYPE=ext4 TMPBASE=&ltp_dir;/tmp/tmpbase TMPDIR=&ltp_dir;/tmp/tmpdir LTPROOT=&ltp_dir; ">
+<!ENTITY ltp_dir "/data/local/tmp/{MODULE}">
+<!ENTITY ltp_env "export LTPROOT=/data/local/tmp/{MODULE}/{target} LTP_DEV_FS_TYPE=ext4; export PATH=/system/bin:$LTPROOT TMP=$LTPROOT/tmp; export TMPBASE=$TMP/tmpbase LTPTMP=$TMP/ltptemp TMPDIR=$TMP/tmpdir">
 ]>
 <configuration description="Runs vts_ltp_test.">
     <target_preparer class="com.android.tradefed.targetprep.RootTargetPreparer"/>
@@ -26,25 +24,20 @@
 
     <target_preparer class="com.android.tradefed.targetprep.PushFilePreparer">
         <option name="cleanup" value="true" />
-        <!-- LTP tests must be pushed to `/data/local/tmp/ltp` which has the right security context setting.
-          Any other directory might not work. -->
-        <option name="push" value="vts_kernel_ltp_tests->&ltp_root;" />
+        <option name="push-file" key="{MODULE}" value="&ltp_dir;" />
+        <option name="post-push" value='chmod -R 755 &ltp_dir;;  find &ltp_dir; -type f | xargs grep -l -e "bin/sh" -e "bin/bash" | xargs sed -i -e "s?/bin/echo?echo?" -i -e "s?#!/bin/sh?#!/system/bin/sh?" -i -e "s?#!/bin/bash?#!/system/bin/sh?" -i -e "s?bs=1M?#bs=1m?"' />
     </target_preparer>
 
     <target_preparer class="com.android.tradefed.targetprep.RunCommandTargetPreparer">
-        <option name="run-command" value='find &ltp_dir; -type f | xargs grep -l -e "bin/sh" -e "bin/bash" | xargs sed -i -e "s?/bin/echo?echo?" -i -e "s?#!/bin/sh?#!/system/bin/sh?" -i -e "s?#!/bin/bash?#!/system/bin/sh?" -i -e "s?bs=1M?#bs=1m?"' />
-        <option name="run-command" value='mkdir -p &ltp_dir;/tmp; chmod 777 &ltp_dir;/tmp' />
-        <option name="run-command" value='mkdir -p &ltp_dir;/tmp/tmpbase; chmod 777 &ltp_dir;/tmp/tmpbase' />
-        <option name="run-command" value='mkdir -p &ltp_dir;/tmp/ltptemp; chmod 777 &ltp_dir;/tmp/ltptemp' />
-        <option name="run-command" value='mkdir -p &ltp_dir;/tmp/tmpdir; chmod 777 &ltp_dir;/tmp/tmpdir' />
-         <!-- Apply the right security context for kernel tests to work. -->
-        <option name="run-command" value='restorecon -F -R &ltp_root;' />
-        <option name="teardown-command" value="rm -rf &ltp_dir;/tmp" />
+        <option name="run-command" value='&ltp_env;; mkdir -p $LTPROOT/testcases/bin/data; mkdir -p $TMP; mkdir -p $TMPBASE; mkdir -p $LTPTMP; mkdir -p $TMPDIR; chmod -R 777 $TMP; restorecon -F -R $LTPROOT' />
+        <option name="teardown-command" value="rm -rf &ltp_dir;/{target}/tmp" />
     </target_preparer>
 
     <!-- Mandatory tests (must pass and cannot skip). -->
     <test class="com.android.tradefed.testtype.binary.KernelTargetTest">
         <option name="skip-binary-check" value="true" />
+        <option name="abort-if-device-lost" value="true" />
+        <option name="abort-if-root-lost" value="true" />
         <!-- Set binary timeout to be 18 min which is greater than the default 5 min timeout. Otherwise TF will retry to the command and attempt to do device recovery. -->
         <option name="per-binary-timeout" value="1080000" />
 {mandatory_test_cases}
@@ -54,6 +47,8 @@
         <!-- Identify LTP's TCONF code (incompatible configuration) as a skip. -->
         <option name="exit-code-skip" value="32" />
         <option name="skip-binary-check" value="true" />
+        <option name="abort-if-device-lost" value="true" />
+        <option name="abort-if-root-lost" value="true" />
         <!-- Set binary timeout to be 18 min which is greater than the default 5 min timeout. Otherwise TF will retry to the command and attempt to do device recovery. -->
         <option name="per-binary-timeout" value="1080000" />
 {skippable_test_cases}

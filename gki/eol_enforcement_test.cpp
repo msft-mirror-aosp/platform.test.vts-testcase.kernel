@@ -30,6 +30,7 @@
 #include <vintf/VintfObject.h>
 
 using android::vintf::KernelVersion;
+using android::vintf::Level;
 using android::vintf::RuntimeInfo;
 using android::vintf::Version;
 using android::vintf::VintfObject;
@@ -125,6 +126,10 @@ TEST_F(EolEnforcementTest, KernelNotEol) {
   if (kernel_version.dropMinor() < Version{5, 4}) {
     branch_name = std::format("android-{}.{}", kernel_version.version,
                               kernel_version.majorRev);
+  } else if (kernel_version.dropMinor() == Version{5, 4} &&
+             VintfObject::GetInstance()->getKernelLevel() == Level::R) {
+    // Kernel release string on Android 11 is not GKI compatible.
+    branch_name = "android11-5.4";
   } else {
     const auto kernel_release = android::kver::KernelRelease::Parse(
         android::vintf::VintfObject::GetRuntimeInfo()->osRelease(),
@@ -169,7 +174,7 @@ TEST_F(EolEnforcementTest, KernelNotEol) {
   for (auto release = lts_versions->FirstChildElement("release"); release;
        release = release->NextSiblingElement("release")) {
     if (release->Attribute("version", release_version.c_str())) {
-      EXPECT_TRUE(isReleaseEol(release->Attribute("eol")));
+      EXPECT_FALSE(isReleaseEol(release->Attribute("eol")));
       return;
     } else if (auto kernel_version =
                    parseKernelVersion(release->Attribute("version"));
@@ -185,7 +190,7 @@ TEST_F(EolEnforcementTest, KernelNotEol) {
   // release config. Test against the latest kernel release version if this is
   // the case.
   if (kernel_version > latest_kernel_version) {
-    EXPECT_TRUE(isReleaseEol(latest_release->Attribute("eol")));
+    EXPECT_FALSE(isReleaseEol(latest_release->Attribute("eol")));
   } else {
     FAIL() << "Kernel release '" << release_version << "' is not recognised";
   }
