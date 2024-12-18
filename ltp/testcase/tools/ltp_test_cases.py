@@ -27,8 +27,7 @@ from configs import disabled_tests
 from common import filter_utils
 from typing import Set, Optional, List, Callable
 
-ltp_test_template = '        <option name="test-command-line" key="%s" value="&env_setup_cmd; ;' \
-                    ' cd &ltp_bin_dir; ; %s" />'
+ltp_test_template = '        <option name="test-command-line" key="%s" value="&ltp_env;; cd $LTPROOT; %s" />'
 
 class LtpTestCases(object):
     """Load a ltp vts testcase definition file and parse it into a generator.
@@ -252,12 +251,28 @@ class LtpTestCases(object):
                     mandatory_test_cases.append(ltp_test_line)
                 else:
                     skippable_test_cases.append(ltp_test_line)
-        nativetest_bit_path = '64' if n_bit == '64' else ''
+
+        module = 'vts_ltp_test'
+        if arch == 'x86' and n_bit == '64':
+            target = f'{arch}_{n_bit}'
+            module += f'_{arch}_{n_bit}'
+        elif n_bit == '32':
+            target = arch
+            module += f'_{arch}'
+        else:
+            target = f'{arch}{n_bit}'
+            module += f'_{arch}_{n_bit}'
+        if is_low_mem:
+            module += '_lowmem'
+        if is_hwasan:
+            module += '_hwasan'
+
         config_lines = config_lines.format(
-            nativetest_bit_path=nativetest_bit_path,
+            target=target,
             module_controller_option=module_controller_option,
             mandatory_test_cases='\n'.join(mandatory_test_cases),
-            skippable_test_cases='\n'.join(skippable_test_cases))
+            skippable_test_cases='\n'.join(skippable_test_cases),
+            MODULE=module)
         with open(output_file, 'w') as f:
             f.write(config_lines)
 

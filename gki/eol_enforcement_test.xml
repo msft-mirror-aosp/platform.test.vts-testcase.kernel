@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (C) 2019 The Android Open Source Project
+<!-- Copyright (C) 2024 The Android Open Source Project
 
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -13,17 +13,15 @@
      See the License for the specific language governing permissions and
      limitations under the License.
 -->
-<configuration description="Config for bpf_module_test">
+<configuration description="Config for vts_eol_enforcement_test">
+    <target_preparer class="com.android.tradefed.targetprep.WaitForDeviceDatetimePreparer"/>
     <target_preparer class="com.android.tradefed.targetprep.RootTargetPreparer"/>
     <target_preparer class="com.android.tradefed.targetprep.PushFilePreparer">
-        <option name="cleanup" value="true" />
-        <option name="push" value="bpf_module_test->/data/local/tmp/bpf_module_test" />
-        <option name="push" value="kern.o->/data/local/tmp/32/kern.o" />
-        <option name="push" value="kern.o->/data/local/tmp/64/kern.o" />
+        <option name="cleanup" value="true"/>
+        <option name="push" value="vts_eol_enforcement_test->/data/local/tmp/vts_eol_enforcement_test"/>
     </target_preparer>
-    <test class="com.android.tradefed.testtype.GTest" >
-        <option name="native-test-device-path" value="/data/local/tmp" />
-        <option name="module-name" value="bpf_module_test" />
-        <option name="native-test-timeout" value="10m"/>
+    <test class="com.android.tradefed.testtype.GTest">
+        <option name="native-test-device-path" value="/data/local/tmp"/>
+        <option name="module-name" value="vts_eol_enforcement_test"/>
     </test>
 </configuration>
