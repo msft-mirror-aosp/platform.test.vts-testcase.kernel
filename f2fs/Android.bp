@@ -44,6 +44,7 @@ cc_test {
     test_config: "f2fs_test.xml",
     test_suites: [
         "general-tests",
+        "vts",
     ],
 }
 
