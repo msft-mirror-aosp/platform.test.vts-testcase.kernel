@@ -22,7 +22,9 @@ cc_test {
     require_root: true,
     test_suites: [
         "general-tests",
+        "vts",
     ],
+
     srcs: [
         "vts_dlkm_partition_test.cpp",
     ],
