@@ -74,9 +74,6 @@ namespace kernel {
 // Alignment to use for direct I/O reads of block devices
 static constexpr int kDirectIOAlignment = 4096;
 
-// Assumed size of filesystem blocks, in bytes
-static constexpr int kFilesystemBlockSize = 4096;
-
 // Checks whether the kernel supports version 2 or higher of dm-default-key.
 static bool IsDmDefaultKeyV2Supported(DeviceMapper &dm) {
   DmTargetTypeInfo info;
@@ -290,11 +287,11 @@ TEST_F(DmDefaultKeyTest, TestHwWrappedKey) {
   VerifyDecryption(enc_key, Aes256XtsCipher());
 }
 
-// Tests that if the device uses metadata encryption, then the first
-// kFilesystemBlockSize bytes of the userdata partition appear random.  For ext4
-// and f2fs, this block should contain the filesystem superblock; it therefore
-// should be initialized and metadata-encrypted.  Ideally we'd check additional
-// blocks too, but that would require awareness of the filesystem structure.
+// Tests that if the device uses metadata encryption, then the first filesystem
+// block of the userdata partition appears random.  For ext4 and f2fs, this
+// block should contain the filesystem superblock; it therefore should be
+// initialized and metadata-encrypted.  Ideally we'd check additional blocks
+// too, but that would require awareness of the filesystem structure.
 //
 // This isn't as strong a test as the correctness tests, but it's useful because
 // it applies regardless of the encryption format and key.  Thus it runs even on
@@ -324,7 +321,7 @@ TEST(MetadataEncryptionTest, TestRandomness) {
   // The first block of the filesystem's main block device should always be
   // metadata-encrypted.
   ASSERT_TRUE(ReadBlockDevice(fs_info.disk_map[0].raw_blk_device,
-                              kFilesystemBlockSize, &raw_data));
+                              fs_info.block_size, &raw_data));
   ASSERT_TRUE(VerifyDataRandomness(raw_data));
 }
 

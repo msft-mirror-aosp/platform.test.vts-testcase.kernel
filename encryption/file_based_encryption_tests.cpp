@@ -25,20 +25,28 @@
 // The correctness tests cover the following settings:
 //
 //    fileencryption=aes-256-xts:aes-256-cts:v2
+//    fileencryption=aes-256-xts:aes-256-cts:v2+dusize_4k
 //    fileencryption=aes-256-xts:aes-256-cts:v2+inlinecrypt_optimized
+//    fileencryption=aes-256-xts:aes-256-cts:v2+inlinecrypt_optimized+dusize_4k
 //    fileencryption=aes-256-xts:aes-256-cts:v2+inlinecrypt_optimized+wrappedkey_v0
+//    fileencryption=aes-256-xts:aes-256-cts:v2+inlinecrypt_optimized+wrappedkey_v0+dusize_4k
 //    fileencryption=aes-256-xts:aes-256-cts:v2+emmc_optimized
 //    fileencryption=aes-256-xts:aes-256-cts:v2+emmc_optimized+wrappedkey_v0
 //    fileencryption=adiantum:adiantum:v2
+//    fileencryption=adiantum:adiantum:v2+dusize_4k
 //
 // On devices launching with R or higher those are equivalent to simply:
 //
 //    fileencryption=
+//    fileencryption=::dusize_4k
 //    fileencryption=::inlinecrypt_optimized
+//    fileencryption=::inlinecrypt_optimized+dusize_4k
 //    fileencryption=::inlinecrypt_optimized+wrappedkey_v0
+//    fileencryption=::inlinecrypt_optimized+wrappedkey_v0+dusize_4k
 //    fileencryption=::emmc_optimized
 //    fileencryption=::emmc_optimized+wrappedkey_v0
 //    fileencryption=adiantum
+//    fileencryption=adiantum+dusize_4k
 //
 // The tests don't check which one of those settings, if any, the device is
 // actually using; they just try to test everything they can.
@@ -103,14 +111,8 @@ constexpr const char *kUnencryptedDir = "/data/unencrypted";
 // encryption settings that Android is configured to use.
 constexpr const char *kTmpDir = "/data/local/tmp";
 
-// Assumed size of filesystem blocks, in bytes
-constexpr int kFilesystemBlockSize = 4096;
-
-// Size of the test file in filesystem blocks
-constexpr int kTestFileBlocks = 256;
-
-// Size of the test file in bytes
-constexpr int kTestFileBytes = kFilesystemBlockSize * kTestFileBlocks;
+// Test file size in bytes.  Must be a multiple of the filesystem block size.
+constexpr int kTestFileSize = 1 << 20;
 
 // fscrypt master key size in bytes
 constexpr int kFscryptMasterKeySize = 64;
@@ -139,7 +141,7 @@ struct FscryptFileNonce {
 // Format of the initialization vector
 union FscryptIV {
   struct {
-    __le32 lblk_num;      // file logical block number, starts at 0
+    __le32 du_index;  // zero-based index of the data unit number in the file
     __le32 inode_number;  // only used for IV_INO_LBLK_64
     uint8_t file_nonce[kFscryptFileNonceSize];  // only used for DIRECT_KEY
   };
@@ -263,15 +265,15 @@ class ScopedFsFreezer {
 
 // Reads the raw data of a file specified by |fd|. The file is located on the
 // filesystem specified by |fs_info|. The file has |expected_data_size| bytes of
-// initialized data; this must be a multiple of the filesystem block size
-// kFilesystemBlockSize.  The file may contain holes, in which case only the
-// non-holes are read; the holes are not counted in |expected_data_size|.
+// initialized data; this must be a multiple of the filesystem block size.  The
+// file may contain holes, in which case only the non-holes are read; the holes
+// are not counted in |expected_data_size|.
 static bool ReadRawDataOfFile(int fd, const FilesystemInfo &fs_info,
                               int expected_data_size,
                               std::vector<uint8_t> *raw_data) {
-  int max_extents = expected_data_size / kFilesystemBlockSize;
+  int max_extents = expected_data_size / fs_info.block_size;
 
-  EXPECT_TRUE(expected_data_size % kFilesystemBlockSize == 0);
+  EXPECT_TRUE(expected_data_size % fs_info.block_size == 0);
 
   if (fsync(fd) != 0) {
     ADD_FAILURE() << "Failed to sync file" << Errno();
@@ -298,7 +300,7 @@ static bool ReadRawDataOfFile(int fd, const FilesystemInfo &fs_info,
   // Direct I/O requires using a block size aligned buffer.
 
   std::unique_ptr<void, void (*)(void *)> buf_mem(
-      aligned_alloc(kFilesystemBlockSize, expected_data_size), free);
+      aligned_alloc(fs_info.block_size, expected_data_size), free);
   if (buf_mem == nullptr) {
     ADD_FAILURE() << "Out of memory";
     return false;
@@ -320,12 +322,12 @@ static bool ReadRawDataOfFile(int fd, const FilesystemInfo &fs_info,
                     << extent.fe_flags << std::dec;
       return false;
     }
-    if (extent.fe_length % kFilesystemBlockSize != 0) {
+    if (extent.fe_length % fs_info.block_size != 0) {
       ADD_FAILURE()
           << "Extent (length) is not aligned to filesystem block size";
       return false;
     }
-    if (extent.fe_physical % kFilesystemBlockSize != 0) {
+    if (extent.fe_physical % fs_info.block_size != 0) {
       ADD_FAILURE() << "Extent (physical address) is not aligned to filesystem "
                        "block size";
       return false;
@@ -337,14 +339,14 @@ static bool ReadRawDataOfFile(int fd, const FilesystemInfo &fs_info,
     // Find the raw block device and remap the physical offset.
     std::string raw_blk_device;
     for (const DiskMapEntry &map_entry : fs_info.disk_map) {
-      if (extent.fe_physical / kFilesystemBlockSize <= map_entry.end_blkaddr) {
-        if ((extent.fe_physical + extent.fe_length) / kFilesystemBlockSize >
+      if (extent.fe_physical / fs_info.block_size <= map_entry.end_blkaddr) {
+        if ((extent.fe_physical + extent.fe_length) / fs_info.block_size >
             (map_entry.end_blkaddr + 1)) {
           ADD_FAILURE() << "Extent spans multiple block devices";
           return false;
         }
         raw_blk_device = map_entry.raw_blk_device;
-        extent.fe_physical -= map_entry.start_blkaddr * kFilesystemBlockSize;
+        extent.fe_physical -= map_entry.start_blkaddr * fs_info.block_size;
         break;
       }
     }
@@ -438,9 +440,10 @@ static bool IsCompressibleCluster(int cluster_num) {
 // test that the encryption works correctly with both.  We also don't make the
 // data *too* compressible, since we want to have enough compressed blocks in
 // each cluster to see the IVs being incremented.
-static bool MakeSomeCompressibleClusters(std::vector<uint8_t> &bytes,
-                                         int log_cluster_size) {
-  int cluster_bytes = kFilesystemBlockSize << log_cluster_size;
+static bool MakeSomeCompressibleClusters(const FilesystemInfo &fs_info,
+                                         int log_cluster_size,
+                                         std::vector<uint8_t> &bytes) {
+  int cluster_bytes = fs_info.block_size << log_cluster_size;
   if (bytes.size() % cluster_bytes != 0) {
     ADD_FAILURE() << "Test file size (" << bytes.size()
                   << " bytes) is not divisible by compression cluster size ("
@@ -450,7 +453,7 @@ static bool MakeSomeCompressibleClusters(std::vector<uint8_t> &bytes,
   int num_clusters = bytes.size() / cluster_bytes;
   for (int i = 0; i < num_clusters; i++) {
     if (IsCompressibleCluster(i)) {
-      memset(&bytes[i * cluster_bytes], 0, 2 * kFilesystemBlockSize);
+      memset(&bytes[i * cluster_bytes], 0, 2 * fs_info.block_size);
     }
   }
   return true;
@@ -464,12 +467,12 @@ struct f2fs_compressed_cluster {
 } __attribute__((packed));
 
 static bool DecompressLZ4Cluster(const uint8_t *in, uint8_t *out,
-                                 int cluster_bytes) {
+                                 int block_size, int cluster_bytes) {
   const struct f2fs_compressed_cluster *cluster =
       reinterpret_cast<const struct f2fs_compressed_cluster *>(in);
   uint32_t clen = __le32_to_cpu(cluster->clen);
 
-  if (clen > cluster_bytes - kFilesystemBlockSize - sizeof(*cluster)) {
+  if (clen > cluster_bytes - block_size - sizeof(*cluster)) {
     ADD_FAILURE() << "Invalid compressed cluster (bad compressed size)";
     return false;
   }
@@ -484,9 +487,8 @@ static bool DecompressLZ4Cluster(const uint8_t *in, uint8_t *out,
   // ("f2fs: fix leaking uninitialized memory in compressed clusters").
   // Note that if this fails, we can still continue with the rest of the test.
   size_t full_clen = offsetof(struct f2fs_compressed_cluster, cdata[clen]);
-  if (full_clen % kFilesystemBlockSize != 0) {
-    size_t remainder =
-        kFilesystemBlockSize - (full_clen % kFilesystemBlockSize);
+  if (full_clen % block_size != 0) {
+    size_t remainder = block_size - (full_clen % block_size);
     std::vector<uint8_t> zeroes(remainder, 0);
     std::vector<uint8_t> actual(&cluster->cdata[clen],
                                 &cluster->cdata[clen + remainder]);
@@ -504,8 +506,9 @@ class FBEPolicyTest : public ::testing::Test {
   bool CreateAndSetHwWrappedKey(std::vector<uint8_t> *enc_key,
                                 std::vector<uint8_t> *sw_secret);
   int GetSkipFlagsForInoBasedEncryption();
-  bool SetEncryptionPolicy(int contents_mode, int filenames_mode, int flags,
-                           int skip_flags);
+  int GetSkipFlagsForDataUnitSize(int data_unit_size);
+  bool SetEncryptionPolicy(int contents_mode, int filenames_mode,
+                           int data_unit_size, int flags, int skip_flags);
   bool GenerateTestFile(
       TestFileInfo *info,
       const struct f2fs_comp_option *compress_options = nullptr);
@@ -518,9 +521,13 @@ class FBEPolicyTest : public ::testing::Test {
                                   std::vector<uint8_t> &enc_key);
   void VerifyCiphertext(const std::vector<uint8_t> &enc_key,
                         const FscryptIV &starting_iv, const Cipher &cipher,
-                        const TestFileInfo &file_info);
+                        const TestFileInfo &file_info, int data_unit_size);
   void TestEmmcOptimizedDunWraparound(const std::vector<uint8_t> &master_key,
                                       const std::vector<uint8_t> &enc_key);
+  void TestAesPerFileKeysPolicy(int data_unit_size);
+  void TestAesInlineCryptOptimizedPolicy(int data_unit_size);
+  void TestAesInlineCryptOptimizedHwWrappedKeyPolicy(int data_unit_size);
+  void TestAdiantumPolicy(int data_unit_size);
   bool EnableF2fsCompressionOnTestDir();
   bool F2fsCompressOptionsSupported(const struct f2fs_comp_option &opts);
   std::string test_dir_;
@@ -666,15 +673,32 @@ int FBEPolicyTest::GetSkipFlagsForInoBasedEncryption() {
   return 0;
 }
 
+int FBEPolicyTest::GetSkipFlagsForDataUnitSize(int data_unit_size) {
+  // The log2_data_unit_size field in struct fscrypt_policy_v2 is only supported
+  // by the android14-5.15 and later kernels.
+  if (data_unit_size != 0) return kSkipIfNoPolicySupport;
+  return 0;
+}
+
 // Sets a v2 encryption policy on the test directory.  The policy will use the
-// test key and the specified encryption modes and flags.  If the kernel doesn't
-// support setting or using the encryption policy, then a failure will be added,
-// unless the reason is covered by a bit set in |skip_flags|.
+// test key and the specified encryption modes, data unit size, and flags.  If
+// the kernel doesn't support setting or using the encryption policy, then a
+// failure will be added, unless the reason is covered by a bit set in
+// |skip_flags|.
 bool FBEPolicyTest::SetEncryptionPolicy(int contents_mode, int filenames_mode,
-                                        int flags, int skip_flags) {
+                                        int data_unit_size, int flags,
+                                        int skip_flags) {
   if (!key_added_) {
     ADD_FAILURE() << "SetEncryptionPolicy called but no key added";
     return false;
+  }
+  uint8_t log2_data_unit_size = 0;
+  if (data_unit_size != 0) {
+    log2_data_unit_size = log2(data_unit_size);
+    if (data_unit_size != 1 << log2_data_unit_size) {
+      ADD_FAILURE() << "Requested data unit size is not a power of 2";
+      return false;
+    }
   }
 
   struct fscrypt_policy_v2 policy;
@@ -685,6 +709,7 @@ bool FBEPolicyTest::SetEncryptionPolicy(int contents_mode, int filenames_mode,
   // Always give PAD_16, to match the policies that Android sets for real.
   // It doesn't affect contents encryption, though.
   policy.flags = flags | FSCRYPT_POLICY_FLAGS_PAD_16;
+  policy.log2_data_unit_size = log2_data_unit_size;
   memcpy(policy.master_key_identifier, master_key_specifier_.u.identifier,
          FSCRYPT_KEY_IDENTIFIER_SIZE);
 
@@ -730,6 +755,9 @@ bool FBEPolicyTest::SetEncryptionPolicy(int contents_mode, int filenames_mode,
       //   - The device's inline encryption hardware doesn't support the number
       //     of DUN bytes needed for file contents encryption.
       //
+      //   - The device's inline encryption hardware doesn't support the data
+      //     unit size needed for file contents encryption.
+      //
       //   - The policy uses the IV_INO_LBLK_32 flag, and the filesystem block
       //     size differs from the page size.  (Kernel limitation.)
       if (errno == EINVAL && (skip_flags & kSkipIfInlineEncryptionNotUsable)) {
@@ -750,12 +778,12 @@ bool FBEPolicyTest::SetEncryptionPolicy(int contents_mode, int filenames_mode,
 // disk, and other information about the file.
 bool FBEPolicyTest::GenerateTestFile(
     TestFileInfo *info, const struct f2fs_comp_option *compress_options) {
-  info->plaintext.resize(kTestFileBytes);
+  info->plaintext.resize(kTestFileSize);
   RandomBytesForTesting(info->plaintext);
 
   if (compress_options != nullptr &&
-      !MakeSomeCompressibleClusters(info->plaintext,
-                                    compress_options->log_cluster_size))
+      !MakeSomeCompressibleClusters(
+          fs_info_, compress_options->log_cluster_size, info->plaintext))
     return false;
 
   if (!WriteTestFile(info->plaintext, test_file_, fs_info_, compress_options,
@@ -879,25 +907,33 @@ static bool HashInodeNumber(const std::vector<uint8_t> &master_key,
 void FBEPolicyTest::VerifyCiphertext(const std::vector<uint8_t> &enc_key,
                                      const FscryptIV &starting_iv,
                                      const Cipher &cipher,
-                                     const TestFileInfo &file_info) {
+                                     const TestFileInfo &file_info,
+                                     int data_unit_size) {
   const std::vector<uint8_t> &plaintext = file_info.plaintext;
 
-  GTEST_LOG_(INFO) << "Verifying correctness of encrypted data";
+  if (data_unit_size == 0) {
+    data_unit_size = fs_info_.block_size;
+  }
+
+  if (plaintext.size() % data_unit_size != 0) {
+    ADD_FAILURE() << "File size is not a multiple of the data unit size";
+    return;
+  }
+
+  GTEST_LOG_(INFO) << "Verifying correctness of encrypted data; data_unit_size="
+                   << data_unit_size;
   FscryptIV iv = starting_iv;
 
   std::vector<uint8_t> computed_ciphertext(plaintext.size());
 
-  // Encrypt each filesystem block of file contents.
-  for (size_t i = 0; i < plaintext.size(); i += kFilesystemBlockSize) {
-    int block_size =
-        std::min<size_t>(kFilesystemBlockSize, plaintext.size() - i);
-
+  // Encrypt each data unit of file contents.
+  for (size_t i = 0; i < plaintext.size(); i += data_unit_size) {
     ASSERT_GE(sizeof(iv.bytes), cipher.ivsize());
     ASSERT_TRUE(cipher.Encrypt(enc_key, iv.bytes, &plaintext[i],
-                               &computed_ciphertext[i], block_size));
+                               &computed_ciphertext[i], data_unit_size));
 
-    // Update the IV by incrementing the file logical block number.
-    iv.lblk_num = __cpu_to_le32(__le32_to_cpu(iv.lblk_num) + 1);
+    // Update the IV by incrementing the data unit index.
+    iv.du_index = __cpu_to_le32(__le32_to_cpu(iv.du_index) + 1);
   }
 
   ASSERT_EQ(file_info.actual_ciphertext, computed_ciphertext);
@@ -929,20 +965,19 @@ static bool InitIVForInoLblk32(const std::vector<uint8_t> &master_key,
   uint32_t hash;
   if (!HashInodeNumber(master_key, inode_number, &hash)) return false;
   memset(iv, 0, kFscryptMaxIVSize);
-  iv->lblk_num = __cpu_to_le32(hash);
+  iv->du_index = __cpu_to_le32(hash);
   return true;
 }
 
-// Tests a policy matching "fileencryption=aes-256-xts:aes-256-cts:v2"
-// (or simply "fileencryption=" on devices launched with R or higher)
-TEST_F(FBEPolicyTest, TestAesPerFileKeysPolicy) {
+void FBEPolicyTest::TestAesPerFileKeysPolicy(int data_unit_size) {
   if (skip_test_) return;
 
   auto master_key = GenerateTestKey(kFscryptMasterKeySize);
   ASSERT_TRUE(SetMasterKey(master_key));
 
   if (!SetEncryptionPolicy(FSCRYPT_MODE_AES_256_XTS, FSCRYPT_MODE_AES_256_CTS,
-                           0, 0))
+                           data_unit_size, 0,
+                           GetSkipFlagsForDataUnitSize(data_unit_size)))
     return;
 
   TestFileInfo file_info;
@@ -953,22 +988,30 @@ TEST_F(FBEPolicyTest, TestAesPerFileKeysPolicy) {
 
   FscryptIV iv;
   ASSERT_TRUE(InitIVForPerFileKey(&iv));
-  VerifyCiphertext(enc_key, iv, Aes256XtsCipher(), file_info);
+  VerifyCiphertext(enc_key, iv, Aes256XtsCipher(), file_info, data_unit_size);
 }
 
-// Tests a policy matching
-// "fileencryption=aes-256-xts:aes-256-cts:v2+inlinecrypt_optimized"
-// (or simply "fileencryption=::inlinecrypt_optimized" on devices launched with
-// R or higher)
-TEST_F(FBEPolicyTest, TestAesInlineCryptOptimizedPolicy) {
+// Tests a policy matching "fileencryption=aes-256-xts:aes-256-cts:v2"
+// (or simply "fileencryption=" on devices launched with R or higher)
+TEST_F(FBEPolicyTest, TestAesPerFileKeysPolicy_DefaultDataUnitSize) {
+  TestAesPerFileKeysPolicy(0);
+}
+
+// Same as above, but adds the dusize_4k option.
+TEST_F(FBEPolicyTest, TestAesPerFileKeysPolicy_4KDataUnitSize) {
+  TestAesPerFileKeysPolicy(4096);
+}
+
+void FBEPolicyTest::TestAesInlineCryptOptimizedPolicy(int data_unit_size) {
   if (skip_test_) return;
 
   auto master_key = GenerateTestKey(kFscryptMasterKeySize);
   ASSERT_TRUE(SetMasterKey(master_key));
 
   if (!SetEncryptionPolicy(FSCRYPT_MODE_AES_256_XTS, FSCRYPT_MODE_AES_256_CTS,
-                           FSCRYPT_POLICY_FLAG_IV_INO_LBLK_64,
-                           GetSkipFlagsForInoBasedEncryption()))
+                           data_unit_size, FSCRYPT_POLICY_FLAG_IV_INO_LBLK_64,
+                           GetSkipFlagsForInoBasedEncryption() |
+                               GetSkipFlagsForDataUnitSize(data_unit_size)))
     return;
 
   TestFileInfo file_info;
@@ -981,24 +1024,35 @@ TEST_F(FBEPolicyTest, TestAesInlineCryptOptimizedPolicy) {
 
   FscryptIV iv;
   ASSERT_TRUE(InitIVForInoLblk64(file_info.inode_number, &iv));
-  VerifyCiphertext(enc_key, iv, Aes256XtsCipher(), file_info);
+  VerifyCiphertext(enc_key, iv, Aes256XtsCipher(), file_info, data_unit_size);
 }
 
 // Tests a policy matching
-// "fileencryption=aes-256-xts:aes-256-cts:v2+inlinecrypt_optimized+wrappedkey_v0"
-// (or simply "fileencryption=::inlinecrypt_optimized+wrappedkey_v0" on devices
-// launched with R or higher)
-TEST_F(FBEPolicyTest, TestAesInlineCryptOptimizedHwWrappedKeyPolicy) {
+// "fileencryption=aes-256-xts:aes-256-cts:v2+inlinecrypt_optimized"
+// (or simply "fileencryption=::inlinecrypt_optimized" on devices launched with
+// R or higher)
+TEST_F(FBEPolicyTest, TestAesInlineCryptOptimizedPolicy_DefaultDataUnitSize) {
+  TestAesInlineCryptOptimizedPolicy(0);
+}
+
+// Same as above, but adds the dusize_4k option.
+TEST_F(FBEPolicyTest, TestAesInlineCryptOptimizedPolicy_4KDataUnitSize) {
+  TestAesInlineCryptOptimizedPolicy(4096);
+}
+
+void FBEPolicyTest::TestAesInlineCryptOptimizedHwWrappedKeyPolicy(
+    int data_unit_size) {
   if (skip_test_) return;
 
   std::vector<uint8_t> enc_key, sw_secret;
   if (!CreateAndSetHwWrappedKey(&enc_key, &sw_secret)) return;
 
   if (!SetEncryptionPolicy(FSCRYPT_MODE_AES_256_XTS, FSCRYPT_MODE_AES_256_CTS,
-                           FSCRYPT_POLICY_FLAG_IV_INO_LBLK_64,
+                           data_unit_size, FSCRYPT_POLICY_FLAG_IV_INO_LBLK_64,
                            // 64-bit DUN support is not guaranteed.
                            kSkipIfInlineEncryptionNotUsable |
-                               GetSkipFlagsForInoBasedEncryption()))
+                               GetSkipFlagsForInoBasedEncryption() |
+                               GetSkipFlagsForDataUnitSize(data_unit_size)))
     return;
 
   TestFileInfo file_info;
@@ -1006,13 +1060,30 @@ TEST_F(FBEPolicyTest, TestAesInlineCryptOptimizedHwWrappedKeyPolicy) {
 
   FscryptIV iv;
   ASSERT_TRUE(InitIVForInoLblk64(file_info.inode_number, &iv));
-  VerifyCiphertext(enc_key, iv, Aes256XtsCipher(), file_info);
+  VerifyCiphertext(enc_key, iv, Aes256XtsCipher(), file_info, data_unit_size);
+}
+
+// Tests a policy matching
+// "fileencryption=aes-256-xts:aes-256-cts:v2+inlinecrypt_optimized+wrappedkey_v0"
+// (or simply "fileencryption=::inlinecrypt_optimized+wrappedkey_v0" on devices
+// launched with R or higher)
+TEST_F(FBEPolicyTest,
+       TestAesInlineCryptOptimizedHwWrappedKeyPolicy_DefaultDataUnitSize) {
+  TestAesInlineCryptOptimizedHwWrappedKeyPolicy(0);
+}
+
+// Same as above, but adds the dusize_4k option.
+TEST_F(FBEPolicyTest,
+       TestAesInlineCryptOptimizedHwWrappedKeyPolicy_4KDataUnitSize) {
+  TestAesInlineCryptOptimizedHwWrappedKeyPolicy(4096);
 }
 
 // With IV_INO_LBLK_32, the DUN (IV) can wrap from UINT32_MAX to 0 in the middle
 // of the file.  This method tests that this case appears to be handled
 // correctly, by doing I/O across the place where the DUN wraps around.  Assumes
 // that test_dir_ has already been set up with an IV_INO_LBLK_32 policy.
+//
+// Assumes that the data unit size and filesystem block size are the same.
 void FBEPolicyTest::TestEmmcOptimizedDunWraparound(
     const std::vector<uint8_t> &master_key,
     const std::vector<uint8_t> &enc_key) {
@@ -1022,13 +1093,13 @@ void FBEPolicyTest::TestEmmcOptimizedDunWraparound(
   constexpr uint32_t block_count_1 = 3;
   constexpr uint32_t block_count_2 = 7;
   constexpr uint32_t block_count = block_count_1 + block_count_2;
-  constexpr size_t data_size = block_count * kFilesystemBlockSize;
+  const size_t data_size = block_count * fs_info_.block_size;
 
   // Assumed maximum file size.  Unfortunately there isn't a syscall to get
   // this.  ext4 allows ~16TB and f2fs allows ~4TB.  However, an underestimate
   // works fine for our purposes, so just go with 1TB.
   constexpr off_t max_file_size = 1000000000000;
-  constexpr off_t max_file_blocks = max_file_size / kFilesystemBlockSize;
+  const off_t max_file_blocks = max_file_size / fs_info_.block_size;
 
   // Repeatedly create empty files until we find one that can be used for DUN
   // wraparound testing, due to SipHash(inode_number) being almost UINT32_MAX.
@@ -1079,11 +1150,11 @@ void FBEPolicyTest::TestEmmcOptimizedDunWraparound(
 
     // Write the test data.  To support O_DIRECT, use a block-aligned buffer.
     std::unique_ptr<void, void (*)(void *)> buf_mem(
-        aligned_alloc(kFilesystemBlockSize, data_size), free);
+        aligned_alloc(fs_info_.block_size, data_size), free);
     ASSERT_TRUE(buf_mem != nullptr);
     memcpy(buf_mem.get(), &file_info.plaintext[0], data_size);
     off_t pos = static_cast<off_t>(lblk_with_dun_0 - block_count_1) *
-                kFilesystemBlockSize;
+                fs_info_.block_size;
     ASSERT_EQ(data_size, pwrite(fd, buf_mem.get(), data_size, pos))
         << "Error writing data to " << path << Errno();
 
@@ -1092,14 +1163,17 @@ void FBEPolicyTest::TestEmmcOptimizedDunWraparound(
                                   &file_info.actual_ciphertext));
     FscryptIV iv;
     memset(&iv, 0, sizeof(iv));
-    iv.lblk_num = __cpu_to_le32(-block_count_1);
-    VerifyCiphertext(enc_key, iv, Aes256XtsCipher(), file_info);
+    iv.du_index = __cpu_to_le32(-block_count_1);
+    VerifyCiphertext(enc_key, iv, Aes256XtsCipher(), file_info, 0);
   }
 }
 
 // Tests a policy matching
 // "fileencryption=aes-256-xts:aes-256-cts:v2+emmc_optimized" (or simply
 // "fileencryption=::emmc_optimized" on devices launched with R or higher)
+//
+// Note: we do not test emmc_optimized+dusize_4k, since the kernel does not
+// support this combination yet.
 TEST_F(FBEPolicyTest, TestAesEmmcOptimizedPolicy) {
   if (skip_test_) return;
 
@@ -1107,7 +1181,7 @@ TEST_F(FBEPolicyTest, TestAesEmmcOptimizedPolicy) {
   ASSERT_TRUE(SetMasterKey(master_key));
 
   if (!SetEncryptionPolicy(FSCRYPT_MODE_AES_256_XTS, FSCRYPT_MODE_AES_256_CTS,
-                           FSCRYPT_POLICY_FLAG_IV_INO_LBLK_32,
+                           0, FSCRYPT_POLICY_FLAG_IV_INO_LBLK_32,
                            GetSkipFlagsForInoBasedEncryption()))
     return;
 
@@ -1121,7 +1195,7 @@ TEST_F(FBEPolicyTest, TestAesEmmcOptimizedPolicy) {
 
   FscryptIV iv;
   ASSERT_TRUE(InitIVForInoLblk32(master_key, file_info.inode_number, &iv));
-  VerifyCiphertext(enc_key, iv, Aes256XtsCipher(), file_info);
+  VerifyCiphertext(enc_key, iv, Aes256XtsCipher(), file_info, 0);
 
   TestEmmcOptimizedDunWraparound(master_key, enc_key);
 }
@@ -1130,18 +1204,19 @@ TEST_F(FBEPolicyTest, TestAesEmmcOptimizedPolicy) {
 // "fileencryption=aes-256-xts:aes-256-cts:v2+emmc_optimized+wrappedkey_v0"
 // (or simply "fileencryption=::emmc_optimized+wrappedkey_v0" on devices
 // launched with R or higher)
+//
+// Note: we do not test emmc_optimized+dusize_4k, since the kernel does not
+// support this combination yet.
 TEST_F(FBEPolicyTest, TestAesEmmcOptimizedHwWrappedKeyPolicy) {
   if (skip_test_) return;
 
   std::vector<uint8_t> enc_key, sw_secret;
   if (!CreateAndSetHwWrappedKey(&enc_key, &sw_secret)) return;
 
-  int skip_flags = GetSkipFlagsForInoBasedEncryption();
-  if (kFilesystemBlockSize != getpagesize())
-    skip_flags |= kSkipIfInlineEncryptionNotUsable;
-
   if (!SetEncryptionPolicy(FSCRYPT_MODE_AES_256_XTS, FSCRYPT_MODE_AES_256_CTS,
-                           FSCRYPT_POLICY_FLAG_IV_INO_LBLK_32, skip_flags))
+                           0, FSCRYPT_POLICY_FLAG_IV_INO_LBLK_32,
+                           kSkipIfInlineEncryptionNotUsable |
+                               GetSkipFlagsForInoBasedEncryption()))
     return;
 
   TestFileInfo file_info;
@@ -1149,14 +1224,12 @@ TEST_F(FBEPolicyTest, TestAesEmmcOptimizedHwWrappedKeyPolicy) {
 
   FscryptIV iv;
   ASSERT_TRUE(InitIVForInoLblk32(sw_secret, file_info.inode_number, &iv));
-  VerifyCiphertext(enc_key, iv, Aes256XtsCipher(), file_info);
+  VerifyCiphertext(enc_key, iv, Aes256XtsCipher(), file_info, 0);
 
   TestEmmcOptimizedDunWraparound(sw_secret, enc_key);
 }
 
-// Tests a policy matching "fileencryption=adiantum:adiantum:v2" (or simply
-// "fileencryption=adiantum" on devices launched with R or higher)
-TEST_F(FBEPolicyTest, TestAdiantumPolicy) {
+void FBEPolicyTest::TestAdiantumPolicy(int data_unit_size) {
   if (skip_test_) return;
 
   auto master_key = GenerateTestKey(kFscryptMasterKeySize);
@@ -1168,8 +1241,9 @@ TEST_F(FBEPolicyTest, TestAdiantumPolicy) {
   // We don't need to use GetSkipFlagsForInoBasedEncryption() here, since the
   // "DIRECT_KEY" IV generation method doesn't include inode numbers in the IVs.
   if (!SetEncryptionPolicy(FSCRYPT_MODE_ADIANTUM, FSCRYPT_MODE_ADIANTUM,
-                           FSCRYPT_POLICY_FLAG_DIRECT_KEY,
-                           kSkipIfNoCryptoAPISupport))
+                           data_unit_size, FSCRYPT_POLICY_FLAG_DIRECT_KEY,
+                           kSkipIfNoCryptoAPISupport |
+                               GetSkipFlagsForDataUnitSize(data_unit_size)))
     return;
 
   TestFileInfo file_info;
@@ -1181,7 +1255,18 @@ TEST_F(FBEPolicyTest, TestAdiantumPolicy) {
 
   FscryptIV iv;
   ASSERT_TRUE(InitIVForDirectKey(file_info.nonce, &iv));
-  VerifyCiphertext(enc_key, iv, AdiantumCipher(), file_info);
+  VerifyCiphertext(enc_key, iv, AdiantumCipher(), file_info, data_unit_size);
+}
+
+// Tests a policy matching "fileencryption=adiantum:adiantum:v2" (or simply
+// "fileencryption=adiantum" on devices launched with R or higher)
+TEST_F(FBEPolicyTest, TestAdiantumPolicy_DefaultDataUnitSize) {
+  TestAdiantumPolicy(0);
+}
+
+// Same as above, but adds the dusize_4k option.
+TEST_F(FBEPolicyTest, TestAdiantumPolicy_4KDataUnitSize) {
+  TestAdiantumPolicy(4096);
 }
 
 // Tests adding a corrupted wrapped key to fscrypt keyring.
@@ -1334,7 +1419,7 @@ TEST_F(FBEPolicyTest, DISABLED_TestF2fsCompression) {
   auto master_key = GenerateTestKey(kFscryptMasterKeySize);
   ASSERT_TRUE(SetMasterKey(master_key));
   ASSERT_TRUE(SetEncryptionPolicy(FSCRYPT_MODE_AES_256_XTS,
-                                  FSCRYPT_MODE_AES_256_CTS, 0, 0));
+                                  FSCRYPT_MODE_AES_256_CTS, 0, 0, 0));
 
   // This test will use LZ4 compression with a cluster size of 2^2 = 4 blocks.
   // Check that this setting is supported.
@@ -1343,7 +1428,7 @@ TEST_F(FBEPolicyTest, DISABLED_TestF2fsCompression) {
   // important for this test.  We just (somewhat arbitrarily) chose a setting
   // which is commonly used and for which a decompression library is available.
   const int log_cluster_size = 2;
-  const int cluster_bytes = kFilesystemBlockSize << log_cluster_size;
+  const int cluster_bytes = fs_info_.block_size << log_cluster_size;
   struct f2fs_comp_option comp_opt;
   memset(&comp_opt, 0, sizeof(comp_opt));
   comp_opt.algorithm = F2FS_COMPRESS_LZ4;
@@ -1351,45 +1436,46 @@ TEST_F(FBEPolicyTest, DISABLED_TestF2fsCompression) {
   if (!F2fsCompressOptionsSupported(comp_opt)) return;
 
   // Generate the test file and retrieve its on-disk data.  Note: despite being
-  // compressed, the on-disk data here will still be |kTestFileBytes| long.
-  // This is because FS_IOC_FIEMAP doesn't natively support compression, and the
-  // way that f2fs handles it on compressed files results in us reading extra
-  // blocks appended to the compressed clusters.  It works out in the end
-  // though, since these extra blocks get ignored during decompression.
+  // compressed, the on-disk data here will still be |kTestFileSize| long.  This
+  // is because FS_IOC_FIEMAP doesn't natively support compression, and the way
+  // that f2fs handles it on compressed files results in us reading extra blocks
+  // appended to the compressed clusters.  It works out in the end though, since
+  // these extra blocks get ignored during decompression.
   TestFileInfo file_info;
   ASSERT_TRUE(GenerateTestFile(&file_info, &comp_opt));
 
   GTEST_LOG_(INFO) << "Decrypting the blocks of the compressed file";
   std::vector<uint8_t> enc_key(kAes256XtsKeySize);
   ASSERT_TRUE(DerivePerFileEncryptionKey(master_key, file_info.nonce, enc_key));
-  std::vector<uint8_t> decrypted_data(kTestFileBytes);
+  std::vector<uint8_t> decrypted_data(kTestFileSize);
   FscryptIV iv;
   memset(&iv, 0, sizeof(iv));
-  ASSERT_EQ(0, kTestFileBytes % kFilesystemBlockSize);
-  for (int i = 0; i < kTestFileBytes; i += kFilesystemBlockSize) {
-    int block_num = i / kFilesystemBlockSize;
+  ASSERT_EQ(0, kTestFileSize % fs_info_.block_size);
+  for (int i = 0; i < kTestFileSize; i += fs_info_.block_size) {
+    int block_num = i / fs_info_.block_size;
     int cluster_num = i / cluster_bytes;
 
     // In compressed clusters, IVs start at 1 higher than the expected value.
     // Fortunately, due to the compression there is no overlap...
     if (IsCompressibleCluster(cluster_num)) block_num++;
 
-    iv.lblk_num = __cpu_to_le32(block_num);
+    iv.du_index = __cpu_to_le32(block_num);
     ASSERT_TRUE(Aes256XtsCipher().Decrypt(
         enc_key, iv.bytes, &file_info.actual_ciphertext[i], &decrypted_data[i],
-        kFilesystemBlockSize));
+        fs_info_.block_size));
   }
 
   GTEST_LOG_(INFO) << "Decompressing the decrypted blocks of the file";
-  std::vector<uint8_t> decompressed_data(kTestFileBytes);
-  ASSERT_EQ(0, kTestFileBytes % cluster_bytes);
-  for (int i = 0; i < kTestFileBytes; i += cluster_bytes) {
+  std::vector<uint8_t> decompressed_data(kTestFileSize);
+  ASSERT_EQ(0, kTestFileSize % cluster_bytes);
+  for (int i = 0; i < kTestFileSize; i += cluster_bytes) {
     int cluster_num = i / cluster_bytes;
     if (IsCompressibleCluster(cluster_num)) {
       // We had filled this cluster with compressible data, so it should have
       // been stored compressed.
       ASSERT_TRUE(DecompressLZ4Cluster(&decrypted_data[i],
-                                       &decompressed_data[i], cluster_bytes));
+                                       &decompressed_data[i],
+                                       fs_info_.block_size, cluster_bytes));
     } else {
       // We had filled this cluster with random data, so it should have been
       // incompressible and thus stored uncompressed.
@@ -1473,7 +1559,7 @@ TEST(FBETest, TestFileContentsRandomness) {
   FilesystemInfo fs_info;
   ASSERT_TRUE(GetFilesystemInfo(kTestMountpoint, &fs_info));
 
-  std::vector<uint8_t> zeroes(kTestFileBytes, 0);
+  std::vector<uint8_t> zeroes(kTestFileSize, 0);
   std::vector<uint8_t> ciphertext_1;
   std::vector<uint8_t> ciphertext_2;
   ASSERT_TRUE(WriteTestFile(zeroes, path_1, fs_info, nullptr, &ciphertext_1));
