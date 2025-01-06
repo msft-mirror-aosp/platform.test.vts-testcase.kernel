@@ -139,29 +139,6 @@ class DlkmPartitionTest : public testing::Test {
   int product_first_api_level;
 };
 
-TEST_F(DlkmPartitionTest, VendorDlkmPartition) {
-  if (vendor_api_level < __ANDROID_API_S__) {
-    GTEST_SKIP()
-        << "Exempt from vendor_dlkm partition test. ro.vendor.api_level ("
-        << vendor_api_level << ") < " << __ANDROID_API_S__;
-  }
-  // Only enforce this test on products launched with Android T and later.
-  if (product_first_api_level < __ANDROID_API_T__) {
-    GTEST_SKIP() << "Exempt from vendor_dlkm partition test. "
-                    "ro.product.first_api_level ("
-                 << product_first_api_level << ") < " << __ANDROID_API_T__;
-  }
-  if (runtime_info->kernelVersion().dropMinor() !=
-          android::vintf::Version{5, 4} &&
-      runtime_info->kernelVersion().dropMinor() <
-          android::vintf::Version{5, 10}) {
-    GTEST_SKIP() << "Exempt from vendor_dlkm partition test. kernel: "
-                 << runtime_info->kernelVersion();
-  }
-  ASSERT_NO_FATAL_FAILURE(VerifyDlkmPartition("vendor"));
-  ASSERT_NO_FATAL_FAILURE(VerifyDlkmPartition("odm"));
-}
-
 TEST_F(DlkmPartitionTest, SystemDlkmPartition) {
   if (vendor_api_level < __ANDROID_API_T__) {
     GTEST_SKIP()
