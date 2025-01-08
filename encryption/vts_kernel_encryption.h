@@ -120,6 +120,7 @@ struct DiskMapEntry {
 struct FilesystemInfo {
   std::string type;
   FilesystemUuid uuid;
+  int block_size;  // block size in bytes, typically 4096 or 16384
 
   // The filesystem's block devices in sorted order of filesystem block address.
   // The covered addresses are guaranteed to be contiguous and non-overlapping.
