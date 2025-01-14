@@ -54,17 +54,11 @@ class F2fsTest : public testing::Test {
     close(fd);
 
     const char* make_fs_argv[] = {
-        kMkfsPath,
-        "-f",
-        "-O",
-        "extra_attr",
-        "-O",
-        "project_quota",
-        "-O",
-        "compression",
-        "-g",
-        "android",
-        "/data/local/tmp/img",
+        kMkfsPath,    "-f",          "-O",
+        "extra_attr", "-O",          "project_quota",
+        "-O",         "compression", "-O",
+        "casefold",   "-C",          "utf8",
+        "-g",         "android",     "/data/local/tmp/img",
     };
     res = logwrap_fork_execvp(arraysize(make_fs_argv), make_fs_argv, nullptr,
                               false, LOG_KLOG, true, nullptr);
@@ -212,6 +206,35 @@ TEST_F(F2fsTest, test_sparse_decompress) {
     ASSERT_EQ(memcmp(buf, test_data1, 4096), 0);
   }
   close(fd);
+}
+
+TEST_F(F2fsTest, test_casefolding_ignorable_codepoint) {
+  const char* kTestFolder = "/data/local/tmp/mnt/cf/";
+  const char* kTestFileCase1Path = "/data/local/tmp/mnt/cf/❤";  // u2764
+  const char* kTestFileCase2Path = "/data/local/tmp/mnt/cf/❤️";  // u2764 + ufe0f
+  struct stat stat1;
+  struct stat stat2;
+
+  ASSERT_EQ(mkdir(kTestFolder, (S_IRWXU | S_IRGRP | S_IROTH)), 0);
+  int fd = open(kTestFolder, O_RDONLY | O_DIRECTORY);
+  ASSERT_NE(fd, -1);
+  int flag = FS_CASEFOLD_FL;
+  ASSERT_EQ(ioctl(fd, FS_IOC_SETFLAGS, &flag), 0);
+  close(fd);
+
+  fd = open(kTestFileCase1Path, O_RDWR | O_TRUNC | O_CREAT,
+            (S_IRWXU | S_IRGRP | S_IROTH));
+  ASSERT_NE(fd, -1);
+  ASSERT_NE(fstat(fd, &stat1), -1);
+  close(fd);
+
+  fd = open(kTestFileCase2Path, O_RDWR | O_TRUNC | O_CREAT,
+            (S_IRWXU | S_IRGRP | S_IROTH));
+  ASSERT_NE(fd, -1);
+  ASSERT_NE(fstat(fd, &stat2), -1);
+  close(fd);
+
+  ASSERT_EQ(stat1.st_ino, stat2.st_ino);
 }
 
 }  // namespace android
