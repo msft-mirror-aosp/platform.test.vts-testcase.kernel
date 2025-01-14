@@ -3013,8 +3013,6 @@ STABLE_TESTS = {
     'syscalls.unlink07_64bit': True,
     'syscalls.unlink08_32bit': True,
     'syscalls.unlink08_64bit': True,
-    'syscalls.unlink09_32bit': False,
-    'syscalls.unlink09_64bit': False,
     'syscalls.unlink10_32bit': True,
     'syscalls.unlink10_64bit': True,
     'syscalls.unlinkat01_32bit': True,
