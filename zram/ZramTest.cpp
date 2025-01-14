@@ -40,6 +40,7 @@ TEST(ZramTest, hasZramSwap) {
   const char* procSwapsPath = "/proc/swaps";
   const char* swapFilename = "/dev/block/zram0";
   int64_t swapSize;
+  bool fileFound = false;
   std::string delimiters = "\t ";
   std::ifstream ifs(procSwapsPath);
   std::string line;
@@ -48,8 +49,16 @@ TEST(ZramTest, hasZramSwap) {
   if (!std::getline(ifs, line)) {
     FAIL() << "Failed to read /proc/swaps.";
   }
-
-  if (!std::getline(ifs, line)) {
+  // Read all lines in the file and checks each line if it contains the string
+  // "zram0"
+  while (std::getline(ifs, line)) {
+    if (line.find(swapFilename) != std::string::npos) {
+      // zram device found
+      fileFound = true;
+      break;
+    }
+  }
+  if (!fileFound) {
     FAIL() << "No swaps found.";
   }
 
