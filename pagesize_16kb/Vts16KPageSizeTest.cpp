@@ -213,3 +213,37 @@ TEST_F(Vts16KPageSizeTest, CanReadProcessFileMappedContents) {
                 << "Failed to read maps: " << map.name;
     }
 }
+
+void setUnsetProp(const std::string& prop) {
+    // save and set the default
+    bool defaultValue = android::base::GetBoolProperty(prop, false);
+    // set and verify property.
+    ASSERT_EQ(android::base::SetProperty(prop, "true"), true);
+    ASSERT_EQ(android::base::GetBoolProperty(prop, false), true);
+
+    // reset
+    ASSERT_EQ(android::base::SetProperty(prop, std::to_string(defaultValue)), true);
+}
+
+TEST_F(Vts16KPageSizeTest, BackCompatSupport) {
+    // Backcompat support is added in Android B
+    int apiLevel = VendorApiLevel();
+    if (apiLevel < 36 /* Android B */) {
+        GTEST_SKIP() << "16 KB backcompat support is only required on Android B and later release";
+    }
+
+    std::string prop = "bionic.linker.16kb.app_compat.enabled";
+    setUnsetProp(prop);
+}
+
+TEST_F(Vts16KPageSizeTest, PackageManagerDisableBackCompat) {
+    // Package manager support for backcompat is added in Android B
+    int apiLevel = VendorApiLevel();
+    if (apiLevel < 36 /* Android B */) {
+        GTEST_SKIP() << "16 KB backcompat support in package manager is only required on Android B "
+                        "and later release";
+    }
+
+    std::string prop = "pm.16kb.app_compat.disabled";
+    setUnsetProp(prop);
+}
