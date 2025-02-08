@@ -31,6 +31,7 @@ python_test_host {
         "vts_vndk_utils",
     ],
     test_suites: [
+        "automotive-sdv-tests",
         "vts",
     ],
     test_options: {
@@ -40,6 +41,6 @@ python_test_host {
     version: {
         py3: {
             embedded_launcher: true,
-        }
-    }
+        },
+    },
 }
