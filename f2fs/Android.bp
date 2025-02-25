@@ -15,48 +15,39 @@
 //
 
 package {
+    default_team: "trendy_team_android_kernel",
     default_applicable_licenses: ["Android-Apache-2.0"],
 }
 
-cc_test {
-    name: "vts_kernel_encryption_test",
-    srcs: [
-        "adiantum.cpp",
-        "aes_256_xts.cpp",
-        "file_based_encryption_tests.cpp",
-        "Keymaster.cpp",
-        "metadata_encryption_tests.cpp",
-        "utils.cpp",
-    ],
-    cflags: [
-        "-D_FILE_OFFSET_BITS=64",
-        "-Wall",
-        "-Werror",
-    ],
+cc_defaults {
+    name: "binary_f2fs_defaults",
+    srcs: ["F2fsTest.cpp"],
     shared_libs: [
         "libbase",
-        "libbinder_ndk",
-        "libcrypto",
         "liblog",
-        "libutils",
-    ],
-    defaults: [
-        "keymint_use_latest_hal_aidl_ndk_static",
-        "keystore2_use_latest_aidl_ndk_static",
+        "liblogwrap",
     ],
     static_libs: [
         "libdm",
-        "libext4_utils",
-        "libfs_mgr",
-        "libkeymint_support",
-        "liblz4",
-        "liblzma",
     ],
+    cflags: [
+        "-fno-strict-aliasing",
+        "-Wall",
+        "-Werror",
+        "-Wno-unused-variable",
+    ],
+}
+
+cc_test {
+    name: "f2fs_test",
+    defaults: ["binary_f2fs_defaults"],
+    test_config: "f2fs_test.xml",
     test_suites: [
-        "automotive-sdv-tests",
         "general-tests",
-        "vts",
     ],
-    require_root: true,
-    auto_gen_config: true,
+}
+
+cc_test {
+    name: "vts_test_binary_f2fs",
+    defaults: ["binary_f2fs_defaults"],
 }
