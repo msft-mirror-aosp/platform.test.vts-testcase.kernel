@@ -27,11 +27,6 @@ python_test_host {
         "configs/stable_tests.py",
         "test_launcher.py",
     ],
-    version: {
-        py3: {
-            embedded_launcher: true,
-        }
-    },
 }
 
 python_binary_host {
@@ -46,9 +41,4 @@ python_binary_host {
         ":ltp_disabled_tests",
         ":ltp_runtests",
     ],
-    version: {
-        py3: {
-            embedded_launcher: true,
-        }
-    },
 }
