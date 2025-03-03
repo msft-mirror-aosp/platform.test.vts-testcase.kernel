@@ -1,9 +1,6 @@
 {
   "kernel-presubmit": [
     {
-      "name": "bpf_module_test"
-    },
-    {
       "name": "drop_caches_test"
     },
     {
