@@ -37,9 +37,4 @@ python_test_host {
         unit_test: false,
     },
     test_config: "vts_kernel_fuse_bpf_test.xml",
-    version: {
-        py3: {
-            embedded_launcher: true,
-        }
-    }
 }
