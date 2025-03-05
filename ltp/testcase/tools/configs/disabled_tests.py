@@ -79,6 +79,8 @@ DISABLED_TESTS = {
     'syscalls.mount03_64bit',  # b/275747273
     'syscalls.mount07_32bit',  # b/309808883
     'syscalls.mount07_64bit',  # b/309808883
+    'syscalls.mseal01_32bit',  # b/400564968 mseal not supported on 32 bit
+    'syscalls.mseal02_32bit',  # b/400564968 mseal not supported on 32 bit
     'syscalls.openat04_32bit',  # b/277806579
     'syscalls.openat04_64bit',  # b/277806579
     'syscalls.rt_sigprocmask01_32bit',  # b/191248975
