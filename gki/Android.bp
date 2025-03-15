@@ -124,6 +124,32 @@ cc_test {
     ],
 }
 
+cc_library {
+    name: "vts_boot_test_utils_lib",
+    srcs: [
+        "cpio.cpp",
+        "lz4_legacy.cpp",
+        "ramdisk_utils.cpp",
+    ],
+    export_include_dirs: ["."],
+    defaults: [
+        "libvintf_static_user_defaults",
+    ],
+    static_libs: [
+        "libbase",
+        "liblz4",
+    ],
+    cflags: [
+        "-Wall",
+        "-Werror",
+    ],
+    header_libs: [
+        "bootimg_headers",
+        "libstorage_literals_headers",
+    ],
+    test_only: true,
+}
+
 filegroup {
     name: "WtsDlkmPartitionTestCasesSrc",
     srcs: ["vts_dlkm_partition_test.cpp"],
