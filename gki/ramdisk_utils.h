@@ -28,4 +28,9 @@ namespace android {
 android::base::Result<std::unique_ptr<TemporaryDir>> ExtractRamdiskToDirectory(
     std::string_view boot_path);
 
+// From the vendor_boot image / partition, extract the vendor_ramdisk section,
+//  decompress it, and extract from the cpio archive.
+android::base::Result<std::unique_ptr<TemporaryDir>>
+ExtractVendorRamdiskToDirectory(const std::string &vendor_boot_path);
+
 }  // namespace android
