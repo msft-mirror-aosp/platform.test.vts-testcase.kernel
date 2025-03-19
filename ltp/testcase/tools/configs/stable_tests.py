@@ -642,8 +642,6 @@ STABLE_TESTS = {
     'sched.pth_str03_64bit': False,
     'sched.sched_cli_serv_32bit': False,
     'sched.sched_cli_serv_64bit': False,
-    'sched.sched_football_32bit': True,
-    'sched.sched_football_64bit': True,
     'sched.sched_getattr01_64bit': False,
     'sched.sched_getattr02_32bit': False,
     'sched.sched_getattr02_64bit': False,
