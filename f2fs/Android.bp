@@ -47,8 +47,3 @@ cc_test {
         "vts",
     ],
 }
-
-cc_test {
-    name: "vts_test_binary_f2fs",
-    defaults: ["binary_f2fs_defaults"],
-}
