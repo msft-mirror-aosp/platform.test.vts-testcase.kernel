@@ -48,19 +48,25 @@ class F2fsTest : public testing::Test {
     int flags = FS_COMPR_FL;
     int res;
 
+    page_size = getpagesize();
+    std::string block_size = std::to_string(page_size);
     ASSERT_NE(fd, -1);
     res = ftruncate(fd, 100 << 20);  // 100 MB
     ASSERT_EQ(res, 0);
     close(fd);
 
-    const char* make_fs_argv[] = {
-        kMkfsPath,    "-f",          "-O",
-        "extra_attr", "-O",          "project_quota",
-        "-O",         "compression", "-O",
-        "casefold",   "-C",          "utf8",
-        "-g",         "android",     "/data/local/tmp/img",
+    std::vector<const char*> make_fs_argv = {
+        kMkfsPath, "-f",          "-O", "extra_attr", "-O", "project_quota",
+        "-O",      "compression", "-O", "casefold",   "-C", "utf8",
+        "-g",      "android",
     };
-    res = logwrap_fork_execvp(arraysize(make_fs_argv), make_fs_argv, nullptr,
+    make_fs_argv.push_back("-w");
+    make_fs_argv.push_back(block_size.c_str());
+    make_fs_argv.push_back("-b");
+    make_fs_argv.push_back(block_size.c_str());
+    make_fs_argv.push_back("/data/local/tmp/img");
+
+    res = logwrap_fork_execvp(make_fs_argv.size(), make_fs_argv.data(), nullptr,
                               false, LOG_KLOG, true, nullptr);
     ASSERT_EQ(res, 0);
     mkdir("/data/local/tmp/mnt", (S_IRWXU | S_IRGRP | S_IROTH));
@@ -71,12 +77,12 @@ class F2fsTest : public testing::Test {
     ASSERT_EQ(mount(loop_dev.device().c_str(), "data/local/tmp/mnt", "f2fs", 0,
                     "compress_mode=user"),
               0);
-    test_data1 = malloc(4096);
+    test_data1 = malloc(page_size);
     ASSERT_NE(test_data1, nullptr);
-    memset(test_data1, 0x41, 4096);
-    test_data2 = malloc(4096);
+    memset(test_data1, 0x41, page_size);
+    test_data2 = malloc(page_size);
     ASSERT_NE(test_data2, nullptr);
-    memset(test_data2, 0x61, 4096);
+    memset(test_data2, 0x61, page_size);
   }
   void TearDown() override {
     ASSERT_EQ(umount2("/data/local/tmp/mnt", MNT_DETACH), 0);
@@ -89,32 +95,33 @@ class F2fsTest : public testing::Test {
  protected:
   void* test_data1;
   void* test_data2;
+  int page_size;
 };
 
 TEST_F(F2fsTest, test_normal_lseek) {
-  char buf[4096];
+  char buf[page_size];
   int fd = open(kTestFilePath, O_RDWR | O_TRUNC | O_CREAT,
                 (S_IRWXU | S_IRGRP | S_IROTH));
   ASSERT_NE(fd, -1);
 
-  ASSERT_EQ(lseek(fd, 1024 * 4096, SEEK_SET), 1024 * 4096);
+  ASSERT_EQ(lseek(fd, 1024 * page_size, SEEK_SET), 1024 * page_size);
   for (int i = 0; i < 1024; i++) {
-    ASSERT_EQ(write(fd, test_data1, 4096), 4096);
+    ASSERT_EQ(write(fd, test_data1, page_size), page_size);
   }
   fsync(fd);
   ASSERT_EQ(lseek(fd, 0, SEEK_HOLE), 0);
-  ASSERT_EQ(lseek(fd, 0, SEEK_DATA), 1024 * 4096);
+  ASSERT_EQ(lseek(fd, 0, SEEK_DATA), 1024 * page_size);
   lseek(fd, 0, SEEK_SET);
-  write(fd, test_data2, 4096);
+  write(fd, test_data2, page_size);
   fsync(fd);
   ASSERT_EQ(lseek(fd, 0, SEEK_DATA), 0);
 
-  ASSERT_EQ(lseek(fd, 0, SEEK_HOLE), 4096);
-  ASSERT_EQ(lseek(fd, 5000, SEEK_DATA), 1024 * 4096);
+  ASSERT_EQ(lseek(fd, 0, SEEK_HOLE), page_size);
+  ASSERT_EQ(lseek(fd, page_size + 904, SEEK_DATA), 1024 * page_size);
 }
 
 TEST_F(F2fsTest, test_compressed_lseek) {
-  char buf[4096];
+  char buf[page_size];
 
   int fd = open(kTestFilePath, O_RDWR | O_TRUNC | O_CREAT,
                 (S_IRWXU | S_IRGRP | S_IROTH));
@@ -122,24 +129,24 @@ TEST_F(F2fsTest, test_compressed_lseek) {
 
   int flags = FS_COMPR_FL;
   ASSERT_NE(ioctl(fd, FS_IOC_SETFLAGS, &flags), -1);
-  ASSERT_EQ(lseek(fd, 1024 * 4096, SEEK_SET), 1024 * 4096);
+  ASSERT_EQ(lseek(fd, 1024 * page_size, SEEK_SET), 1024 * page_size);
   for (int i = 0; i < 1024; i++) {
-    ASSERT_EQ(write(fd, test_data1, 4096), 4096);
+    ASSERT_EQ(write(fd, test_data1, page_size), page_size);
   }
   fsync(fd);
   ASSERT_EQ(lseek(fd, 0, SEEK_HOLE), 0);
-  ASSERT_EQ(lseek(fd, 0, SEEK_DATA), 1024 * 4096);
+  ASSERT_EQ(lseek(fd, 0, SEEK_DATA), 1024 * page_size);
   ASSERT_NE(ioctl(fd, F2FS_IOC_COMPRESS_FILE), -1);
   lseek(fd, 0, SEEK_SET);
-  write(fd, test_data2, 4096);
+  write(fd, test_data2, page_size);
   fsync(fd);
   ASSERT_EQ(lseek(fd, 0, SEEK_DATA), 0);
-  ASSERT_EQ(lseek(fd, 0, SEEK_HOLE), 4096);
-  ASSERT_EQ(lseek(fd, 5000, SEEK_DATA), 1024 * 4096);
+  ASSERT_EQ(lseek(fd, 0, SEEK_HOLE), page_size);
+  ASSERT_EQ(lseek(fd, page_size + 904, SEEK_DATA), 1024 * page_size);
 }
 
 TEST_F(F2fsTest, test_sparse_decompress) {
-  char buf[4096];
+  char buf[page_size];
   int res;
 
   int fd = open(kTestFilePath, O_RDWR | O_TRUNC | O_CREAT,
@@ -150,16 +157,16 @@ TEST_F(F2fsTest, test_sparse_decompress) {
   ASSERT_NE(fd, -1);
 
   ASSERT_NE(ioctl(fd, FS_IOC_SETFLAGS, &flags), -1);
-  res = lseek(fd, 1024 * 4096, SEEK_SET);
-  ASSERT_EQ(res, 1024 * 4096);
+  res = lseek(fd, 1024 * page_size, SEEK_SET);
+  ASSERT_EQ(res, 1024 * page_size);
   for (int i = 0; i < 1024; i++) {
-    res = write(fd, test_data1, 4096);
-    ASSERT_EQ(res, 4096);
+    res = write(fd, test_data1, page_size);
+    ASSERT_EQ(res, page_size);
   }
   fsync(fd);
   ASSERT_NE(ioctl(fd, F2FS_IOC_COMPRESS_FILE), -1);
   lseek(fd, 0, SEEK_SET);
-  write(fd, test_data2, 4096);
+  write(fd, test_data2, page_size);
   fsync(fd);
   int pid = fork();
   if (pid == 0) {
@@ -189,21 +196,21 @@ TEST_F(F2fsTest, test_sparse_decompress) {
   // Check for corruption
   fd = open(kTestFilePath, O_RDONLY);
   ASSERT_NE(fd, -1);
-  res = read(fd, buf, 4096);
-  ASSERT_EQ(res, 4096);
-  ASSERT_EQ(memcmp(buf, test_data2, 4096), 0);
+  res = read(fd, buf, page_size);
+  ASSERT_EQ(res, page_size);
+  ASSERT_EQ(memcmp(buf, test_data2, page_size), 0);
 
-  char empty_buf[4096];
-  memset(empty_buf, 0, 4096);
+  char empty_buf[page_size];
+  memset(empty_buf, 0, page_size);
   for (int i = 1; i < 1024; i++) {
-    res = read(fd, buf, 4096);
-    ASSERT_EQ(res, 4096);
-    ASSERT_EQ(memcmp(buf, empty_buf, 4096), 0);
+    res = read(fd, buf, page_size);
+    ASSERT_EQ(res, page_size);
+    ASSERT_EQ(memcmp(buf, empty_buf, page_size), 0);
   }
   for (int i = 0; i < 1024; i++) {
-    res = read(fd, buf, 4096);
-    ASSERT_EQ(res, 4096);
-    ASSERT_EQ(memcmp(buf, test_data1, 4096), 0);
+    res = read(fd, buf, page_size);
+    ASSERT_EQ(res, page_size);
+    ASSERT_EQ(memcmp(buf, test_data1, page_size), 0);
   }
   close(fd);
 }
