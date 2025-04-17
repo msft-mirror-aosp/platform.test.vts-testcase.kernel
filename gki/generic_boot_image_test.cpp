@@ -176,6 +176,11 @@ TEST_F(GenericBootImageTest, GenericRamdisk) {
   const auto kernel_level =
       VintfObject::GetInstance()->getKernelLevel(&error_msg);
   ASSERT_NE(Level::UNSPECIFIED, kernel_level) << error_msg;
+  if ((kernel_level == Level::T) &&
+      (deviceSupportsFeature("android.hardware.type.automotive"))) {
+    GTEST_SKIP() << "Skip GKI GenericRamdisk check for automotive devices";
+    return;
+  }
   std::string boot_path;
   if (kernel_level >= Level::T) {
     int first_api_level = android::base::GetIntProperty(
