@@ -93,12 +93,14 @@ class GenericBootImageTest : public testing::Test {
     // device targets, and we don't have any requests to skip this test
     // on x86 / x86_64 as of 2022-06-07.
 
-    int firstApiLevel = std::stoi(android::base::GetProperty("ro.product.first_api_level", "0"));
-    if (isTV() && firstApiLevel <= __ANDROID_API_T__) {
+    first_api_level_ = std::stoi(
+        android::base::GetProperty("ro.product.first_api_level", "0"));
+    if (isTV() && first_api_level_ <= __ANDROID_API_T__) {
       GTEST_SKIP() << "Skipping on TV devices";
     }
   }
   std::shared_ptr<const RuntimeInfo> runtime_info;
+  int first_api_level_ = -1;
 };
 
 TEST_F(GenericBootImageTest, KernelReleaseFormat) {
@@ -234,6 +236,20 @@ TEST_F(GenericBootImageTest, GenericRamdisk) {
       GetRequirementBySdkLevel(sdk_level);
   std::set<std::string> generic_ramdisk_allow_list =
       GetAllowListBySdkLevel(sdk_level);
+
+  // init_boot was considered a system partition since its introduction,
+  // however, many devices accidentally shipped it under vendor freeze. As of
+  // 2025Q2 we are now validating the requirement.
+  if (first_api_level_ > __ANDROID_API_V__) {
+    const auto system_sdk_level =
+        android::base::GetIntProperty("ro.system.build.version.sdk", 0);
+    ASSERT_EQ(sdk_level, system_sdk_level)
+        << "The generic ramdisk must be updated along with the system image "
+           "and be built from the same source code. The current system level "
+           "is "
+        << system_sdk_level << " and the ramdisk was built at level "
+        << sdk_level;
+  }
 
   const bool is_debuggable = GetBoolProperty("ro.debuggable", false);
   if (is_debuggable) {
