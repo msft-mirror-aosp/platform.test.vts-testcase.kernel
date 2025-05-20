@@ -12,7 +12,7 @@
 -->
 <!DOCTYPE configuration [
 <!ENTITY ltp_dir "/data/local/tmp/{MODULE}">
-<!ENTITY ltp_env "export LTPROOT=/data/local/tmp/{MODULE}/{target} LTP_DEV_FS_TYPE=ext4; export PATH=/system/bin:$LTPROOT TMP=$LTPROOT/tmp; export TMPBASE=$TMP/tmpbase LTPTMP=$TMP/ltptemp TMPDIR=$TMP/tmpdir">
+<!ENTITY ltp_env "export LTPROOT=/data/local/tmp/{MODULE}/{target} LTP_DEV_FS_TYPE=ext4; export PATH=/system/bin:$LTPROOT TMP=$LTPROOT/tmp; export TMPBASE=$TMP/tmpbase LTPTMP=$TMP/ltptemp TMPDIR=$TMP/tmpdir; export LTP_TIMEOUT_MUL=2">
 ]>
 <configuration description="Runs vts_ltp_test.">
     <target_preparer class="com.android.tradefed.targetprep.RootTargetPreparer"/>
