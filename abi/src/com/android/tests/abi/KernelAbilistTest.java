@@ -30,6 +30,7 @@ import org.junit.runner.RunWith;
 public class KernelAbilistTest extends BaseHostJUnit4Test {
     private static final String FEATURE_LEANBACK = "android.software.leanback";
     private static final String FEATURE_TV = "android.hardware.type.television";
+    private static final String FEATURE_WATCH = "android.hardware.type.watch";
 
     @VsrTest(requirements = {"VSR-3.12-002"})
     @RequiresDevice
@@ -43,6 +44,11 @@ public class KernelAbilistTest extends BaseHostJUnit4Test {
 
         // Exclude VSR-3.12 for Android TV
         if (hasDeviceFeature(FEATURE_LEANBACK) || hasDeviceFeature(FEATURE_TV)) {
+            return;
+        }
+
+        // Exclude VSR-3.12 for Wear
+        if (hasDeviceFeature(FEATURE_WATCH)) {
             return;
         }
 
