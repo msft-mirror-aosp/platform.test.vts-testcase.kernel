@@ -42,7 +42,7 @@ android::base::Result<void> Lz4DecompressLegacy(const char* input,
   constexpr uint32_t lz4_legacy_magic = 0x184C2102;
   constexpr auto lz4_legacy_block_size = 8_MiB;
 
-  struct stat st_buf {};
+  struct stat st_buf{};
   if (stat(input, &st_buf) != 0) {
     return ErrnoError() << "stat(" << input << ")";
   }
@@ -85,7 +85,8 @@ android::base::Result<void> Lz4DecompressLegacy(const char* input,
 
     // Android is little-endian. No need to convert block_size.
     if (block_size == lz4_legacy_magic) {
-      return Error() << "Found another lz4 compressed stream";
+      // If there are more streams keep reading.
+      continue;
     }
     if (block_size > ibuf.size()) {
       return Error() << "Block size is " << block_size
