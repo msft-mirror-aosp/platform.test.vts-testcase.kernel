@@ -159,7 +159,7 @@ std::set<std::string> GetAllowListBySdkLevel(uint32_t target_sdk_level) {
               "system/bin/getprop",
               "system/bin/getevent",
           },
-      },
+      }, {36, { "dev/kmsg" }}
   };
   auto res = GetRequirementBySdkLevel(target_sdk_level);
   for (const auto& [level, requirements] : allow_by_level) {
