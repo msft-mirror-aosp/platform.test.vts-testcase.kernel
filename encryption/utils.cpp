@@ -47,10 +47,13 @@ using namespace android::dm;
 namespace android {
 namespace kernel {
 
+// The KDF for hardware-wrapped keys has several variants to accommodate
+// different key wrapping hardware. These variants are all considered
+// equally secure.
 enum KdfVariant {
-  KDF_VARIANT_V1 = 0,
-  KDF_VARIANT_LEGACY = 1,
-  KDF_VARIANT_REARRANGED = 2,
+  KDF_VARIANT_KDF1 = 0,
+  KDF_VARIANT_KDF2 = 1,
+  KDF_VARIANT_KDF3 = 2,
   KDF_VARIANT_COUNT,
 };
 
@@ -58,33 +61,34 @@ enum KdfVariant {
 // padding to eight bytes (if required) and the key policy.
 static const std::vector<std::vector<uint8_t>> HwWrappedEncryptionKeyContexts =
     {
-        // "v1"
+        // "kdf1"
         {'i',  'n',  'l',  'i',  'n',  'e',  ' ',  'e',  'n', 'c', 'r', 'y',
          'p',  't',  'i',  'o',  'n',  ' ',  'k',  'e',  'y', 0x0, 0x0, 0x0,
          0x00, 0x00, 0x00, 0x02, 0x43, 0x00, 0x82, 0x50, 0x0, 0x0, 0x0, 0x0},
-        // Below for "legacy && kdf tied to Trusted Execution
+        // Below for "kdf2 && kdf tied to Trusted Execution
         // Environment(TEE)".
-        // Where as above caters ( "all latest targets" || ("legacy && kdf
+        // Where as above caters ( "all latest targets" || ("kdf2 && kdf
         // not tied to TEE)).
-        // "legacykdf"
+        // "kdf2"
         {'i',  'n',  'l',  'i',  'n',  'e',  ' ',  'e',  'n', 'c', 'r', 'y',
          'p',  't',  'i',  'o',  'n',  ' ',  'k',  'e',  'y', 0x0, 0x0, 0x0,
          0x00, 0x00, 0x00, 0x01, 0x43, 0x00, 0x82, 0x18, 0x0, 0x0, 0x0, 0x0},
-        // "rearranged"
+        // "kdf3"
         {
             'i',  'n',  'l',  'i',  'n',  'e',  ' ',  'e',  'n',
             'c',  'r',  'y',  'p',  't',  'i',  'o',  'n',  ' ',
             's',  't',  'o',  'r',  'a',  'g',  'e',  'k',  'e',
             'y',  ' ',  'c',  't',  'x',  0x00, 0x00, 0x00, 0x00,
             0x00, 0x10, 0x70, 0x18, 0x72, 0x00, 0x00, 0x00, 0x00,
-        }};
+        },
+};
 
 static const std::vector<std::vector<uint8_t>> HwWrappedEncryptionKeyLabels = {
-    // "v1"
+    // "kdf1"
     {0x00, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20},
-    // "legacykdf"
+    // "kdf2"
     {0x00, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20},
-    // "rearranged"
+    // "kdf3"
     {
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -92,31 +96,32 @@ static const std::vector<std::vector<uint8_t>> HwWrappedEncryptionKeyLabels = {
 };
 
 static const std::vector<std::vector<uint8_t>> SwSecretContexts = {
-    // "v1"
+    // "kdf1"
     {
         'r',  'a',  'w',  ' ',  's', 'e', 'c',  'r',  'e',  't',
         0x0,  0x0,  0x0,  0x0,  0x0, 0x0, 0x00, 0x00, 0x00, 0x02,
         0x17, 0x00, 0x80, 0x50, 0x0, 0x0, 0x0,  0x0,
     },
-    // "legacykdf"
+    // "kdf2"
     {
         'r',  'a',  'w',  ' ',  's', 'e', 'c',  'r',  'e',  't',
         0x0,  0x0,  0x0,  0x0,  0x0, 0x0, 0x00, 0x00, 0x00, 0x02,
         0x17, 0x00, 0x80, 0x50, 0x0, 0x0, 0x0,  0x0,
     },
-    // "rearranged"
+    // "kdf3"
     {
         'd', 'e', 'r', 'i', 'v', 'e', ' ', 'r', 'a', 'w', ' ',
         's', 'e', 'c', 'r', 'e', 't', ' ', 'c', 'o', 'n', 't',
         'e', 'x', 't', ' ', 'a', 'b', 'c', 'd', 'e', 'f',
-    }};
+    },
+};
 
 static const std::vector<std::vector<uint8_t>> SwSecretLabels = {
-    // "v1"
+    // "kdf1"
     {0x00, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20},
-    // "legacykdf"
+    // "kdf2"
     {0x00, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20},
-    // "rearranged"
+    // "kdf3"
     {
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -125,14 +130,14 @@ static const std::vector<std::vector<uint8_t>> SwSecretLabels = {
 
 static bool GetKdfVariantId(KdfVariant *kdf_id) {
   std::string kdf =
-      android::base::GetProperty("ro.crypto.hw_wrapped_keys.kdf", "v1");
+      android::base::GetProperty("ro.crypto.hw_wrapped_keys.kdf", "kdf1");
 
-  if (kdf == "v1") {
-    *kdf_id = KDF_VARIANT_V1;
-  } else if (kdf == "legacykdf") {
-    *kdf_id = KDF_VARIANT_LEGACY;
-  } else if (kdf == "rearranged") {
-    *kdf_id = KDF_VARIANT_REARRANGED;
+  if (kdf == "kdf1" || kdf == "v1") {
+    *kdf_id = KDF_VARIANT_KDF1;
+  } else if (kdf == "kdf2" || kdf == "legacykdf") {
+    *kdf_id = KDF_VARIANT_KDF2;
+  } else if (kdf == "kdf3" || kdf == "rearranged") {
+    *kdf_id = KDF_VARIANT_KDF3;
   } else {
     ADD_FAILURE() << "Unknown KDF: " << kdf;
     return false;
@@ -553,7 +558,7 @@ static void PushBigEndian32(uint32_t val, std::vector<uint8_t> *vec) {
 
 static void RearrangeFixedInputString(
     KdfVariant kdf_id, std::vector<uint8_t> *fixed_input_string) {
-  if (kdf_id != KDF_VARIANT_REARRANGED) {
+  if (kdf_id != KDF_VARIANT_KDF3) {
     return;
   }
 
@@ -653,13 +658,13 @@ bool DeriveHwWrappedRawSecret(const std::vector<uint8_t> &master_key,
 
 TEST(UtilsTest, TestKdfVariants) {
   std::vector<KdfVariant> kdf_ids = {
-      KDF_VARIANT_V1,
-      KDF_VARIANT_LEGACY,
-      KDF_VARIANT_REARRANGED,
+      KDF_VARIANT_KDF1,
+      KDF_VARIANT_KDF2,
+      KDF_VARIANT_KDF3,
   };
 
   std::vector<std::vector<uint8_t>> expected_keys = {
-      // "v1"
+      // "kdf1"
       {
           0xcb, 0xe5, 0xdb, 0x40, 0x21, 0x5a, 0x3d, 0x38, 0x6d, 0x61, 0xe5,
           0x4e, 0xf2, 0xf8, 0xa7, 0x81, 0x4b, 0x00, 0xba, 0xcf, 0x35, 0xb3,
@@ -668,7 +673,7 @@ TEST(UtilsTest, TestKdfVariants) {
           0xb5, 0xf2, 0x20, 0x2c, 0x14, 0x98, 0x96, 0x61, 0xba, 0xfc, 0xcc,
           0x56, 0xcf, 0x62, 0x12, 0xd8, 0xb1, 0xf7, 0x26, 0x91,
       },
-      // "legacykdf"
+      // "kdf2"
       {
           0x63, 0x61, 0xf8, 0x02, 0xb3, 0x7a, 0xa6, 0x4a, 0x07, 0x57, 0x84,
           0xbe, 0xde, 0x23, 0x41, 0xf1, 0xd9, 0x23, 0x6e, 0x64, 0x6c, 0x70,
@@ -677,7 +682,7 @@ TEST(UtilsTest, TestKdfVariants) {
           0x38, 0x3e, 0xd8, 0xe7, 0xc4, 0x5e, 0xd0, 0x89, 0x9e, 0x02, 0x82,
           0x54, 0x53, 0xc9, 0x41, 0x9a, 0xaf, 0xa3, 0x69, 0x5f,
       },
-      // "rearranged"
+      // "kdf3"
       {
           0xdb, 0xa0, 0xa6, 0x7e, 0x47, 0x1b, 0xe3, 0x9f, 0xd1, 0xec, 0x28,
           0x99, 0x45, 0xf5, 0x21, 0x45, 0xdf, 0x12, 0x93, 0x7a, 0x0b, 0x42,
@@ -689,19 +694,19 @@ TEST(UtilsTest, TestKdfVariants) {
   };
 
   std::vector<std::vector<uint8_t>> expected_secrets = {
-      // "v1"
+      // "kdf1"
       {
           0xe2, 0x6f, 0xb1, 0x9b, 0x4f, 0xb6, 0x26, 0x6f, 0xc7, 0xc5, 0xfc,
           0x96, 0x54, 0xef, 0xad, 0x64, 0x3c, 0xfe, 0xbc, 0x64, 0xc0, 0x97,
           0x34, 0x11, 0x55, 0x19, 0x55, 0x95, 0xc2, 0x8d, 0x5e, 0xc9,
       },
-      // "legacykdf"
+      // "kdf2"
       {
           0xe2, 0x6f, 0xb1, 0x9b, 0x4f, 0xb6, 0x26, 0x6f, 0xc7, 0xc5, 0xfc,
           0x96, 0x54, 0xef, 0xad, 0x64, 0x3c, 0xfe, 0xbc, 0x64, 0xc0, 0x97,
           0x34, 0x11, 0x55, 0x19, 0x55, 0x95, 0xc2, 0x8d, 0x5e, 0xc9,
       },
-      // "rearranged"
+      // "kdf3"
       {
           0x4e, 0xf0, 0x6e, 0x6a, 0xa9, 0x84, 0x10, 0x46, 0x67, 0x86, 0x3f,
           0x15, 0x08, 0x7c, 0x12, 0xbb, 0xfb, 0x8e, 0x47, 0x15, 0x14, 0x5b,
