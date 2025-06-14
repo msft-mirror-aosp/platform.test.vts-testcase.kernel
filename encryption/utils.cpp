@@ -54,6 +54,7 @@ enum KdfVariant {
   KDF_VARIANT_KDF1 = 0,
   KDF_VARIANT_KDF2 = 1,
   KDF_VARIANT_KDF3 = 2,
+  KDF_VARIANT_KDF4 = 3,
   KDF_VARIANT_COUNT,
 };
 
@@ -81,6 +82,14 @@ static const std::vector<std::vector<uint8_t>> HwWrappedEncryptionKeyContexts =
             'y',  ' ',  'c',  't',  'x',  0x00, 0x00, 0x00, 0x00,
             0x00, 0x10, 0x70, 0x18, 0x72, 0x00, 0x00, 0x00, 0x00,
         },
+        // "kdf4"
+        {
+            'i',  'n',  'l',  'i',  'n',  'e',  ' ',  'e',  'n',
+            'c',  'r',  'y',  'p',  't',  'i',  'o',  'n',  ' ',
+            's',  't',  'o',  'r',  'a',  'g',  'e',  'k',  'e',
+            'y',  ' ',  'c',  't',  'x',  0x00, 0x72, 0x18, 0x70,
+            0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        },
 };
 
 static const std::vector<std::vector<uint8_t>> HwWrappedEncryptionKeyLabels = {
@@ -89,6 +98,11 @@ static const std::vector<std::vector<uint8_t>> HwWrappedEncryptionKeyLabels = {
     // "kdf2"
     {0x00, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20},
     // "kdf3"
+    {
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    },
+    // "kdf4"
     {
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -114,6 +128,12 @@ static const std::vector<std::vector<uint8_t>> SwSecretContexts = {
         's', 'e', 'c', 'r', 'e', 't', ' ', 'c', 'o', 'n', 't',
         'e', 'x', 't', ' ', 'a', 'b', 'c', 'd', 'e', 'f',
     },
+    // "kdf4"
+    {
+        'd', 'e', 'r', 'i', 'v', 'e', ' ', 'r', 'a', 'w', ' ',
+        's', 'e', 'c', 'r', 'e', 't', ' ', 'c', 'o', 'n', 't',
+        'e', 'x', 't', ' ', 'a', 'b', 'c', 'd', 'e', 'f',
+    },
 };
 
 static const std::vector<std::vector<uint8_t>> SwSecretLabels = {
@@ -122,6 +142,11 @@ static const std::vector<std::vector<uint8_t>> SwSecretLabels = {
     // "kdf2"
     {0x00, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20},
     // "kdf3"
+    {
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    },
+    // "kdf4"
     {
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -138,6 +163,8 @@ static bool GetKdfVariantId(KdfVariant *kdf_id) {
     *kdf_id = KDF_VARIANT_KDF2;
   } else if (kdf == "kdf3" || kdf == "rearranged") {
     *kdf_id = KDF_VARIANT_KDF3;
+  } else if (kdf == "kdf4") {
+    *kdf_id = KDF_VARIANT_KDF4;
   } else {
     ADD_FAILURE() << "Unknown KDF: " << kdf;
     return false;
@@ -661,6 +688,7 @@ TEST(UtilsTest, TestKdfVariants) {
       KDF_VARIANT_KDF1,
       KDF_VARIANT_KDF2,
       KDF_VARIANT_KDF3,
+      KDF_VARIANT_KDF4,
   };
 
   std::vector<std::vector<uint8_t>> expected_keys = {
@@ -691,6 +719,15 @@ TEST(UtilsTest, TestKdfVariants) {
           0x87, 0x24, 0xef, 0x5d, 0xec, 0x62, 0x36, 0xd8, 0x1a, 0x1b, 0x38,
           0x78, 0x08, 0xc4, 0x07, 0xce, 0x01, 0xc5, 0x63, 0x88,
       },
+      // "kdf4"
+      {
+          0x3a, 0xc9, 0x29, 0x8c, 0x30, 0x54, 0x8b, 0xdc, 0xbf, 0xda, 0x02,
+          0x9c, 0x5e, 0x94, 0x74, 0x46, 0x32, 0xb4, 0x22, 0x89, 0xb4, 0x5e,
+          0x93, 0x92, 0x2f, 0x6d, 0xc1, 0x1b, 0x9e, 0xf2, 0x07, 0x9b, 0x6c,
+          0xdd, 0xbe, 0x93, 0xa7, 0x5b, 0xbe, 0x70, 0xd8, 0x08, 0x74, 0xa0,
+          0x02, 0x88, 0x1a, 0x8b, 0x33, 0xa0, 0x2f, 0xcd, 0x30, 0x1d, 0x0f,
+          0xd6, 0xdd, 0xc8, 0x12, 0x84, 0x02, 0x8e, 0x3a, 0x77,
+      },
   };
 
   std::vector<std::vector<uint8_t>> expected_secrets = {
@@ -711,6 +748,12 @@ TEST(UtilsTest, TestKdfVariants) {
           0x4e, 0xf0, 0x6e, 0x6a, 0xa9, 0x84, 0x10, 0x46, 0x67, 0x86, 0x3f,
           0x15, 0x08, 0x7c, 0x12, 0xbb, 0xfb, 0x8e, 0x47, 0x15, 0x14, 0x5b,
           0xc0, 0x6b, 0x59, 0x82, 0xab, 0xd4, 0x19, 0x83, 0x85, 0xb4,
+      },
+      // "kdf4"
+      {
+          0xcc, 0xb6, 0x50, 0xfe, 0xc8, 0x57, 0x07, 0xb9, 0xe1, 0x3e, 0x9e,
+          0x09, 0xc6, 0x57, 0x8b, 0xe3, 0x5d, 0x8e, 0x21, 0xd1, 0xc3, 0x85,
+          0x2e, 0xa2, 0x6d, 0x81, 0xde, 0x1a, 0xe4, 0xbd, 0xb5, 0xe6,
       },
   };
 
