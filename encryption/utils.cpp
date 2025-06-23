@@ -55,6 +55,7 @@ enum KdfVariant {
   KDF_VARIANT_KDF2 = 1,
   KDF_VARIANT_KDF3 = 2,
   KDF_VARIANT_KDF4 = 3,
+  KDF_VARIANT_KDF5 = 4,
   KDF_VARIANT_COUNT,
 };
 
@@ -90,6 +91,12 @@ static const std::vector<std::vector<uint8_t>> HwWrappedEncryptionKeyContexts =
             'y',  ' ',  'c',  't',  'x',  0x00, 0x72, 0x18, 0x70,
             0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         },
+        // "kdf5"
+        {
+            'i', 'n', 'l', 'i', 'n', 'e', ' ', 'e', 'n', 'c', 'r',
+            'y', 'p', 't', 'i', 'o', 'n', ' ', 's', 't', 'o', 'r',
+            'a', 'g', 'e', 'k', 'e', 'y', ' ', 'c', 't', 'x',
+        },
 };
 
 static const std::vector<std::vector<uint8_t>> HwWrappedEncryptionKeyLabels = {
@@ -103,6 +110,11 @@ static const std::vector<std::vector<uint8_t>> HwWrappedEncryptionKeyLabels = {
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     },
     // "kdf4"
+    {
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    },
+    // "kdf5"
     {
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -134,6 +146,12 @@ static const std::vector<std::vector<uint8_t>> SwSecretContexts = {
         's', 'e', 'c', 'r', 'e', 't', ' ', 'c', 'o', 'n', 't',
         'e', 'x', 't', ' ', 'a', 'b', 'c', 'd', 'e', 'f',
     },
+    // "kdf5"
+    {
+        'd', 'e', 'r', 'i', 'v', 'e', ' ', 'r', 'a', 'w', ' ',
+        's', 'e', 'c', 'r', 'e', 't', ' ', 'c', 'o', 'n', 't',
+        'e', 'x', 't', ' ', 'a', 'b', 'c', 'd', 'e', 'f',
+    },
 };
 
 static const std::vector<std::vector<uint8_t>> SwSecretLabels = {
@@ -147,6 +165,11 @@ static const std::vector<std::vector<uint8_t>> SwSecretLabels = {
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     },
     // "kdf4"
+    {
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    },
+    // "kdf5"
     {
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -165,6 +188,8 @@ static bool GetKdfVariantId(KdfVariant *kdf_id) {
     *kdf_id = KDF_VARIANT_KDF3;
   } else if (kdf == "kdf4") {
     *kdf_id = KDF_VARIANT_KDF4;
+  } else if (kdf == "kdf5") {
+    *kdf_id = KDF_VARIANT_KDF5;
   } else {
     ADD_FAILURE() << "Unknown KDF: " << kdf;
     return false;
@@ -585,8 +610,12 @@ static void PushBigEndian32(uint32_t val, std::vector<uint8_t> *vec) {
 
 static void RearrangeFixedInputString(
     KdfVariant kdf_id, std::vector<uint8_t> *fixed_input_string) {
-  if (kdf_id != KDF_VARIANT_KDF3) {
-    return;
+  switch (kdf_id) {
+    case KDF_VARIANT_KDF3:
+    case KDF_VARIANT_KDF5:
+      break;
+    default:
+      return;
   }
 
   // Rearrange the fixed-input string, reversing the order that the blocks are
@@ -685,10 +714,8 @@ bool DeriveHwWrappedRawSecret(const std::vector<uint8_t> &master_key,
 
 TEST(UtilsTest, TestKdfVariants) {
   std::vector<KdfVariant> kdf_ids = {
-      KDF_VARIANT_KDF1,
-      KDF_VARIANT_KDF2,
-      KDF_VARIANT_KDF3,
-      KDF_VARIANT_KDF4,
+      KDF_VARIANT_KDF1, KDF_VARIANT_KDF2, KDF_VARIANT_KDF3,
+      KDF_VARIANT_KDF4, KDF_VARIANT_KDF5,
   };
 
   std::vector<std::vector<uint8_t>> expected_keys = {
@@ -728,6 +755,15 @@ TEST(UtilsTest, TestKdfVariants) {
           0x02, 0x88, 0x1a, 0x8b, 0x33, 0xa0, 0x2f, 0xcd, 0x30, 0x1d, 0x0f,
           0xd6, 0xdd, 0xc8, 0x12, 0x84, 0x02, 0x8e, 0x3a, 0x77,
       },
+      // "kdf5"
+      {
+          0x91, 0xd5, 0xea, 0xa6, 0x63, 0x31, 0x8d, 0xcf, 0xb4, 0x01, 0x37,
+          0x3e, 0xb8, 0x6a, 0x72, 0xbe, 0x42, 0xce, 0xdc, 0x58, 0x3a, 0x2e,
+          0x62, 0x6b, 0x11, 0x2f, 0xa5, 0x18, 0x00, 0xcc, 0x23, 0x9c, 0x6b,
+          0xb9, 0x70, 0x37, 0x97, 0xe5, 0xa4, 0x3e, 0x39, 0x23, 0x3d, 0xce,
+          0xe6, 0x79, 0x6f, 0xc5, 0x76, 0x02, 0xad, 0x31, 0xdd, 0xd8, 0x5f,
+          0x72, 0x79, 0x02, 0x15, 0xed, 0x63, 0x62, 0x0b, 0x47,
+      },
   };
 
   std::vector<std::vector<uint8_t>> expected_secrets = {
@@ -754,6 +790,12 @@ TEST(UtilsTest, TestKdfVariants) {
           0xcc, 0xb6, 0x50, 0xfe, 0xc8, 0x57, 0x07, 0xb9, 0xe1, 0x3e, 0x9e,
           0x09, 0xc6, 0x57, 0x8b, 0xe3, 0x5d, 0x8e, 0x21, 0xd1, 0xc3, 0x85,
           0x2e, 0xa2, 0x6d, 0x81, 0xde, 0x1a, 0xe4, 0xbd, 0xb5, 0xe6,
+      },
+      // "kdf5"
+      {
+          0x4e, 0xf0, 0x6e, 0x6a, 0xa9, 0x84, 0x10, 0x46, 0x67, 0x86, 0x3f,
+          0x15, 0x08, 0x7c, 0x12, 0xbb, 0xfb, 0x8e, 0x47, 0x15, 0x14, 0x5b,
+          0xc0, 0x6b, 0x59, 0x82, 0xab, 0xd4, 0x19, 0x83, 0x85, 0xb4,
       },
   };
 
