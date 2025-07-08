@@ -63,7 +63,7 @@ TEST(drop_caches, set_perf_property) {
   // next time these pages are read will now be a minor fault.
   for (unsigned int times = 3; times > 0; times--) {
     ssize_t n;
-    unsigned int counter = 0;
+    [[maybe_unused]] unsigned int counter = 0;
     while ((n = read(fd.get(), buf, sizeof(buf))) > 0) {
       counter++;
     }
