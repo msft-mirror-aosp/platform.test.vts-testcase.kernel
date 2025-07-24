@@ -18,8 +18,8 @@
 #include <android-base/test_utils.h>
 #include <android/api-level.h>
 #include <elf.h>
+#include <elfutils/parse.h>
 #include <gtest/gtest.h>
-#include <libelf64/parse.h>
 #include <procinfo/process_map.h>
 
 class Vts16KPageSizeTest : public ::testing::Test {
@@ -49,14 +49,14 @@ class Vts16KPageSizeTest : public ::testing::Test {
     static ssize_t MaxPageSize(const std::string& filepath) {
         ssize_t maxPageSize = -1;
 
-        android::elf64::Elf64Binary elf;
+        android::elfutils::Elf64Binary elf;
 
         // 32bit ELFs only need to support a max-page-size of 4KiB
-        if (!android::elf64::Elf64Parser::IsElf64(filepath)) {
+        if (!android::elfutils::Elf64Parser::IsElf64(filepath)) {
             return 4096;
         }
 
-        if (!android::elf64::Elf64Parser::ParseElfFile(filepath, elf)) {
+        if (!android::elfutils::Elf64Parser::ParseElfFile(filepath, elf)) {
             return -1;
         }
 

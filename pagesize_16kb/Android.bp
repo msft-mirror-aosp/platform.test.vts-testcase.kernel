@@ -32,7 +32,7 @@ cc_test {
     ],
 
     static_libs: [
-        "libelf64",
+        "libelfutils",
         "libprocinfo",
     ],
 
