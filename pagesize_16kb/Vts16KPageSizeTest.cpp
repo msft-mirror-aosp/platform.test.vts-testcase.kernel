@@ -18,8 +18,8 @@
 #include <android-base/test_utils.h>
 #include <android/api-level.h>
 #include <elf.h>
+#include <elfutils/parse.h>
 #include <gtest/gtest.h>
-#include <libelfutils/parse.h>
 #include <procinfo/process_map.h>
 
 class Vts16KPageSizeTest : public ::testing::Test {
