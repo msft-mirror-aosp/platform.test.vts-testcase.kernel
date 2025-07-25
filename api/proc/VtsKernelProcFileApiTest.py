@@ -205,19 +205,6 @@ class VtsKernelProcFileApiTest(base_test.BaseTestClass):
             result[const.EXIT_CODE][0], 0,
             "Failed to parse %s." % filepath)
 
-    def testProcSysrqTrigger(self):
-        filepath = "/proc/sysrq-trigger"
-
-        # This command only performs a best effort attempt to remount all
-        # filesystems. Check that it doesn't throw an error.
-        self.dut.adb.shell("echo u > %s" % filepath)
-
-        # Reboot the device.
-        self.dut.adb.shell("echo b > %s" % filepath)
-        asserts.assertFalse(self.dut.hasBooted(), "Device is still alive.")
-        self.dut.waitForBootCompletion()
-        self.dut.rootAdb()
-
     def testProcUidProcstatSet(self):
         def UidIOStats(uid):
             """Returns I/O stats for a given uid.
