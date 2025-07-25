@@ -404,7 +404,10 @@ static bool WriteTestFile(const std::vector<uint8_t> &plaintext,
       }
       flags &= ~FS_COMPR_FL;
       flags |= FS_NOCOMP_FL;
-      if (ioctl(fd, FS_IOC_SETFLAGS, &flags) != 0) {
+      if (ioctl(fd, FS_IOC_SETFLAGS, &flags) != 0 &&
+          // EOPNOTSUPP is expected if the filesystem doesn't have the
+          // compression feature flag.
+          errno != EOPNOTSUPP) {
         ADD_FAILURE() << "Error setting flags of " << path << Errno();
         return false;
       }
