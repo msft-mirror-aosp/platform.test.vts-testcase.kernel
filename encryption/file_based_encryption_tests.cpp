@@ -392,11 +392,31 @@ static bool WriteTestFile(const std::vector<uint8_t> &plaintext,
     return false;
   }
 
-  if (compress_options != nullptr) {
-    if (ioctl(fd, F2FS_IOC_SET_COMPRESS_OPTION, compress_options) != 0) {
-      ADD_FAILURE() << "Error setting compression options on " << path
-                    << Errno();
-      return false;
+  if (fs_info.type == "f2fs") {
+    if (compress_options == nullptr) {
+      // Remove FS_COMPR_FL and set FS_NOCOMP_FL to make the file explicitly
+      // uncompressed.  This is needed in case automatic compression is enabled
+      // filesystem-wide.  The tests expect an uncompressed file.
+      unsigned int flags = 0;
+      if (ioctl(fd, FS_IOC_GETFLAGS, &flags) != 0) {
+        ADD_FAILURE() << "Error getting flags of " << path << Errno();
+        return false;
+      }
+      flags &= ~FS_COMPR_FL;
+      flags |= FS_NOCOMP_FL;
+      if (ioctl(fd, FS_IOC_SETFLAGS, &flags) != 0 &&
+          // EOPNOTSUPP is expected if the filesystem doesn't have the
+          // compression feature flag.
+          errno != EOPNOTSUPP) {
+        ADD_FAILURE() << "Error setting flags of " << path << Errno();
+        return false;
+      }
+    } else {
+      if (ioctl(fd, F2FS_IOC_SET_COMPRESS_OPTION, compress_options) != 0) {
+        ADD_FAILURE() << "Error setting compression options on " << path
+                      << Errno();
+        return false;
+      }
     }
   }
 
