@@ -77,6 +77,8 @@ DISABLED_TESTS = {
     'syscalls.ioctl_ns06_64bit',  # b/191224339
     'syscalls.madvise06_32bit',  # b/191227034
     'syscalls.madvise06_64bit',  # b/191227034
+    'syscalls.mmap22_32bit',  # b/435294583
+    'syscalls.mmap22_64bit',  # b/435294583
     'syscalls.mount03_32bit',  # b/275747273
     'syscalls.mount03_64bit',  # b/275747273
     'syscalls.mount07_32bit',  # b/309808883
