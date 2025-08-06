@@ -1242,10 +1242,10 @@ STABLE_TESTS = {
     'syscalls.fcntl39_64_32bit': False,
     'syscalls.fcntl39_64_64bit': False,
     'syscalls.fcntl39_64bit': False,
-    'syscalls.fcntl40_32bit': False,
-    'syscalls.fcntl40_64_32bit': False,
-    'syscalls.fcntl40_64_64bit': False,
-    'syscalls.fcntl40_64bit': False,
+    'syscalls.fcntl40_32bit': False,  # b/436690368
+    'syscalls.fcntl40_64_32bit': False,  # b/436690790
+    'syscalls.fcntl40_64_64bit': False,  # b/436690790
+    'syscalls.fcntl40_64bit': False,  # b/436690368
     'syscalls.fdatasync01_32bit': True,
     'syscalls.fdatasync01_64bit': True,
     'syscalls.fdatasync02_32bit': True,
@@ -1940,8 +1940,8 @@ STABLE_TESTS = {
     'syscalls.mount06_64bit': True,
     'syscalls.mount_setattr01_32bit': False,
     'syscalls.mount_setattr01_64bit': False,
-    'syscalls.move_mount03_32bit': False,
-    'syscalls.move_mount03_64bit': False,
+    'syscalls.move_mount03_32bit': False,  # b/436690544
+    'syscalls.move_mount03_64bit': False,  # b/436690544
     'syscalls.mprotect01_32bit': True,
     'syscalls.mprotect01_64bit': True,
     'syscalls.mprotect02_32bit': True,
