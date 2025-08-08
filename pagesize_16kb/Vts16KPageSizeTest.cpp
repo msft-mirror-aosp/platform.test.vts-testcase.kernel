@@ -18,9 +18,11 @@
 #include <android-base/test_utils.h>
 #include <android/api-level.h>
 #include <elf.h>
-#include <elfutils/parse.h>
+#include <elfutils/elf-file.h>
 #include <gtest/gtest.h>
 #include <procinfo/process_map.h>
+
+using ::android::elfutils::ElfFile;
 
 class Vts16KPageSizeTest : public ::testing::Test {
   protected:
@@ -46,32 +48,11 @@ class Vts16KPageSizeTest : public ::testing::Test {
 
     static std::string Architecture() { return android::base::GetProperty("ro.bionic.arch", ""); }
 
-    static ssize_t MaxPageSize(const std::string& filepath) {
-        ssize_t maxPageSize = -1;
+    std::optional<int64_t> GetMinLoadSegmentAlignment(const std::string& filepath) {
+        std::unique_ptr<ElfFile> elfFile = ElfFile::create(filepath);
+        if (!elfFile) return std::nullopt;
 
-        android::elfutils::Elf64Binary elf;
-
-        // 32bit ELFs only need to support a max-page-size of 4KiB
-        if (!android::elfutils::Elf64Parser::IsElf64(filepath)) {
-            return 4096;
-        }
-
-        if (!android::elfutils::Elf64Parser::ParseElfFile(filepath, elf)) {
-            return -1;
-        }
-
-        for (int i = 0; i < elf.phdrs.size(); i++) {
-            Elf64_Phdr phdr = elf.phdrs[i];
-
-            if ((phdr.p_type != PT_LOAD) || !(phdr.p_type & PF_X)) {
-                continue;
-            }
-
-            maxPageSize = phdr.p_align;
-            break;
-        }
-
-        return maxPageSize;
+        return elfFile->getMinLoadSegmentAlignment();
     }
 
     static void SetUpTestSuite() {
@@ -85,7 +66,7 @@ class Vts16KPageSizeTest : public ::testing::Test {
      * x86_64 also needs to be at least 16KB aligned, since Android
      * supports page size emulation in x86_64 for app development.
      */
-    size_t RequiredMaxPageSize() {
+    int64_t RequiredLoadSegmentAlignment() {
         if (mArch == "arm64" || mArch == "aarch64" || mArch == "x86_64") {
             return 0x4000;
         } else {
@@ -108,16 +89,14 @@ class Vts16KPageSizeTest : public ::testing::Test {
 TEST_F(Vts16KPageSizeTest, InitMaxPageSizeTest) {
     constexpr char initPath[] = "/system/bin/init";
 
-    ssize_t expectedMaxPageSize = RequiredMaxPageSize();
-    ASSERT_NE(expectedMaxPageSize, -1)
-            << "Failed to get required max page size for arch: " << mArch;
+    int64_t expectedMinLoadAlign = RequiredLoadSegmentAlignment();
+    std::optional<int64_t> initMinLoadAlign = GetMinLoadSegmentAlignment(initPath);
+    ASSERT_TRUE(initMinLoadAlign.has_value())
+            << "Failed to get minimum PT_LOAD p_align of: " << initPath;
 
-    ssize_t initMaxPageSize = MaxPageSize(initPath);
-    ASSERT_NE(initMaxPageSize, -1) << "Failed to get max page size of ELF: " << initPath;
-
-    ASSERT_EQ(initMaxPageSize % expectedMaxPageSize, 0)
-            << "ELF " << initPath << " with page size " << initMaxPageSize
-            << " was not built with the required max-page-size " << expectedMaxPageSize;
+    ASSERT_EQ(*initMinLoadAlign % expectedMinLoadAlign, 0)
+            << "ELF " << initPath << " with min PT_LOAD alignment:  " << *initMinLoadAlign
+            << " was not built with the required max-page-size " << expectedMinLoadAlign;
 }
 
 /**
