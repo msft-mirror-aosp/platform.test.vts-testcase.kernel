@@ -116,9 +116,6 @@ ExtractVendorRamdisksRaw(const std::string &vendor_boot_path) {
     if (!ReadFullyAtOffset(bootimg.get(), &hdr_4, sizeof(hdr_4), 0))
       return ErrnoError() << "read header";
 
-    const auto num_vendor_ramdisk_table_pages =
-        (hdr_4.vendor_ramdisk_table_size + hdr_4.page_size - 1) /
-        hdr_4.page_size;
     const auto vendor_ramdisk_table_offset =
         hdr_4.page_size *
         (num_boot_header_pages + num_boot_ramdisk_pages + num_boot_dtb_pages);
