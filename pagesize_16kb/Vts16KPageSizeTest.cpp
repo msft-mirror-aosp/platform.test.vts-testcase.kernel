@@ -193,15 +193,21 @@ TEST_F(Vts16KPageSizeTest, CanReadProcessFileMappedContents) {
     }
 }
 
-void setUnsetProp(const std::string& prop) {
+static inline void setUnsetBackcompat() {
+    const std::string prop = "bionic.linker.16kb.app_compat.enabled";
+
     // save and set the default
-    bool defaultValue = android::base::GetBoolProperty(prop, false);
+    const std::string defaultValue = android::base::GetProperty(prop, "false");
+
     // set and verify property.
-    ASSERT_EQ(android::base::SetProperty(prop, "true"), true);
-    ASSERT_EQ(android::base::GetBoolProperty(prop, false), true);
+    ASSERT_TRUE(android::base::SetProperty(prop, "true"));
+    ASSERT_EQ(android::base::GetProperty(prop, "false"), "true");
+
+    ASSERT_TRUE(android::base::SetProperty(prop, "fatal"));
+    ASSERT_EQ(android::base::GetProperty(prop, "false"), "fatal");
 
     // reset
-    ASSERT_EQ(android::base::SetProperty(prop, std::to_string(defaultValue)), true);
+    ASSERT_TRUE(android::base::SetProperty(prop, defaultValue));
 }
 
 TEST_F(Vts16KPageSizeTest, BackCompatSupport) {
@@ -211,8 +217,20 @@ TEST_F(Vts16KPageSizeTest, BackCompatSupport) {
         GTEST_SKIP() << "16 KB backcompat support is only required on Android B and later release";
     }
 
-    std::string prop = "bionic.linker.16kb.app_compat.enabled";
-    setUnsetProp(prop);
+    setUnsetBackcompat();
+}
+
+static inline void setUnsetPackageManagerCompat() {
+    const std::string prop = "pm.16kb.app_compat.disabled";
+
+    // save and set the default
+    bool defaultValue = android::base::GetBoolProperty(prop, false);
+    // set and verify property.
+    ASSERT_TRUE(android::base::SetProperty(prop, "true"));
+    ASSERT_TRUE(android::base::GetBoolProperty(prop, false));
+
+    // reset
+    ASSERT_TRUE(android::base::SetProperty(prop, std::to_string(defaultValue)));
 }
 
 TEST_F(Vts16KPageSizeTest, PackageManagerDisableBackCompat) {
@@ -223,6 +241,5 @@ TEST_F(Vts16KPageSizeTest, PackageManagerDisableBackCompat) {
                         "and later release";
     }
 
-    std::string prop = "pm.16kb.app_compat.disabled";
-    setUnsetProp(prop);
+    setUnsetPackageManagerCompat();
 }
