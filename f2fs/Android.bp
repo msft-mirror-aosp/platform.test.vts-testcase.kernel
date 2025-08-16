@@ -24,11 +24,12 @@ cc_defaults {
     srcs: ["F2fsTest.cpp"],
     shared_libs: [
         "libbase",
-        "liblog",
-        "liblogwrap",
+        "libcutils",
     ],
     static_libs: [
         "libdm",
+        "liblog",
+        "liblogwrap",
     ],
     cflags: [
         "-fno-strict-aliasing",
