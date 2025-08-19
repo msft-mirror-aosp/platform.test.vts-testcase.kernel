@@ -184,6 +184,10 @@ TEST_F(Vts16KPageSizeTest, CanReadProcessFileMappedContents) {
                 // Skip devices
                 if (android::base::StartsWith(mapinfo.name, "/dev/")) return;
 
+                // Skip short lived mappings that race with the read.
+                if (mapinfo.name == "/memfd:exec" || mapinfo.name == "/memfd:exec (deleted)")
+                    return;
+
                 maps.push_back(mapinfo);
             }));
 
