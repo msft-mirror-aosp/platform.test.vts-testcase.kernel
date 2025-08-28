@@ -89,6 +89,9 @@ DISABLED_TESTS = [
     'syscalls.signal06_64bit',  # b/192048179
     'syscalls.statx07_32bit',  # b/191236106
     'syscalls.statx07_64bit',  # b/191236106
+    'hugetlb.hugemmap01_64bit', # b/436306632
+    'hugetlb.hugemmap02_64bit', # b/436306632
+    'hugetlb.hugemmap04_64bit', # b/436306632
 ]
 
 # These tests are only disabled for hwasan
