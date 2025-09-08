@@ -39,6 +39,7 @@ cc_test {
     shared_libs: [
         "libbase",
         "liblog",
+        "libmeminfo",
     ],
 
     cflags: [
