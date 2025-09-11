@@ -20,6 +20,7 @@
 #include <elf.h>
 #include <elfutils/elf-file.h>
 #include <gtest/gtest.h>
+#include <meminfo/sysmeminfo.h>
 #include <procinfo/process_map.h>
 
 using ::android::elfutils::ElfFile;
@@ -30,6 +31,14 @@ class Vts16KPageSizeTest : public ::testing::Test {
         // "ro.vendor.api_level" is added in Android T.
         // Undefined indicates S or below
         return android::base::GetIntProperty("ro.vendor.api_level", __ANDROID_API_S__);
+    }
+
+    static int BoardApiLevel() {
+        int api_level = android::base::GetIntProperty("ro.board.first_api_level", 0);
+        if (api_level == 0) {
+            api_level = android::base::GetIntProperty("ro.board.api_level", 202604);
+        }
+        return api_level;
     }
 
     static int ProductPageSize() {
@@ -72,6 +81,19 @@ class Vts16KPageSizeTest : public ::testing::Test {
         } else {
             return 0x1000;
         }
+    }
+
+    // Returns the total memory of the device in bytes.
+    static uint64_t GetTotalMemoryBytes() {
+        std::string ddr_size_str = android::base::GetProperty("ro.boot.ddr_size", "");
+        if (!ddr_size_str.empty()) {
+            auto memoryBytes = android::meminfo::ParseSizeToBytes(ddr_size_str);
+            if (memoryBytes.has_value()) {
+                return *memoryBytes;
+            }
+        }
+
+        return 0;
     }
 
     const std::string mArch = Architecture();
@@ -246,4 +268,26 @@ TEST_F(Vts16KPageSizeTest, PackageManagerDisableBackCompat) {
     }
 
     setUnsetPackageManagerCompat();
+}
+
+/**
+ * Checks if the device which has set ro.board.first_api_level or ro.board.api_level to 202604
+ * implements the 16 KB dev option by checking if the property ro.product.build.16k_page.enabled
+ * is true
+ */
+TEST_F(Vts16KPageSizeTest, DeviceOption16KBEnabled) {
+    int board_api_level = BoardApiLevel();
+    if (board_api_level < 202604) {
+        GTEST_SKIP() << "Device option for 16KB page size is not required for board api level "
+                     << board_api_level;
+    }
+
+    uint64_t totalMemoryBytes = GetTotalMemoryBytes();
+    ASSERT_TRUE(totalMemoryBytes != 0);
+    uint64_t eight_gb_bytes = 8ULL * 1000 * 1000 * 1000;
+    if (totalMemoryBytes < eight_gb_bytes) {
+        GTEST_SKIP() << "Device has less than 8GB of RAM, skipping test.";
+    }
+
+    ASSERT_TRUE(android::base::GetBoolProperty("ro.product.build.16k_page.enabled", false));
 }
