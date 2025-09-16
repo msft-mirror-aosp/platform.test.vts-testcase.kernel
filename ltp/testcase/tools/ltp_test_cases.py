@@ -267,11 +267,14 @@ class LtpTestCases(object):
         if is_hwasan:
             module += '_hwasan'
 
+        ltp_timeout_mul = 4 if is_low_mem or is_hwasan else 2
+
         config_lines = config_lines.format(
             target=target,
             module_controller_option=module_controller_option,
             mandatory_test_cases='\n'.join(mandatory_test_cases),
             skippable_test_cases='\n'.join(skippable_test_cases),
+            ltp_timeout_mul=ltp_timeout_mul,
             MODULE=module)
         with open(output_file, 'w') as f:
             f.write(config_lines)
