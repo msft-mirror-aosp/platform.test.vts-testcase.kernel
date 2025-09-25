@@ -38,6 +38,8 @@ DISABLED_TESTS = {
     'cve.cve-2021-4197_1_64bit',  # b/259557077
     'cve.cve-2021-4204_32bit',  # b/314008608
     'cve.cve-2021-4204_64bit',  # b/314008608
+    'kernel_misc.cpufreq_boost_32bit',  # b/397429079
+    'kernel_misc.cpufreq_boost_64bit',  # b/397429079
     'kernel_misc.zram01_32bit',  # b/191226875
     'kernel_misc.zram01_64bit',  # b/191226875
     'kernel_misc.zram02_32bit',  # b/191227531
