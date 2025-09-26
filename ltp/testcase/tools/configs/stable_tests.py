@@ -481,8 +481,6 @@ STABLE_TESTS = {
     'ipc.signal_test_07_64bit': False,
     'kernel_misc.block_dev_32bit': False,
     'kernel_misc.block_dev_64bit': False,
-    'kernel_misc.cpufreq_boost_32bit': False,
-    'kernel_misc.cpufreq_boost_64bit': False,
     'kernel_misc.fw_load_32bit': False,
     'kernel_misc.fw_load_64bit': False,
     'kernel_misc.lock_torture_32bit': False,
