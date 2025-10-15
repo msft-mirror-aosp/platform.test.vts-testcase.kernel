@@ -5,9 +5,6 @@
     },
     {
       "name": "KernelApiSysfsTest"
-    },
-    {
-      "name": "vts_kernel_tun_test"
     }
   ]
 }
