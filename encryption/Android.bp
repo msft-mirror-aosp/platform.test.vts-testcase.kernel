@@ -24,7 +24,7 @@ cc_test {
         "adiantum.cpp",
         "aes_256_xts.cpp",
         "file_based_encryption_tests.cpp",
-        "Keymaster.cpp",
+        "Keystore.cpp",
         "metadata_encryption_tests.cpp",
         "utils.cpp",
     ],

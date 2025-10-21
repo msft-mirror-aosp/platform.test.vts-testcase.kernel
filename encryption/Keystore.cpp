@@ -18,7 +18,7 @@
 // methods and use std::string instead of KeyBuffer. We should instead
 // create a library to support both.
 
-#include "Keymaster.h"
+#include "Keystore.h"
 
 #include <android-base/logging.h>
 
@@ -58,7 +58,7 @@ static bool logKeystore2ExceptionIfPresent(::ndk::ScopedAStatus& rc,
   return true;
 }
 
-Keymaster::Keymaster() {
+Keystore::Keystore() {
   ::ndk::SpAIBinder binder(
       AServiceManager_waitForService(keystore2_service_name));
   auto keystore2Service = ks2::IKeystoreService::fromBinder(binder);
@@ -85,8 +85,8 @@ Keymaster::Keymaster() {
     LOG(ERROR) << "Unable to get security level from keystore2.";
 }
 
-bool Keymaster::generateKey(const km::AuthorizationSet& inParams,
-                            std::string* key) {
+bool Keystore::generateKey(const km::AuthorizationSet& inParams,
+                           std::string* key) {
   ks2::KeyDescriptor in_key = {
       .domain = ks2::Domain::BLOB,
       .nspace = ROOT_NAMESPACE,
@@ -111,8 +111,8 @@ bool Keymaster::generateKey(const km::AuthorizationSet& inParams,
   return true;
 }
 
-bool Keymaster::importKey(const km::AuthorizationSet& inParams,
-                          const std::string& key, std::string* outKeyBlob) {
+bool Keystore::importKey(const km::AuthorizationSet& inParams,
+                         const std::string& key, std::string* outKeyBlob) {
   ks2::KeyDescriptor key_desc = {
       .domain = ks2::Domain::BLOB,
       .nspace = ROOT_NAMESPACE,
@@ -138,7 +138,7 @@ bool Keymaster::importKey(const km::AuthorizationSet& inParams,
   return true;
 }
 
-bool Keymaster::exportKey(const std::string& kmKey, std::string* key) {
+bool Keystore::exportKey(const std::string& kmKey, std::string* key) {
   bool ret = false;
   ks2::KeyDescriptor storageKey = {
       .domain = ks2::Domain::BLOB,

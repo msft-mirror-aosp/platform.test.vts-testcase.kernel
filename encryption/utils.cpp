@@ -36,7 +36,7 @@
 #include <sys/statvfs.h>
 #include <unistd.h>
 
-#include "Keymaster.h"
+#include "Keystore.h"
 #include "vts_kernel_encryption.h"
 
 using android::base::ParseInt;
@@ -550,7 +550,7 @@ bool VerifyDataRandomness(const std::vector<uint8_t> &bytes) {
   return false;
 }
 
-static bool TryPrepareHwWrappedKey(Keymaster &keymaster,
+static bool TryPrepareHwWrappedKey(Keystore &keystore,
                                    const std::string &master_key_string,
                                    std::string *exported_key_string,
                                    bool rollback_resistance) {
@@ -563,14 +563,14 @@ static bool TryPrepareHwWrappedKey(Keymaster &keymaster,
   paramBuilder.Authorization(km::TAG_STORAGE_KEY);
 
   std::string wrapped_key_blob;
-  if (keymaster.importKey(paramBuilder, master_key_string, &wrapped_key_blob) &&
-      keymaster.exportKey(wrapped_key_blob, exported_key_string)) {
+  if (keystore.importKey(paramBuilder, master_key_string, &wrapped_key_blob) &&
+      keystore.exportKey(wrapped_key_blob, exported_key_string)) {
     return true;
   }
-  // It's fine for Keymaster not to support hardware-wrapped keys, but
+  // It's fine for Keystore not to support hardware-wrapped keys, but
   // if generateKey works, importKey must too.
-  if (keymaster.generateKey(paramBuilder, &wrapped_key_blob) &&
-      keymaster.exportKey(wrapped_key_blob, exported_key_string)) {
+  if (keystore.generateKey(paramBuilder, &wrapped_key_blob) &&
+      keystore.exportKey(wrapped_key_blob, exported_key_string)) {
     ADD_FAILURE() << "generateKey succeeded but importKey failed";
   }
   return false;
@@ -580,18 +580,18 @@ bool CreateHwWrappedKey(std::vector<uint8_t> *master_key,
                         std::vector<uint8_t> *exported_key) {
   *master_key = GenerateTestKey(kHwWrappedKeySize);
 
-  Keymaster keymaster;
-  if (!keymaster) {
-    ADD_FAILURE() << "Unable to find keymaster";
+  Keystore keystore;
+  if (!keystore) {
+    ADD_FAILURE() << "Unable to find keystore";
     return false;
   }
   std::string master_key_string(master_key->begin(), master_key->end());
   std::string exported_key_string;
   // Make two attempts to create a key, first with and then without
   // rollback resistance.
-  if (TryPrepareHwWrappedKey(keymaster, master_key_string, &exported_key_string,
+  if (TryPrepareHwWrappedKey(keystore, master_key_string, &exported_key_string,
                              true) ||
-      TryPrepareHwWrappedKey(keymaster, master_key_string, &exported_key_string,
+      TryPrepareHwWrappedKey(keystore, master_key_string, &exported_key_string,
                              false)) {
     exported_key->assign(exported_key_string.begin(),
                          exported_key_string.end());
