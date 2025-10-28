@@ -39,9 +39,9 @@ namespace ks2 = ::aidl::android::system::keystore2;
 namespace km = ::aidl::android::hardware::security::keymint;
 
 // Wrapper for keystore2 methods that vold uses.
-class Keymaster {
+class Keystore {
  public:
-  Keymaster();
+  Keystore();
   // false if we failed to get a keystore2 security level.
   explicit operator bool() { return (bool)securityLevel; }
   // Generate a key using keystore2 from the given params.
@@ -55,7 +55,7 @@ class Keymaster {
 
  private:
   std::shared_ptr<ks2::IKeystoreSecurityLevel> securityLevel;
-  DISALLOW_COPY_AND_ASSIGN(Keymaster);
+  DISALLOW_COPY_AND_ASSIGN(Keystore);
 };
 
 }  // namespace kernel
