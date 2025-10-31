@@ -126,13 +126,14 @@ constexpr int kFscryptFileNonceSize = 16;
 
 // fscrypt HKDF context bytes, from kernel fs/crypto/fscrypt_private.h
 enum FscryptHkdfContext {
-  HKDF_CONTEXT_KEY_IDENTIFIER = 1,
+  HKDF_CONTEXT_KEY_IDENTIFIER_FOR_RAW_KEY = 1,
   HKDF_CONTEXT_PER_FILE_ENC_KEY = 2,
   HKDF_CONTEXT_DIRECT_KEY = 3,
   HKDF_CONTEXT_IV_INO_LBLK_64_KEY = 4,
   HKDF_CONTEXT_DIRHASH_KEY = 5,
   HKDF_CONTEXT_IV_INO_LBLK_32_KEY = 6,
   HKDF_CONTEXT_INODE_HASH_KEY = 7,
+  HKDF_CONTEXT_KEY_IDENTIFIER_FOR_HW_WRAPPED_KEY = 8,
 };
 
 struct FscryptFileNonce {
@@ -557,6 +558,7 @@ class FBEPolicyTest : public ::testing::Test, public FBEPolicyTestBase {
  protected:
   void SetUp() override { SetUpBase(); }
   void TearDown() override { TearDownBase(); }
+  void DoTestHwWrappedKeyCorruption(KeyType key_type);
 };
 
 // Test fixture parameterized by (key_type, data_unit_size)
@@ -635,7 +637,12 @@ bool FBEPolicyTestBase::AddStorageKey(const StorageKey &key, bool required) {
     case KeyType::kRaw:
       break;
     case KeyType::kHwWrappedV0:
+      // This is the legacy Android Common Kernel specific flag.
       arg->__flags |= __FSCRYPT_ADD_KEY_FLAG_HW_WRAPPED;
+      break;
+    case KeyType::kHwWrapped:
+      // This is the upstream-supported flag.
+      arg->flags |= FSCRYPT_ADD_KEY_FLAG_HW_WRAPPED;
       break;
   }
   arg->raw_size = key.kernel_key.size();
@@ -862,7 +869,13 @@ static bool DeriveKey(const StorageKey &storage_key,
 // Derives the key identifier from |storage_key| and verifies that it matches
 // the value the kernel returned in |master_key_specifier_|.
 bool FBEPolicyTestBase::VerifyKeyIdentifier(const StorageKey &storage_key) {
-  std::vector<uint8_t> hkdf_info = InitHkdfInfo(HKDF_CONTEXT_KEY_IDENTIFIER);
+  // Note that kHwWrappedV0 has a bug where it reuses the same HKDF context byte
+  // as raw keys.  This was fixed with kHwWrapped.
+  FscryptHkdfContext hkdf_context =
+      storage_key.type == KeyType::kHwWrapped
+          ? HKDF_CONTEXT_KEY_IDENTIFIER_FOR_HW_WRAPPED_KEY
+          : HKDF_CONTEXT_KEY_IDENTIFIER_FOR_RAW_KEY;
+  std::vector<uint8_t> hkdf_info = InitHkdfInfo(hkdf_context);
   std::vector<uint8_t> computed_key_identifier(FSCRYPT_KEY_IDENTIFIER_SIZE);
   if (!DeriveKey(storage_key, hkdf_info, computed_key_identifier)) return false;
 
@@ -1254,18 +1267,25 @@ TEST_F(FBEPolicyTest, TestAdiantumPolicy_4KDataUnitSize) {
 
 // Tests adding a corrupted wrapped key to fscrypt keyring.
 // If wrapped key is corrupted, fscrypt should return a failure.
-TEST_F(FBEPolicyTest, TestHwWrappedKeyCorruption) {
+void FBEPolicyTest::DoTestHwWrappedKeyCorruption(KeyType key_type) {
   if (skip_test_) return;
 
   StorageKey storage_key;
-  if (!GenerateStorageKey(KeyType::kHwWrappedV0, /* unused */ 0, &storage_key))
-    return;
+  if (!GenerateStorageKey(key_type, /* unused */ 0, &storage_key)) return;
 
   for (int i = 0; i < storage_key.kernel_key.size(); i++) {
     StorageKey corrupt_key = storage_key;
     corrupt_key.kernel_key[i] = ~corrupt_key.kernel_key[i];
     ASSERT_FALSE(AddStorageKey(corrupt_key, false));
   }
+}
+
+TEST_F(FBEPolicyTest, TestHwWrappedKeyV0Corruption) {
+  DoTestHwWrappedKeyCorruption(KeyType::kHwWrappedV0);
+}
+
+TEST_F(FBEPolicyTest, TestHwWrappedKeyCorruption) {
+  DoTestHwWrappedKeyCorruption(KeyType::kHwWrapped);
 }
 
 bool FBEPolicyTestBase::EnableF2fsCompressionOnTestDir() {
@@ -1602,7 +1622,8 @@ INSTANTIATE_TEST_SUITE_P(
     , FBEPolicyParameterizedTest,
     ::testing::Combine(
         ::testing::Values(KeyType::kRaw,
-                          /* flag: wrappedkey_v0 */ KeyType::kHwWrappedV0),
+                          /* flag: wrappedkey_v0 */ KeyType::kHwWrappedV0,
+                          /* flag: wrappedkey */ KeyType::kHwWrapped),
         ::testing::Values(0, /* flag: dusize_4k */ 4096)),
     [](const ::testing::TestParamInfo<std::tuple<KeyType, int>> &info) {
       KeyType key_type = std::get<0>(info.param);

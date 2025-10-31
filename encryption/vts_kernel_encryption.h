@@ -142,6 +142,8 @@ enum class KeyType {
   kRaw,
   // Legacy hardware-wrapped key, corresponding to "wrappedkey_v0" in fstab
   kHwWrappedV0,
+  // Modern hardware-wrapped key, corresponding to "wrappedkey" in fstab
+  kHwWrapped,
 };
 
 std::ostream &operator<<(std::ostream &os, KeyType key_type);

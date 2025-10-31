@@ -28,8 +28,10 @@
 #include <ext4_utils/ext4.h>
 #include <ext4_utils/ext4_sb.h>
 #include <ext4_utils/ext4_utils.h>
+#include <fstab/fstab.h>
 #include <gtest/gtest.h>
 #include <libdm/dm.h>
+#include <linux/blk-crypto.h>
 #include <linux/magic.h>
 #include <mntent.h>
 #include <openssl/cmac.h>
@@ -590,6 +592,89 @@ static bool ImportAndPrepareHwWrappedV0Key(
   return false;
 }
 
+// This matches the limit used by the kernel internally as of v6.17.  It is
+// enough for all known wrapped key implementatations.  It can be increased in
+// the future if needed.
+constexpr size_t BLK_CRYPTO_MAX_HW_WRAPPED_KEY_SIZE = 128;
+
+static bool ImportAndPrepareHwWrappedKey(
+    const std::vector<uint8_t> &raw_class_key,
+    std::vector<uint8_t> *kernel_key) {
+  // Open the main block device for userdata.
+  android::fs_mgr::Fstab fstab;
+  if (!android::fs_mgr::ReadDefaultFstab(&fstab)) {
+    ADD_FAILURE() << "Failed to read default fstab";
+    return false;
+  }
+  const fs_mgr::FstabEntry *entry = GetEntryForMountPoint(&fstab, "/data");
+  if (entry == nullptr) {
+    ADD_FAILURE() << "Failed to find fstab entry for /data";
+    return false;
+  }
+  android::base::unique_fd fd(
+      open(entry->blk_device.c_str(), O_RDONLY | O_CLOEXEC));
+  if (fd == -1) {
+    ADD_FAILURE() << "Failed to open " << entry->blk_device << Errno();
+    return false;
+  }
+
+  // Import the raw key, creating a long-term wrapped key.
+  std::vector<uint8_t> lt_key(BLK_CRYPTO_MAX_HW_WRAPPED_KEY_SIZE);
+  {
+    struct blk_crypto_import_key_arg arg = {
+        .raw_key_ptr = (uintptr_t)raw_class_key.data(),
+        .raw_key_size = raw_class_key.size(),
+        .lt_key_ptr = (uintptr_t)lt_key.data(),
+        .lt_key_size = lt_key.size(),
+    };
+    if (ioctl(fd, BLKCRYPTOIMPORTKEY, &arg) != 0) {
+      if (errno == EOPNOTSUPP || errno == ENOTTY) {
+        // It's fine for hardware-wrapped keys to be unsupported, but if
+        // BLKCRYPTOGENERATEKEY is supported then BLKCRYPTOIMPORTKEY must be
+        // supported as well.  Here, BLKCRYPTOIMPORTKEY is unsupported.  So
+        // verify that BLKCRYPTOGENERATEKEY is unsupported as well.
+        struct blk_crypto_generate_key_arg arg = {
+            .lt_key_ptr = (uintptr_t)lt_key.data(),
+            .lt_key_size = lt_key.size(),
+        };
+        if (ioctl(fd, BLKCRYPTOGENERATEKEY, &arg) == 0) {
+          ADD_FAILURE()
+              << "BLKCRYPTOGENERATEKEY succeeded but BLKCRYPTOIMPORTKEY failed";
+        } else if (errno == EOPNOTSUPP || errno == ENOTTY) {
+          GTEST_LOG_(INFO) << "Skipping test because device doesn't support "
+                              "hardware-wrapped keys";
+          // No failure.  The test case will be skipped.
+        } else {
+          ADD_FAILURE() << "Unexpected error from BLKCRYPTOGENERATEKEY"
+                        << Errno();
+        }
+      } else {
+        ADD_FAILURE() << "Unexpected error from BLKCRYPTOIMPORTKEY" << Errno();
+      }
+      return false;
+    }
+    lt_key.resize(arg.lt_key_size);
+  }
+  GTEST_LOG_(INFO) << "Detected support for BLKCRYPTOIMPORTKEY";
+
+  // Convert the long-term wrapped key to an ephemerally-wrapped key.
+  kernel_key->resize(BLK_CRYPTO_MAX_HW_WRAPPED_KEY_SIZE);
+  {
+    struct blk_crypto_prepare_key_arg arg = {
+        .lt_key_ptr = (uintptr_t)lt_key.data(),
+        .lt_key_size = lt_key.size(),
+        .eph_key_ptr = (uintptr_t)kernel_key->data(),
+        .eph_key_size = kernel_key->size(),
+    };
+    if (ioctl(fd, BLKCRYPTOPREPAREKEY, &arg) != 0) {
+      ADD_FAILURE() << "BLKCRYPTOPREPAREKEY failed" << Errno();
+      return false;
+    }
+    kernel_key->resize(arg.eph_key_size);
+  }
+  return true;
+}
+
 static void PushBigEndian32(uint32_t val, std::vector<uint8_t> *vec) {
   for (int i = 24; i >= 0; i -= 8) {
     vec->push_back((val >> i) & 0xFF);
@@ -684,6 +769,8 @@ std::ostream &operator<<(std::ostream &os, KeyType key_type) {
       return os << "kRaw";
     case KeyType::kHwWrappedV0:
       return os << "kHwWrappedV0";
+    case KeyType::kHwWrapped:
+      return os << "kHwWrapped";
   }
   return os << "unknown";
 }
@@ -704,6 +791,9 @@ bool GenerateStorageKey(KeyType type, size_t size, StorageKey *key) {
   const std::vector<uint8_t> raw_class_key = RandomRawKey(kRawClassKeySize);
   if (type == KeyType::kHwWrappedV0) {
     if (!ImportAndPrepareHwWrappedV0Key(raw_class_key, &key->kernel_key))
+      return false;
+  } else if (type == KeyType::kHwWrapped) {
+    if (!ImportAndPrepareHwWrappedKey(raw_class_key, &key->kernel_key))
       return false;
   } else {
     ADD_FAILURE() << "Unknown KeyType: " << type;

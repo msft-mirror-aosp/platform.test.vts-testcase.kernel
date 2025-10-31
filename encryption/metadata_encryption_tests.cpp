@@ -194,6 +194,10 @@ bool DmDefaultKeyTest::CreateTestDevice(const StorageKey &key,
     case KeyType::kRaw:
       break;
     case KeyType::kHwWrappedV0:
+    case KeyType::kHwWrapped:
+      // The dm-default-key option "wrappedkey_v0" actually works for both
+      // wrapped key versions.  Eventually a "wrappedkey" alias should be added
+      // and used, but for now just continue using "wrappedkey_v0".
       target->SetWrappedKeyV0();
       break;
   }
@@ -279,8 +283,14 @@ TEST_F(DmDefaultKeyTest, TestAdiantum) {
 
 // Tests dm-default-key parameters matching
 // metadata_encryption=aes-256-xts:wrappedkey_v0.
-TEST_F(DmDefaultKeyTest, TestHwWrappedKey) {
+TEST_F(DmDefaultKeyTest, TestHwWrappedKeyV0) {
   DoTest("aes-xts-plain64", Aes256XtsCipher(), KeyType::kHwWrappedV0);
+}
+
+// Tests dm-default-key parameters matching
+// metadata_encryption=aes-256-xts:wrappedkey.
+TEST_F(DmDefaultKeyTest, TestHwWrappedKey) {
+  DoTest("aes-xts-plain64", Aes256XtsCipher(), KeyType::kHwWrapped);
 }
 
 // Tests that if the device uses metadata encryption, then the first filesystem
