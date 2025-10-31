@@ -61,45 +61,41 @@ enum KdfVariant {
 
 // Context in fixed input string comprises of software provided context,
 // padding to eight bytes (if required) and the key policy.
-static const std::vector<std::vector<uint8_t>> HwWrappedEncryptionKeyContexts =
+static const std::vector<std::vector<uint8_t>> InlineEncryptionKeyContexts = {
+    // "kdf1"
+    {'i',  'n',  'l',  'i',  'n',  'e',  ' ',  'e',  'n', 'c', 'r', 'y',
+     'p',  't',  'i',  'o',  'n',  ' ',  'k',  'e',  'y', 0x0, 0x0, 0x0,
+     0x00, 0x00, 0x00, 0x02, 0x43, 0x00, 0x82, 0x50, 0x0, 0x0, 0x0, 0x0},
+    // Below for "kdf2 && kdf tied to Trusted Execution Environment(TEE)".
+    // Where as above caters ( "all latest targets" || ("kdf2 && kdf
+    // not tied to TEE)).
+    // "kdf2"
+    {'i',  'n',  'l',  'i',  'n',  'e',  ' ',  'e',  'n', 'c', 'r', 'y',
+     'p',  't',  'i',  'o',  'n',  ' ',  'k',  'e',  'y', 0x0, 0x0, 0x0,
+     0x00, 0x00, 0x00, 0x01, 0x43, 0x00, 0x82, 0x18, 0x0, 0x0, 0x0, 0x0},
+    // "kdf3"
     {
-        // "kdf1"
-        {'i',  'n',  'l',  'i',  'n',  'e',  ' ',  'e',  'n', 'c', 'r', 'y',
-         'p',  't',  'i',  'o',  'n',  ' ',  'k',  'e',  'y', 0x0, 0x0, 0x0,
-         0x00, 0x00, 0x00, 0x02, 0x43, 0x00, 0x82, 0x50, 0x0, 0x0, 0x0, 0x0},
-        // Below for "kdf2 && kdf tied to Trusted Execution
-        // Environment(TEE)".
-        // Where as above caters ( "all latest targets" || ("kdf2 && kdf
-        // not tied to TEE)).
-        // "kdf2"
-        {'i',  'n',  'l',  'i',  'n',  'e',  ' ',  'e',  'n', 'c', 'r', 'y',
-         'p',  't',  'i',  'o',  'n',  ' ',  'k',  'e',  'y', 0x0, 0x0, 0x0,
-         0x00, 0x00, 0x00, 0x01, 0x43, 0x00, 0x82, 0x18, 0x0, 0x0, 0x0, 0x0},
-        // "kdf3"
-        {
-            'i',  'n',  'l',  'i',  'n',  'e',  ' ',  'e',  'n',
-            'c',  'r',  'y',  'p',  't',  'i',  'o',  'n',  ' ',
-            's',  't',  'o',  'r',  'a',  'g',  'e',  'k',  'e',
-            'y',  ' ',  'c',  't',  'x',  0x00, 0x00, 0x00, 0x00,
-            0x00, 0x10, 0x70, 0x18, 0x72, 0x00, 0x00, 0x00, 0x00,
-        },
-        // "kdf4"
-        {
-            'i',  'n',  'l',  'i',  'n',  'e',  ' ',  'e',  'n',
-            'c',  'r',  'y',  'p',  't',  'i',  'o',  'n',  ' ',
-            's',  't',  'o',  'r',  'a',  'g',  'e',  'k',  'e',
-            'y',  ' ',  'c',  't',  'x',  0x00, 0x72, 0x18, 0x70,
-            0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        },
-        // "kdf5"
-        {
-            'i', 'n', 'l', 'i', 'n', 'e', ' ', 'e', 'n', 'c', 'r',
-            'y', 'p', 't', 'i', 'o', 'n', ' ', 's', 't', 'o', 'r',
-            'a', 'g', 'e', 'k', 'e', 'y', ' ', 'c', 't', 'x',
-        },
+        'i',  'n',  'l',  'i',  'n',  'e',  ' ',  'e',  'n',  'c',  'r',  'y',
+        'p',  't',  'i',  'o',  'n',  ' ',  's',  't',  'o',  'r',  'a',  'g',
+        'e',  'k',  'e',  'y',  ' ',  'c',  't',  'x',  0x00, 0x00, 0x00, 0x00,
+        0x00, 0x10, 0x70, 0x18, 0x72, 0x00, 0x00, 0x00, 0x00,
+    },
+    // "kdf4"
+    {
+        'i',  'n',  'l',  'i',  'n',  'e',  ' ',  'e',  'n',  'c',  'r',  'y',
+        'p',  't',  'i',  'o',  'n',  ' ',  's',  't',  'o',  'r',  'a',  'g',
+        'e',  'k',  'e',  'y',  ' ',  'c',  't',  'x',  0x00, 0x72, 0x18, 0x70,
+        0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    },
+    // "kdf5"
+    {
+        'i', 'n', 'l', 'i', 'n', 'e', ' ', 'e', 'n', 'c', 'r',
+        'y', 'p', 't', 'i', 'o', 'n', ' ', 's', 't', 'o', 'r',
+        'a', 'g', 'e', 'k', 'e', 'y', ' ', 'c', 't', 'x',
+    },
 };
 
-static const std::vector<std::vector<uint8_t>> HwWrappedEncryptionKeyLabels = {
+static const std::vector<std::vector<uint8_t>> InlineEncryptionKeyLabels = {
     // "kdf1"
     {0x00, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20},
     // "kdf2"
@@ -197,20 +193,6 @@ static bool GetKdfVariantId(KdfVariant *kdf_id) {
   return true;
 }
 
-static void GetKdfContextLabelByKdfId(KdfVariant kdf_id,
-                                      std::vector<uint8_t> *ctx,
-                                      std::vector<uint8_t> *lbl) {
-  *ctx = HwWrappedEncryptionKeyContexts[kdf_id];
-  *lbl = HwWrappedEncryptionKeyLabels[kdf_id];
-}
-
-static void GetSwSecretContextLabelByKdfId(KdfVariant kdf_id,
-                                           std::vector<uint8_t> *ctx,
-                                           std::vector<uint8_t> *lbl) {
-  *ctx = SwSecretContexts[kdf_id];
-  *lbl = SwSecretLabels[kdf_id];
-}
-
 // Offset in bytes to the filesystem superblock, relative to the beginning of
 // the block device
 constexpr int kExt4SuperBlockOffset = 1024;
@@ -221,8 +203,14 @@ constexpr int kF2fsSuperBlockOffset = 1024;
 constexpr int kF2fsMagicOffset = kF2fsSuperBlockOffset;
 constexpr int kF2fsUuidOffset = kF2fsSuperBlockOffset + 108;
 
-// hw-wrapped key size in bytes
-constexpr int kHwWrappedKeySize = 32;
+// Size of the raw class key associated with a hardware-wrapped key, i.e. what
+// you'd get if you were to unwrap one and also what you need to import to
+// create one.  It's an AES-256-CMAC key, so the size is the AES-256 key size.
+constexpr int kRawClassKeySize = kAes256KeySize;
+
+// Size of the subkeys derived from the raw class key
+constexpr int kInlineEncryptionKeySize = kAes256XtsKeySize;
+constexpr int kSwSecretSize = 32;
 
 std::string Errno() { return std::string(": ") + strerror(errno); }
 
@@ -551,19 +539,20 @@ bool VerifyDataRandomness(const std::vector<uint8_t> &bytes) {
 }
 
 static bool TryPrepareHwWrappedKey(Keystore &keystore,
-                                   const std::string &master_key_string,
+                                   const std::string &raw_class_key_string,
                                    std::string *exported_key_string,
                                    bool rollback_resistance) {
   // This key is used to drive a CMAC-based KDF
   auto paramBuilder =
-      km::AuthorizationSetBuilder().AesEncryptionKey(kHwWrappedKeySize * 8);
+      km::AuthorizationSetBuilder().AesEncryptionKey(kRawClassKeySize * 8);
   if (rollback_resistance) {
     paramBuilder.Authorization(km::TAG_ROLLBACK_RESISTANCE);
   }
   paramBuilder.Authorization(km::TAG_STORAGE_KEY);
 
   std::string wrapped_key_blob;
-  if (keystore.importKey(paramBuilder, master_key_string, &wrapped_key_blob) &&
+  if (keystore.importKey(paramBuilder, raw_class_key_string,
+                         &wrapped_key_blob) &&
       keystore.exportKey(wrapped_key_blob, exported_key_string)) {
     return true;
   }
@@ -576,29 +565,28 @@ static bool TryPrepareHwWrappedKey(Keystore &keystore,
   return false;
 }
 
-static bool CreateHwWrappedKey(std::vector<uint8_t> *master_key,
-                               std::vector<uint8_t> *exported_key) {
-  *master_key = RandomRawKey(kHwWrappedKeySize);
-
+static bool ImportAndPrepareHwWrappedV0Key(
+    const std::vector<uint8_t> &raw_class_key,
+    std::vector<uint8_t> *exported_key) {
   Keystore keystore;
   if (!keystore) {
     ADD_FAILURE() << "Unable to find keystore";
     return false;
   }
-  std::string master_key_string(master_key->begin(), master_key->end());
+  std::string raw_class_key_string(raw_class_key.begin(), raw_class_key.end());
   std::string exported_key_string;
   // Make two attempts to create a key, first with and then without
   // rollback resistance.
-  if (TryPrepareHwWrappedKey(keystore, master_key_string, &exported_key_string,
-                             true) ||
-      TryPrepareHwWrappedKey(keystore, master_key_string, &exported_key_string,
-                             false)) {
+  if (TryPrepareHwWrappedKey(keystore, raw_class_key_string,
+                             &exported_key_string, true) ||
+      TryPrepareHwWrappedKey(keystore, raw_class_key_string,
+                             &exported_key_string, false)) {
     exported_key->assign(exported_key_string.begin(),
                          exported_key_string.end());
     return true;
   }
   GTEST_LOG_(INFO) << "Skipping test because device doesn't support "
-                      "hardware-wrapped keys";
+                      "legacy-style hardware-wrapped keys";
   return false;
 }
 
@@ -674,42 +662,20 @@ static bool AesCmacKdfHelper(KdfVariant kdf_id, const std::vector<uint8_t> &key,
   return true;
 }
 
-static bool DeriveHwWrappedEncryptionKeyByKdfId(
-    KdfVariant kdf_id, const std::vector<uint8_t> &master_key,
-    std::vector<uint8_t> *enc_key) {
-  std::vector<uint8_t> ctx;
-  std::vector<uint8_t> label;
-  GetKdfContextLabelByKdfId(kdf_id, &ctx, &label);
-  return AesCmacKdfHelper(kdf_id, master_key, label, ctx, kAes256XtsKeySize,
-                          enc_key);
+static bool DeriveInlineEncryptionKey(
+    KdfVariant kdf_id, const std::vector<uint8_t> &raw_class_key,
+    std::vector<uint8_t> *inline_encryption_key) {
+  return AesCmacKdfHelper(kdf_id, raw_class_key,
+                          InlineEncryptionKeyLabels[kdf_id],
+                          InlineEncryptionKeyContexts[kdf_id],
+                          kInlineEncryptionKeySize, inline_encryption_key);
 }
 
-static bool DeriveHwWrappedEncryptionKey(const std::vector<uint8_t> &master_key,
-                                         std::vector<uint8_t> *enc_key) {
-  KdfVariant kdf_id;
-  if (!GetKdfVariantId(&kdf_id)) {
-    return false;
-  }
-  return DeriveHwWrappedEncryptionKeyByKdfId(kdf_id, master_key, enc_key);
-}
-
-static bool DeriveHwWrappedRawSecretByKdfId(
-    KdfVariant kdf_id, const std::vector<uint8_t> &master_key,
-    std::vector<uint8_t> *secret) {
-  std::vector<uint8_t> ctx;
-  std::vector<uint8_t> label;
-  GetSwSecretContextLabelByKdfId(kdf_id, &ctx, &label);
-  return AesCmacKdfHelper(kdf_id, master_key, label, ctx, kAes256KeySize,
-                          secret);
-}
-
-static bool DeriveHwWrappedRawSecret(const std::vector<uint8_t> &master_key,
-                                     std::vector<uint8_t> *secret) {
-  KdfVariant kdf_id;
-  if (!GetKdfVariantId(&kdf_id)) {
-    return false;
-  }
-  return DeriveHwWrappedRawSecretByKdfId(kdf_id, master_key, secret);
+static bool DeriveSwSecret(KdfVariant kdf_id,
+                           const std::vector<uint8_t> &raw_class_key,
+                           std::vector<uint8_t> *sw_secret) {
+  return AesCmacKdfHelper(kdf_id, raw_class_key, SwSecretLabels[kdf_id],
+                          SwSecretContexts[kdf_id], kSwSecretSize, sw_secret);
 }
 
 std::ostream &operator<<(std::ostream &os, KeyType key_type) {
@@ -735,16 +701,21 @@ bool GenerateStorageKey(KeyType type, size_t size, StorageKey *key) {
     key->sw_secret = key->kernel_key;
     return true;
   }
-  std::vector<uint8_t> raw_class_key;
+  const std::vector<uint8_t> raw_class_key = RandomRawKey(kRawClassKeySize);
   if (type == KeyType::kHwWrappedV0) {
-    if (!CreateHwWrappedKey(&raw_class_key, &key->kernel_key)) return false;
+    if (!ImportAndPrepareHwWrappedV0Key(raw_class_key, &key->kernel_key))
+      return false;
   } else {
     ADD_FAILURE() << "Unknown KeyType: " << type;
     return false;
   }
-  if (!DeriveHwWrappedEncryptionKey(raw_class_key, &key->inline_encryption_key))
+
+  KdfVariant kdf_id;
+  if (!GetKdfVariantId(&kdf_id)) return false;
+  if (!DeriveInlineEncryptionKey(kdf_id, raw_class_key,
+                                 &key->inline_encryption_key))
     return false;
-  if (!DeriveHwWrappedRawSecret(raw_class_key, &key->sw_secret)) return false;
+  if (!DeriveSwSecret(kdf_id, raw_class_key, &key->sw_secret)) return false;
   return true;
 }
 
@@ -839,23 +810,21 @@ TEST(UtilsTest, TestKdfVariants) {
   ASSERT_EQ(expected_keys.size(), KDF_VARIANT_COUNT);
   ASSERT_EQ(expected_secrets.size(), KDF_VARIANT_COUNT);
 
-  const std::vector<uint8_t> master_key = {
+  const std::vector<uint8_t> raw_class_key = {
       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   };
 
-  GTEST_LOG_(INFO) << "Master Key: " << BytesToHex(master_key);
+  GTEST_LOG_(INFO) << "Raw Class Key: " << BytesToHex(raw_class_key);
   for (size_t i = 0; i < KDF_VARIANT_COUNT; i++) {
     std::vector<uint8_t> out_key;
-    EXPECT_TRUE(
-        DeriveHwWrappedEncryptionKeyByKdfId(kdf_ids[i], master_key, &out_key));
+    EXPECT_TRUE(DeriveInlineEncryptionKey(kdf_ids[i], raw_class_key, &out_key));
     GTEST_LOG_(INFO) << "Key        (id: " << i << "): " << BytesToHex(out_key);
     GTEST_LOG_(INFO) << "Exp Key    (id: " << i
                      << "): " << BytesToHex(expected_keys[i]);
     EXPECT_EQ(out_key, expected_keys[i]);
     std::vector<uint8_t> out_sec;
-    EXPECT_TRUE(
-        DeriveHwWrappedRawSecretByKdfId(kdf_ids[i], master_key, &out_sec));
+    EXPECT_TRUE(DeriveSwSecret(kdf_ids[i], raw_class_key, &out_sec));
     GTEST_LOG_(INFO) << "Secret     (id: " << i << "): " << BytesToHex(out_sec);
     GTEST_LOG_(INFO) << "Exp Secret (id: " << i
                      << "): " << BytesToHex(expected_secrets[i]);
