@@ -80,6 +80,7 @@
 #include <string.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
+#include <tuple>
 
 #include <chrono>
 #include <thread>
@@ -517,10 +518,10 @@ static bool DecompressLZ4Cluster(const uint8_t *in, uint8_t *out,
   return true;
 }
 
-class FBEPolicyTest : public ::testing::Test {
+class FBEPolicyTestBase {
  protected:
-  void SetUp() override;
-  void TearDown() override;
+  void SetUpBase();
+  void TearDownBase();
   bool AddStorageKey(const StorageKey &key, bool required);
   bool GenerateAndAddStorageKey(KeyType type, StorageKey *key);
   int GetSkipFlagsForInoBasedEncryption();
@@ -540,11 +541,7 @@ class FBEPolicyTest : public ::testing::Test {
   void VerifyCiphertext(const std::vector<uint8_t> &enc_key,
                         const FscryptIV &starting_iv, const Cipher &cipher,
                         const TestFileInfo &file_info, int data_unit_size);
-  void TestEmmcOptimizedDunWraparound(const StorageKey &storage_key,
-                                      const std::vector<uint8_t> &enc_key);
   void TestAesPerFileKeysPolicy(int data_unit_size);
-  void TestAesInlineCryptOptimizedPolicy(int data_unit_size);
-  void TestAesInlineCryptOptimizedHwWrappedKeyPolicy(int data_unit_size);
   void TestAdiantumPolicy(int data_unit_size);
   bool EnableF2fsCompressionOnTestDir();
   bool F2fsCompressOptionsSupported(const struct f2fs_comp_option &opts);
@@ -556,9 +553,26 @@ class FBEPolicyTest : public ::testing::Test {
   FilesystemInfo fs_info_;
 };
 
+class FBEPolicyTest : public ::testing::Test, public FBEPolicyTestBase {
+ protected:
+  void SetUp() override { SetUpBase(); }
+  void TearDown() override { TearDownBase(); }
+};
+
+// Test fixture parameterized by (key_type, data_unit_size)
+class FBEPolicyParameterizedTest
+    : public ::testing::TestWithParam<std::tuple<KeyType, int>>,
+      public FBEPolicyTestBase {
+ protected:
+  void SetUp() override { SetUpBase(); }
+  void TearDown() override { TearDownBase(); }
+  void TestEmmcOptimizedDunWraparound(const StorageKey &storage_key,
+                                      const std::vector<uint8_t> &enc_key);
+};
+
 // Test setup procedure.  Creates a test directory test_dir_ and does other
 // preparations. skip_test_ is set to true if the test should be skipped.
-void FBEPolicyTest::SetUp() {
+void FBEPolicyTestBase::SetUpBase() {
   if (!IsFscryptV2Supported(kTestMountpoint)) {
     int first_api_level;
     ASSERT_TRUE(GetFirstApiLevel(&first_api_level));
@@ -585,7 +599,7 @@ void FBEPolicyTest::SetUp() {
   }
 }
 
-void FBEPolicyTest::TearDown() {
+void FBEPolicyTestBase::TearDownBase() {
   DeleteRecursively(test_dir_);
 
   // Remove the test key from kTestMountpoint.
@@ -611,7 +625,7 @@ void FBEPolicyTest::TearDown() {
 // successful or false if unsuccessful.  Adds a gtest failure if unsuccessful,
 // unless required=false and the error is due to FS_IOC_ADD_ENCRYPTION_KEY
 // failing with EINVAL or EOPNOTSUPP.
-bool FBEPolicyTest::AddStorageKey(const StorageKey &key, bool required) {
+bool FBEPolicyTestBase::AddStorageKey(const StorageKey &key, bool required) {
   size_t allocsize = sizeof(struct fscrypt_add_key_arg) + key.kernel_key.size();
   std::unique_ptr<struct fscrypt_add_key_arg> arg(
       new (::operator new(allocsize)) struct fscrypt_add_key_arg);
@@ -652,10 +666,11 @@ bool FBEPolicyTest::AddStorageKey(const StorageKey &key, bool required) {
 
 // Generates a new key of the given type, adds it to the filesystem mounted on
 // kTestMountpoint, and verifies the resulting key identifier.
-bool FBEPolicyTest::GenerateAndAddStorageKey(KeyType type, StorageKey *key) {
+bool FBEPolicyTestBase::GenerateAndAddStorageKey(KeyType type,
+                                                 StorageKey *key) {
   if (!GenerateStorageKey(type, kFscryptMasterKeySize, key)) return false;
   if (!AddStorageKey(*key, type == KeyType::kRaw)) {
-    if (!HasFailure()) {  // This implies type != KeyType::kRaw
+    if (!::testing::Test::HasFailure()) {  // This implies type != KeyType::kRaw
       GTEST_LOG_(INFO) << "Skipping test because kernel doesn't support "
                           "hardware-wrapped keys";
     }
@@ -681,14 +696,15 @@ enum {
 // real", e.g. "fileencryption=::inlinecrypt_optimized" in fstab.  Since the
 // fstab could contain something else, we have to allow the tests for these
 // encryption policies to be skipped on ext4.
-int FBEPolicyTest::GetSkipFlagsForInoBasedEncryption() {
+int FBEPolicyTestBase::GetSkipFlagsForInoBasedEncryption() {
   if (fs_info_.type == "ext4") return kSkipIfNoPolicySupport;
   return 0;
 }
 
-int FBEPolicyTest::GetSkipFlagsForDataUnitSize(int data_unit_size) {
+int FBEPolicyTestBase::GetSkipFlagsForDataUnitSize(int data_unit_size) {
   // The log2_data_unit_size field in struct fscrypt_policy_v2 is only supported
-  // by the android14-5.15 and later kernels.
+  // by the android14-5.15 and later kernels.  Moreover, log2_data_unit_size !=
+  // 0 isn't yet compatible with FSCRYPT_POLICY_FLAG_IV_INO_LBLK_32.
   if (data_unit_size != 0) return kSkipIfNoPolicySupport;
   return 0;
 }
@@ -698,9 +714,10 @@ int FBEPolicyTest::GetSkipFlagsForDataUnitSize(int data_unit_size) {
 // the kernel doesn't support setting or using the encryption policy, then a
 // failure will be added, unless the reason is covered by a bit set in
 // |skip_flags|.
-bool FBEPolicyTest::SetEncryptionPolicy(int contents_mode, int filenames_mode,
-                                        int data_unit_size, int flags,
-                                        int skip_flags) {
+bool FBEPolicyTestBase::SetEncryptionPolicy(int contents_mode,
+                                            int filenames_mode,
+                                            int data_unit_size, int flags,
+                                            int skip_flags) {
   if (!key_added_) {
     ADD_FAILURE() << "SetEncryptionPolicy called but no key added";
     return false;
@@ -789,7 +806,7 @@ bool FBEPolicyTest::SetEncryptionPolicy(int contents_mode, int filenames_mode,
 // Generates some test data, writes it to a file in the test directory, and
 // returns in |info| the file's plaintext, the file's raw ciphertext read from
 // disk, and other information about the file.
-bool FBEPolicyTest::GenerateTestFile(
+bool FBEPolicyTestBase::GenerateTestFile(
     TestFileInfo *info, const struct f2fs_comp_option *compress_options) {
   info->plaintext.resize(kTestFileSize);
   RandomBytesForTesting(info->plaintext);
@@ -844,7 +861,7 @@ static bool DeriveKey(const StorageKey &storage_key,
 
 // Derives the key identifier from |storage_key| and verifies that it matches
 // the value the kernel returned in |master_key_specifier_|.
-bool FBEPolicyTest::VerifyKeyIdentifier(const StorageKey &storage_key) {
+bool FBEPolicyTestBase::VerifyKeyIdentifier(const StorageKey &storage_key) {
   std::vector<uint8_t> hkdf_info = InitHkdfInfo(HKDF_CONTEXT_KEY_IDENTIFIER);
   std::vector<uint8_t> computed_key_identifier(FSCRYPT_KEY_IDENTIFIER_SIZE);
   if (!DeriveKey(storage_key, hkdf_info, computed_key_identifier)) return false;
@@ -858,10 +875,9 @@ bool FBEPolicyTest::VerifyKeyIdentifier(const StorageKey &storage_key) {
 
 // Derives a per-mode encryption key from |storage_key|, |mode|, |context|, and
 // (if needed for the context) the filesystem UUID.
-bool FBEPolicyTest::DerivePerModeEncryptionKey(const StorageKey &storage_key,
-                                               int mode,
-                                               FscryptHkdfContext context,
-                                               std::vector<uint8_t> &enc_key) {
+bool FBEPolicyTestBase::DerivePerModeEncryptionKey(
+    const StorageKey &storage_key, int mode, FscryptHkdfContext context,
+    std::vector<uint8_t> &enc_key) {
   std::vector<uint8_t> hkdf_info = InitHkdfInfo(context);
 
   hkdf_info.push_back(mode);
@@ -874,9 +890,9 @@ bool FBEPolicyTest::DerivePerModeEncryptionKey(const StorageKey &storage_key,
 }
 
 // Derives a per-file encryption key from |storage_key| and |nonce|.
-bool FBEPolicyTest::DerivePerFileEncryptionKey(const StorageKey &storage_key,
-                                               const FscryptFileNonce &nonce,
-                                               std::vector<uint8_t> &enc_key) {
+bool FBEPolicyTestBase::DerivePerFileEncryptionKey(
+    const StorageKey &storage_key, const FscryptFileNonce &nonce,
+    std::vector<uint8_t> &enc_key) {
   std::vector<uint8_t> hkdf_info = InitHkdfInfo(HKDF_CONTEXT_PER_FILE_ENC_KEY);
 
   hkdf_info.insert(hkdf_info.end(), nonce.bytes, std::end(nonce.bytes));
@@ -917,11 +933,11 @@ static bool HashInodeNumber(const StorageKey &storage_key,
   return true;
 }
 
-void FBEPolicyTest::VerifyCiphertext(const std::vector<uint8_t> &enc_key,
-                                     const FscryptIV &starting_iv,
-                                     const Cipher &cipher,
-                                     const TestFileInfo &file_info,
-                                     int data_unit_size) {
+void FBEPolicyTestBase::VerifyCiphertext(const std::vector<uint8_t> &enc_key,
+                                         const FscryptIV &starting_iv,
+                                         const Cipher &cipher,
+                                         const TestFileInfo &file_info,
+                                         int data_unit_size) {
   const std::vector<uint8_t> &plaintext = file_info.plaintext;
 
   if (data_unit_size == 0) {
@@ -982,7 +998,7 @@ static bool InitIVForInoLblk32(const StorageKey &storage_key,
   return true;
 }
 
-void FBEPolicyTest::TestAesPerFileKeysPolicy(int data_unit_size) {
+void FBEPolicyTestBase::TestAesPerFileKeysPolicy(int data_unit_size) {
   if (skip_test_) return;
 
   StorageKey storage_key;
@@ -1016,81 +1032,47 @@ TEST_F(FBEPolicyTest, TestAesPerFileKeysPolicy_4KDataUnitSize) {
   TestAesPerFileKeysPolicy(4096);
 }
 
-void FBEPolicyTest::TestAesInlineCryptOptimizedPolicy(int data_unit_size) {
+// Tests a policy matching
+// "fileencryption=aes-256-xts:aes-256-cts:v2+inlinecrypt_optimized" (or simply
+// "fileencryption=::inlinecrypt_optimized" on devices launched with R or
+// higher), possibly with additional flags as specified by the parameters.
+TEST_P(FBEPolicyParameterizedTest, TestAesInlineCryptOptimizedPolicy) {
   if (skip_test_) return;
+  const auto [key_type, data_unit_size] = GetParam();
 
   StorageKey storage_key;
-  ASSERT_TRUE(GenerateAndAddStorageKey(KeyType::kRaw, &storage_key));
+  if (!GenerateAndAddStorageKey(key_type, &storage_key)) return;
+
+  int skip_flags = GetSkipFlagsForInoBasedEncryption() |
+                   GetSkipFlagsForDataUnitSize(data_unit_size);
+  if (key_type != KeyType::kRaw) {
+    // The inline encryption hardware might not support the needed 64-bit DUNs
+    // or the requested data_unit_size.
+    skip_flags |= kSkipIfInlineEncryptionNotUsable;
+  }
 
   if (!SetEncryptionPolicy(FSCRYPT_MODE_AES_256_XTS, FSCRYPT_MODE_AES_256_CTS,
                            data_unit_size, FSCRYPT_POLICY_FLAG_IV_INO_LBLK_64,
-                           GetSkipFlagsForInoBasedEncryption() |
-                               GetSkipFlagsForDataUnitSize(data_unit_size)))
+                           skip_flags))
     return;
 
   TestFileInfo file_info;
   ASSERT_TRUE(GenerateTestFile(&file_info));
 
-  std::vector<uint8_t> enc_key(kAes256XtsKeySize);
-  ASSERT_TRUE(DerivePerModeEncryptionKey(storage_key, FSCRYPT_MODE_AES_256_XTS,
-                                         HKDF_CONTEXT_IV_INO_LBLK_64_KEY,
-                                         enc_key));
+  // Get the key with which the file contents should actually be encrypted.
+  std::vector<uint8_t> enc_key;
+  if (key_type == KeyType::kRaw) {
+    enc_key.resize(kAes256XtsKeySize);
+    ASSERT_TRUE(
+        DerivePerModeEncryptionKey(storage_key, FSCRYPT_MODE_AES_256_XTS,
+                                   HKDF_CONTEXT_IV_INO_LBLK_64_KEY, enc_key));
+  } else {
+    enc_key = storage_key.inline_encryption_key;
+  }
 
   FscryptIV iv;
   ASSERT_TRUE(InitIVForInoLblk64(file_info.inode_number, &iv));
   VerifyCiphertext(enc_key, iv, Aes256XtsCipher(), file_info, data_unit_size);
-}
-
-// Tests a policy matching
-// "fileencryption=aes-256-xts:aes-256-cts:v2+inlinecrypt_optimized"
-// (or simply "fileencryption=::inlinecrypt_optimized" on devices launched with
-// R or higher)
-TEST_F(FBEPolicyTest, TestAesInlineCryptOptimizedPolicy_DefaultDataUnitSize) {
-  TestAesInlineCryptOptimizedPolicy(0);
-}
-
-// Same as above, but adds the dusize_4k option.
-TEST_F(FBEPolicyTest, TestAesInlineCryptOptimizedPolicy_4KDataUnitSize) {
-  TestAesInlineCryptOptimizedPolicy(4096);
-}
-
-void FBEPolicyTest::TestAesInlineCryptOptimizedHwWrappedKeyPolicy(
-    int data_unit_size) {
-  if (skip_test_) return;
-
-  StorageKey storage_key;
-  if (!GenerateAndAddStorageKey(KeyType::kHwWrappedV0, &storage_key)) return;
-
-  if (!SetEncryptionPolicy(FSCRYPT_MODE_AES_256_XTS, FSCRYPT_MODE_AES_256_CTS,
-                           data_unit_size, FSCRYPT_POLICY_FLAG_IV_INO_LBLK_64,
-                           // 64-bit DUN support is not guaranteed.
-                           kSkipIfInlineEncryptionNotUsable |
-                               GetSkipFlagsForInoBasedEncryption() |
-                               GetSkipFlagsForDataUnitSize(data_unit_size)))
-    return;
-
-  TestFileInfo file_info;
-  ASSERT_TRUE(GenerateTestFile(&file_info));
-
-  FscryptIV iv;
-  ASSERT_TRUE(InitIVForInoLblk64(file_info.inode_number, &iv));
-  VerifyCiphertext(storage_key.inline_encryption_key, iv, Aes256XtsCipher(),
-                   file_info, data_unit_size);
-}
-
-// Tests a policy matching
-// "fileencryption=aes-256-xts:aes-256-cts:v2+inlinecrypt_optimized+wrappedkey_v0"
-// (or simply "fileencryption=::inlinecrypt_optimized+wrappedkey_v0" on devices
-// launched with R or higher)
-TEST_F(FBEPolicyTest,
-       TestAesInlineCryptOptimizedHwWrappedKeyPolicy_DefaultDataUnitSize) {
-  TestAesInlineCryptOptimizedHwWrappedKeyPolicy(0);
-}
-
-// Same as above, but adds the dusize_4k option.
-TEST_F(FBEPolicyTest,
-       TestAesInlineCryptOptimizedHwWrappedKeyPolicy_4KDataUnitSize) {
-  TestAesInlineCryptOptimizedHwWrappedKeyPolicy(4096);
 }
 
 // With IV_INO_LBLK_32, the DUN (IV) can wrap from UINT32_MAX to 0 in the middle
@@ -1099,7 +1081,7 @@ TEST_F(FBEPolicyTest,
 // that test_dir_ has already been set up with an IV_INO_LBLK_32 policy.
 //
 // Assumes that the data unit size and filesystem block size are the same.
-void FBEPolicyTest::TestEmmcOptimizedDunWraparound(
+void FBEPolicyParameterizedTest::TestEmmcOptimizedDunWraparound(
     const StorageKey &storage_key, const std::vector<uint8_t> &enc_key) {
   // We'll test writing 'block_count' filesystem blocks.  The first
   // 'block_count_1' blocks will have DUNs [..., UINT32_MAX - 1, UINT32_MAX].
@@ -1184,68 +1166,53 @@ void FBEPolicyTest::TestEmmcOptimizedDunWraparound(
 
 // Tests a policy matching
 // "fileencryption=aes-256-xts:aes-256-cts:v2+emmc_optimized" (or simply
-// "fileencryption=::emmc_optimized" on devices launched with R or higher)
-//
-// Note: we do not test emmc_optimized+dusize_4k, since the kernel does not
-// support this combination yet.
-TEST_F(FBEPolicyTest, TestAesEmmcOptimizedPolicy) {
+// "fileencryption=::emmc_optimized" on devices launched with R or higher),
+// possibly with additional flags as specified by the parameters.
+TEST_P(FBEPolicyParameterizedTest, TestAesEmmcOptimizedPolicy) {
   if (skip_test_) return;
+  const auto [key_type, data_unit_size] = GetParam();
 
   StorageKey storage_key;
-  ASSERT_TRUE(GenerateAndAddStorageKey(KeyType::kRaw, &storage_key));
+  if (!GenerateAndAddStorageKey(key_type, &storage_key)) return;
 
+  int skip_flags = GetSkipFlagsForInoBasedEncryption() |
+                   GetSkipFlagsForDataUnitSize(data_unit_size);
+  if (key_type != KeyType::kRaw) {
+    // The inline encryption hardware might not support the requested
+    // data_unit_size.  The kernel also has additional restrictions on when
+    // inline encryption is supported in combination with
+    // FSCRYPT_POLICY_FLAG_IV_INO_LBLK_32.
+    skip_flags |= kSkipIfInlineEncryptionNotUsable;
+  }
   if (!SetEncryptionPolicy(FSCRYPT_MODE_AES_256_XTS, FSCRYPT_MODE_AES_256_CTS,
-                           0, FSCRYPT_POLICY_FLAG_IV_INO_LBLK_32,
-                           GetSkipFlagsForInoBasedEncryption()))
+                           data_unit_size, FSCRYPT_POLICY_FLAG_IV_INO_LBLK_32,
+                           skip_flags))
     return;
 
   TestFileInfo file_info;
   ASSERT_TRUE(GenerateTestFile(&file_info));
 
-  std::vector<uint8_t> enc_key(kAes256XtsKeySize);
-  ASSERT_TRUE(DerivePerModeEncryptionKey(storage_key, FSCRYPT_MODE_AES_256_XTS,
-                                         HKDF_CONTEXT_IV_INO_LBLK_32_KEY,
-                                         enc_key));
+  // Get the key with which the file contents should actually be encrypted.
+  std::vector<uint8_t> enc_key;
+  if (key_type == KeyType::kRaw) {
+    enc_key.resize(kAes256XtsKeySize);
+    ASSERT_TRUE(
+        DerivePerModeEncryptionKey(storage_key, FSCRYPT_MODE_AES_256_XTS,
+                                   HKDF_CONTEXT_IV_INO_LBLK_32_KEY, enc_key));
+  } else {
+    enc_key = storage_key.inline_encryption_key;
+  }
 
   FscryptIV iv;
   ASSERT_TRUE(InitIVForInoLblk32(storage_key, file_info.inode_number, &iv));
-  VerifyCiphertext(enc_key, iv, Aes256XtsCipher(), file_info, 0);
+  VerifyCiphertext(enc_key, iv, Aes256XtsCipher(), file_info, data_unit_size);
 
-  TestEmmcOptimizedDunWraparound(storage_key, enc_key);
+  if (data_unit_size == 0 || data_unit_size == fs_info_.block_size) {
+    TestEmmcOptimizedDunWraparound(storage_key, enc_key);
+  }
 }
 
-// Tests a policy matching
-// "fileencryption=aes-256-xts:aes-256-cts:v2+emmc_optimized+wrappedkey_v0"
-// (or simply "fileencryption=::emmc_optimized+wrappedkey_v0" on devices
-// launched with R or higher)
-//
-// Note: we do not test emmc_optimized+dusize_4k, since the kernel does not
-// support this combination yet.
-TEST_F(FBEPolicyTest, TestAesEmmcOptimizedHwWrappedKeyPolicy) {
-  if (skip_test_) return;
-
-  StorageKey storage_key;
-  if (!GenerateAndAddStorageKey(KeyType::kHwWrappedV0, &storage_key)) return;
-
-  if (!SetEncryptionPolicy(FSCRYPT_MODE_AES_256_XTS, FSCRYPT_MODE_AES_256_CTS,
-                           0, FSCRYPT_POLICY_FLAG_IV_INO_LBLK_32,
-                           kSkipIfInlineEncryptionNotUsable |
-                               GetSkipFlagsForInoBasedEncryption()))
-    return;
-
-  TestFileInfo file_info;
-  ASSERT_TRUE(GenerateTestFile(&file_info));
-
-  FscryptIV iv;
-  ASSERT_TRUE(InitIVForInoLblk32(storage_key, file_info.inode_number, &iv));
-  VerifyCiphertext(storage_key.inline_encryption_key, iv, Aes256XtsCipher(),
-                   file_info, 0);
-
-  TestEmmcOptimizedDunWraparound(storage_key,
-                                 storage_key.inline_encryption_key);
-}
-
-void FBEPolicyTest::TestAdiantumPolicy(int data_unit_size) {
+void FBEPolicyTestBase::TestAdiantumPolicy(int data_unit_size) {
   if (skip_test_) return;
 
   StorageKey storage_key;
@@ -1301,7 +1268,7 @@ TEST_F(FBEPolicyTest, TestHwWrappedKeyCorruption) {
   }
 }
 
-bool FBEPolicyTest::EnableF2fsCompressionOnTestDir() {
+bool FBEPolicyTestBase::EnableF2fsCompressionOnTestDir() {
   android::base::unique_fd fd(open(test_dir_.c_str(), O_RDONLY | O_CLOEXEC));
   if (fd < 0) {
     ADD_FAILURE() << "Failed to open " << test_dir_ << Errno();
@@ -1344,7 +1311,7 @@ static std::string F2fsCompressAlgorithmName(int algorithm) {
   }
 }
 
-bool FBEPolicyTest::F2fsCompressOptionsSupported(
+bool FBEPolicyTestBase::F2fsCompressOptionsSupported(
     const struct f2fs_comp_option &opts) {
   android::base::unique_fd fd(
       open(test_file_.c_str(), O_WRONLY | O_CREAT, 0600));
@@ -1627,6 +1594,23 @@ TEST(FBETest, TestUserDirectoryPolicies) {
     EXPECT_EQ(key, user0_de_key) << dir << " must be encrypted with DE key";
   }
 }
+
+// Instantiate all FBEPolicyParameterizedTest cases with each possible
+// combination of KeyType and data_unit_size, in order to cover each possible
+// combination of the corresponding fileencryption flags.
+INSTANTIATE_TEST_SUITE_P(
+    , FBEPolicyParameterizedTest,
+    ::testing::Combine(
+        ::testing::Values(KeyType::kRaw,
+                          /* flag: wrappedkey_v0 */ KeyType::kHwWrappedV0),
+        ::testing::Values(0, /* flag: dusize_4k */ 4096)),
+    [](const ::testing::TestParamInfo<std::tuple<KeyType, int>> &info) {
+      KeyType key_type = std::get<0>(info.param);
+      int data_unit_size = std::get<1>(info.param);
+      std::ostringstream o;
+      o << key_type << "_" << data_unit_size;
+      return o.str();
+    });
 
 }  // namespace kernel
 }  // namespace android
