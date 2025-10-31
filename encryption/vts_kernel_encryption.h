@@ -18,6 +18,7 @@
 #include <gtest/gtest.h>
 #include <stdint.h>
 
+#include <ostream>
 #include <string>
 #include <vector>
 
@@ -93,8 +94,6 @@ void DeleteRecursively(const std::string &path);
 
 void RandomBytesForTesting(std::vector<uint8_t> &bytes);
 
-std::vector<uint8_t> GenerateTestKey(size_t size);
-
 std::string BytesToHex(const std::vector<uint8_t> &bytes);
 
 template <size_t N>
@@ -138,13 +137,41 @@ bool GetFilesystemInfo(const std::string &mountpoint, FilesystemInfo *info);
 
 bool VerifyDataRandomness(const std::vector<uint8_t> &bytes);
 
-bool CreateHwWrappedKey(std::vector<uint8_t> *master_key,
-                        std::vector<uint8_t> *exported_key);
+enum class KeyType {
+  // Raw key.
+  kRaw,
+  // Legacy hardware-wrapped key, corresponding to "wrappedkey_v0" in fstab
+  kHwWrappedV0,
+};
 
-bool DeriveHwWrappedEncryptionKey(const std::vector<uint8_t> &master_key,
-                                  std::vector<uint8_t> *enc_key);
+std::ostream &operator<<(std::ostream &os, KeyType key_type);
 
-bool DeriveHwWrappedRawSecret(const std::vector<uint8_t> &master_key,
-                              std::vector<uint8_t> *secret);
+// A test key for file-based encryption or metadata encryption
+struct StorageKey {
+  // The type of the key
+  KeyType type;
+
+  // The bytes that should be added to the kernel to encrypt data using this
+  // key.  For a raw key, this is just the raw key.  For a HW-wrapped key, this
+  // is the ephemerally-wrapped key.
+  std::vector<uint8_t> kernel_key;
+
+  // The key with which data on-disk is actually encrypted (except when using
+  // fscrypt with a raw key).  For a raw key, this is just the raw key.  For a
+  // HW-wrapped key, this is a subkey that is derived from the raw class key.
+  //
+  // Note: in the case of fscrypt with a raw key, the data on-disk is actually
+  // encrypted with a subkey derived from the raw key.  So, this field doesn't
+  // directly apply in that case.
+  std::vector<uint8_t> inline_encryption_key;
+
+  // The HKDF-SHA512 key from which any needed subkeys associated with this key
+  // are derived by the kernel.  For a raw key, this is just the raw key.  For a
+  // HW-wrapped key, this is another subkey derived from the raw class key.
+  std::vector<uint8_t> sw_secret;
+};
+
+bool GenerateStorageKey(KeyType type, size_t size, StorageKey *key);
+
 }  // namespace kernel
 }  // namespace android

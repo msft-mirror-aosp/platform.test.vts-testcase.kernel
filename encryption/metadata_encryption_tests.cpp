@@ -254,11 +254,12 @@ void DmDefaultKeyTest::DoTest(const std::string &cipher_string,
                               const Cipher &cipher) {
   if (skip_test_) return;
 
-  std::vector<uint8_t> key = GenerateTestKey(cipher.keysize());
+  StorageKey key;
+  ASSERT_TRUE(GenerateStorageKey(KeyType::kRaw, cipher.keysize(), &key));
 
-  if (!CreateTestDevice(cipher_string, key, false)) return;
+  if (!CreateTestDevice(cipher_string, key.kernel_key, false)) return;
 
-  VerifyDecryption(key, cipher);
+  VerifyDecryption(key.inline_encryption_key, cipher);
 }
 
 // Tests dm-default-key parameters matching metadata_encryption=aes-256-xts.
@@ -276,15 +277,12 @@ TEST_F(DmDefaultKeyTest, TestAdiantum) {
 TEST_F(DmDefaultKeyTest, TestHwWrappedKey) {
   if (skip_test_) return;
 
-  std::vector<uint8_t> master_key, exported_key;
-  if (!CreateHwWrappedKey(&master_key, &exported_key)) return;
+  StorageKey key;
+  if (!GenerateStorageKey(KeyType::kHwWrappedV0, /* unused */ 0, &key)) return;
 
-  if (!CreateTestDevice("aes-xts-plain64", exported_key, true)) return;
+  if (!CreateTestDevice("aes-xts-plain64", key.kernel_key, true)) return;
 
-  std::vector<uint8_t> enc_key;
-  ASSERT_TRUE(DeriveHwWrappedEncryptionKey(master_key, &enc_key));
-
-  VerifyDecryption(enc_key, Aes256XtsCipher());
+  VerifyDecryption(key.inline_encryption_key, Aes256XtsCipher());
 }
 
 // Tests that if the device uses metadata encryption, then the first filesystem

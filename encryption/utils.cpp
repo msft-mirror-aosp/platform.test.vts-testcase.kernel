@@ -255,7 +255,7 @@ void RandomBytesForTesting(std::vector<uint8_t> &bytes) {
 }
 
 // Generates a "random" key.  Not secure; this is for testing only.
-std::vector<uint8_t> GenerateTestKey(size_t size) {
+static std::vector<uint8_t> RandomRawKey(size_t size) {
   std::vector<uint8_t> key(size);
   RandomBytesForTesting(key);
   return key;
@@ -576,9 +576,9 @@ static bool TryPrepareHwWrappedKey(Keystore &keystore,
   return false;
 }
 
-bool CreateHwWrappedKey(std::vector<uint8_t> *master_key,
-                        std::vector<uint8_t> *exported_key) {
-  *master_key = GenerateTestKey(kHwWrappedKeySize);
+static bool CreateHwWrappedKey(std::vector<uint8_t> *master_key,
+                               std::vector<uint8_t> *exported_key) {
+  *master_key = RandomRawKey(kHwWrappedKeySize);
 
   Keystore keystore;
   if (!keystore) {
@@ -684,8 +684,8 @@ static bool DeriveHwWrappedEncryptionKeyByKdfId(
                           enc_key);
 }
 
-bool DeriveHwWrappedEncryptionKey(const std::vector<uint8_t> &master_key,
-                                  std::vector<uint8_t> *enc_key) {
+static bool DeriveHwWrappedEncryptionKey(const std::vector<uint8_t> &master_key,
+                                         std::vector<uint8_t> *enc_key) {
   KdfVariant kdf_id;
   if (!GetKdfVariantId(&kdf_id)) {
     return false;
@@ -703,13 +703,49 @@ static bool DeriveHwWrappedRawSecretByKdfId(
                           secret);
 }
 
-bool DeriveHwWrappedRawSecret(const std::vector<uint8_t> &master_key,
-                              std::vector<uint8_t> *secret) {
+static bool DeriveHwWrappedRawSecret(const std::vector<uint8_t> &master_key,
+                                     std::vector<uint8_t> *secret) {
   KdfVariant kdf_id;
   if (!GetKdfVariantId(&kdf_id)) {
     return false;
   }
   return DeriveHwWrappedRawSecretByKdfId(kdf_id, master_key, secret);
+}
+
+std::ostream &operator<<(std::ostream &os, KeyType key_type) {
+  switch (key_type) {
+    case KeyType::kRaw:
+      return os << "kRaw";
+    case KeyType::kHwWrappedV0:
+      return os << "kHwWrappedV0";
+  }
+  return os << "unknown";
+}
+
+// Generates a storage key of the given type and size.  The size is used only
+// for raw keys.  Returns true if successful or false if unsuccessful.  Adds a
+// gtest failure if unsuccessful, unless generating a hardware-wrapped key was
+// requested and the device does not support it.  In that case, a skip message
+// is printed instead (and false is returned).
+bool GenerateStorageKey(KeyType type, size_t size, StorageKey *key) {
+  key->type = type;
+  if (type == KeyType::kRaw) {
+    key->kernel_key = RandomRawKey(size);
+    key->inline_encryption_key = key->kernel_key;
+    key->sw_secret = key->kernel_key;
+    return true;
+  }
+  std::vector<uint8_t> raw_class_key;
+  if (type == KeyType::kHwWrappedV0) {
+    if (!CreateHwWrappedKey(&raw_class_key, &key->kernel_key)) return false;
+  } else {
+    ADD_FAILURE() << "Unknown KeyType: " << type;
+    return false;
+  }
+  if (!DeriveHwWrappedEncryptionKey(raw_class_key, &key->inline_encryption_key))
+    return false;
+  if (!DeriveHwWrappedRawSecret(raw_class_key, &key->sw_secret)) return false;
+  return true;
 }
 
 TEST(UtilsTest, TestKdfVariants) {

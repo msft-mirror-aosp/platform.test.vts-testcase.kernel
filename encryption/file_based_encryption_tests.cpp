@@ -521,10 +521,8 @@ class FBEPolicyTest : public ::testing::Test {
  protected:
   void SetUp() override;
   void TearDown() override;
-  bool SetMasterKey(const std::vector<uint8_t> &master_key, uint32_t flags = 0,
-                    bool required = true);
-  bool CreateAndSetHwWrappedKey(std::vector<uint8_t> *enc_key,
-                                std::vector<uint8_t> *sw_secret);
+  bool AddStorageKey(const StorageKey &key, bool required);
+  bool GenerateAndAddStorageKey(KeyType type, StorageKey *key);
   int GetSkipFlagsForInoBasedEncryption();
   int GetSkipFlagsForDataUnitSize(int data_unit_size);
   bool SetEncryptionPolicy(int contents_mode, int filenames_mode,
@@ -532,17 +530,17 @@ class FBEPolicyTest : public ::testing::Test {
   bool GenerateTestFile(
       TestFileInfo *info,
       const struct f2fs_comp_option *compress_options = nullptr);
-  bool VerifyKeyIdentifier(const std::vector<uint8_t> &master_key);
-  bool DerivePerModeEncryptionKey(const std::vector<uint8_t> &master_key,
-                                  int mode, FscryptHkdfContext context,
+  bool VerifyKeyIdentifier(const StorageKey &storage_key);
+  bool DerivePerModeEncryptionKey(const StorageKey &storage_key, int mode,
+                                  FscryptHkdfContext context,
                                   std::vector<uint8_t> &enc_key);
-  bool DerivePerFileEncryptionKey(const std::vector<uint8_t> &master_key,
+  bool DerivePerFileEncryptionKey(const StorageKey &storage_key,
                                   const FscryptFileNonce &nonce,
                                   std::vector<uint8_t> &enc_key);
   void VerifyCiphertext(const std::vector<uint8_t> &enc_key,
                         const FscryptIV &starting_iv, const Cipher &cipher,
                         const TestFileInfo &file_info, int data_unit_size);
-  void TestEmmcOptimizedDunWraparound(const std::vector<uint8_t> &master_key,
+  void TestEmmcOptimizedDunWraparound(const StorageKey &storage_key,
                                       const std::vector<uint8_t> &enc_key);
   void TestAesPerFileKeysPolicy(int data_unit_size);
   void TestAesInlineCryptOptimizedPolicy(int data_unit_size);
@@ -608,22 +606,30 @@ void FBEPolicyTest::TearDown() {
   }
 }
 
-// Adds |master_key| to kTestMountpoint and places the resulting key identifier
-// in master_key_specifier_.
-bool FBEPolicyTest::SetMasterKey(const std::vector<uint8_t> &master_key,
-                                 uint32_t flags, bool required) {
-  size_t allocsize = sizeof(struct fscrypt_add_key_arg) + master_key.size();
+// Adds |key| to the filesystem mounted on kTestMountpoint.  Places the
+// resulting key identifier in master_key_specifier_.  Returns true if
+// successful or false if unsuccessful.  Adds a gtest failure if unsuccessful,
+// unless required=false and the error is due to FS_IOC_ADD_ENCRYPTION_KEY
+// failing with EINVAL or EOPNOTSUPP.
+bool FBEPolicyTest::AddStorageKey(const StorageKey &key, bool required) {
+  size_t allocsize = sizeof(struct fscrypt_add_key_arg) + key.kernel_key.size();
   std::unique_ptr<struct fscrypt_add_key_arg> arg(
       new (::operator new(allocsize)) struct fscrypt_add_key_arg);
   memset(arg.get(), 0, allocsize);
   arg->key_spec.type = FSCRYPT_KEY_SPEC_TYPE_IDENTIFIER;
-  arg->__flags = flags;
-  arg->raw_size = master_key.size();
-  std::copy(master_key.begin(), master_key.end(), arg->raw);
+  switch (key.type) {
+    case KeyType::kRaw:
+      break;
+    case KeyType::kHwWrappedV0:
+      arg->__flags |= __FSCRYPT_ADD_KEY_FLAG_HW_WRAPPED;
+      break;
+  }
+  arg->raw_size = key.kernel_key.size();
+  std::copy(key.kernel_key.begin(), key.kernel_key.end(), arg->raw);
 
-  GTEST_LOG_(INFO) << "Adding fscrypt master key, flags are 0x" << std::hex
-                   << flags << std::dec << ", raw bytes are "
-                   << BytesToHex(master_key);
+  GTEST_LOG_(INFO) << "Adding fscrypt key, flags are 0x" << std::hex
+                   << arg->__flags << std::dec << ", raw bytes are "
+                   << BytesToHex(key.kernel_key);
   android::base::unique_fd mntfd(
       open(kTestMountpoint, O_RDONLY | O_DIRECTORY | O_CLOEXEC));
   if (mntfd < 0) {
@@ -641,34 +647,21 @@ bool FBEPolicyTest::SetMasterKey(const std::vector<uint8_t> &master_key,
   GTEST_LOG_(INFO) << "Master key identifier is "
                    << BytesToHex(master_key_specifier_.u.identifier);
   key_added_ = true;
-  if (!(flags & __FSCRYPT_ADD_KEY_FLAG_HW_WRAPPED) &&
-      !VerifyKeyIdentifier(master_key))
-    return false;
   return true;
 }
 
-// Creates a hardware-wrapped key, adds it to the filesystem, and derives the
-// corresponding inline encryption key |enc_key| and software secret
-// |sw_secret|.  Returns false if unsuccessful (either the test failed, or the
-// device doesn't support hardware-wrapped keys so the test should be skipped).
-bool FBEPolicyTest::CreateAndSetHwWrappedKey(std::vector<uint8_t> *enc_key,
-                                             std::vector<uint8_t> *sw_secret) {
-  std::vector<uint8_t> master_key, exported_key;
-  if (!CreateHwWrappedKey(&master_key, &exported_key)) return false;
-
-  if (!SetMasterKey(exported_key, __FSCRYPT_ADD_KEY_FLAG_HW_WRAPPED, false)) {
-    if (!HasFailure()) {
+// Generates a new key of the given type, adds it to the filesystem mounted on
+// kTestMountpoint, and verifies the resulting key identifier.
+bool FBEPolicyTest::GenerateAndAddStorageKey(KeyType type, StorageKey *key) {
+  if (!GenerateStorageKey(type, kFscryptMasterKeySize, key)) return false;
+  if (!AddStorageKey(*key, type == KeyType::kRaw)) {
+    if (!HasFailure()) {  // This implies type != KeyType::kRaw
       GTEST_LOG_(INFO) << "Skipping test because kernel doesn't support "
                           "hardware-wrapped keys";
     }
     return false;
   }
-
-  if (!DeriveHwWrappedEncryptionKey(master_key, enc_key)) return false;
-  if (!DeriveHwWrappedRawSecret(master_key, sw_secret)) return false;
-
-  if (!VerifyKeyIdentifier(*sw_secret)) return false;
-
+  if (!VerifyKeyIdentifier(*key)) return false;
   return true;
 }
 
@@ -835,11 +828,11 @@ static std::vector<uint8_t> InitHkdfInfo(FscryptHkdfContext context) {
       'f', 's', 'c', 'r', 'y', 'p', 't', '\0', static_cast<uint8_t>(context)};
 }
 
-static bool DeriveKey(const std::vector<uint8_t> &master_key,
+static bool DeriveKey(const StorageKey &storage_key,
                       const std::vector<uint8_t> &hkdf_info,
                       std::vector<uint8_t> &out) {
-  if (HKDF(out.data(), out.size(), EVP_sha512(), master_key.data(),
-           master_key.size(), nullptr, 0, hkdf_info.data(),
+  if (HKDF(out.data(), out.size(), EVP_sha512(), storage_key.sw_secret.data(),
+           storage_key.sw_secret.size(), nullptr, 0, hkdf_info.data(),
            hkdf_info.size()) != 1) {
     ADD_FAILURE() << "BoringSSL HKDF-SHA512 call failed";
     return false;
@@ -849,13 +842,12 @@ static bool DeriveKey(const std::vector<uint8_t> &master_key,
   return true;
 }
 
-// Derives the key identifier from |master_key| and verifies that it matches the
-// value the kernel returned in |master_key_specifier_|.
-bool FBEPolicyTest::VerifyKeyIdentifier(
-    const std::vector<uint8_t> &master_key) {
+// Derives the key identifier from |storage_key| and verifies that it matches
+// the value the kernel returned in |master_key_specifier_|.
+bool FBEPolicyTest::VerifyKeyIdentifier(const StorageKey &storage_key) {
   std::vector<uint8_t> hkdf_info = InitHkdfInfo(HKDF_CONTEXT_KEY_IDENTIFIER);
   std::vector<uint8_t> computed_key_identifier(FSCRYPT_KEY_IDENTIFIER_SIZE);
-  if (!DeriveKey(master_key, hkdf_info, computed_key_identifier)) return false;
+  if (!DeriveKey(storage_key, hkdf_info, computed_key_identifier)) return false;
 
   std::vector<uint8_t> actual_key_identifier(
       std::begin(master_key_specifier_.u.identifier),
@@ -864,11 +856,12 @@ bool FBEPolicyTest::VerifyKeyIdentifier(
   return actual_key_identifier == computed_key_identifier;
 }
 
-// Derives a per-mode encryption key from |master_key|, |mode|, |context|, and
+// Derives a per-mode encryption key from |storage_key|, |mode|, |context|, and
 // (if needed for the context) the filesystem UUID.
-bool FBEPolicyTest::DerivePerModeEncryptionKey(
-    const std::vector<uint8_t> &master_key, int mode,
-    FscryptHkdfContext context, std::vector<uint8_t> &enc_key) {
+bool FBEPolicyTest::DerivePerModeEncryptionKey(const StorageKey &storage_key,
+                                               int mode,
+                                               FscryptHkdfContext context,
+                                               std::vector<uint8_t> &enc_key) {
   std::vector<uint8_t> hkdf_info = InitHkdfInfo(context);
 
   hkdf_info.push_back(mode);
@@ -877,23 +870,23 @@ bool FBEPolicyTest::DerivePerModeEncryptionKey(
     hkdf_info.insert(hkdf_info.end(), fs_info_.uuid.bytes,
                      std::end(fs_info_.uuid.bytes));
 
-  return DeriveKey(master_key, hkdf_info, enc_key);
+  return DeriveKey(storage_key, hkdf_info, enc_key);
 }
 
-// Derives a per-file encryption key from |master_key| and |nonce|.
-bool FBEPolicyTest::DerivePerFileEncryptionKey(
-    const std::vector<uint8_t> &master_key, const FscryptFileNonce &nonce,
-    std::vector<uint8_t> &enc_key) {
+// Derives a per-file encryption key from |storage_key| and |nonce|.
+bool FBEPolicyTest::DerivePerFileEncryptionKey(const StorageKey &storage_key,
+                                               const FscryptFileNonce &nonce,
+                                               std::vector<uint8_t> &enc_key) {
   std::vector<uint8_t> hkdf_info = InitHkdfInfo(HKDF_CONTEXT_PER_FILE_ENC_KEY);
 
   hkdf_info.insert(hkdf_info.end(), nonce.bytes, std::end(nonce.bytes));
 
-  return DeriveKey(master_key, hkdf_info, enc_key);
+  return DeriveKey(storage_key, hkdf_info, enc_key);
 }
 
 // For IV_INO_LBLK_32: Hashes the |inode_number| using the SipHash key derived
-// from |master_key|.  Returns the resulting hash in |hash|.
-static bool HashInodeNumber(const std::vector<uint8_t> &master_key,
+// from |storage_key|.  Returns the resulting hash in |hash|.
+static bool HashInodeNumber(const StorageKey &storage_key,
                             uint64_t inode_number, uint32_t *hash) {
   union {
     uint64_t words[2];
@@ -906,7 +899,7 @@ static bool HashInodeNumber(const std::vector<uint8_t> &master_key,
 
   std::vector<uint8_t> hkdf_info = InitHkdfInfo(HKDF_CONTEXT_INODE_HASH_KEY);
   std::vector<uint8_t> ino_hash_key(sizeof(siphash_key));
-  if (!DeriveKey(master_key, hkdf_info, ino_hash_key)) return false;
+  if (!DeriveKey(storage_key, hkdf_info, ino_hash_key)) return false;
 
   memcpy(&siphash_key, &ino_hash_key[0], sizeof(siphash_key));
   siphash_key.words[0] = __le64_to_cpu(siphash_key.le_words[0]);
@@ -980,10 +973,10 @@ static bool InitIVForInoLblk64(uint64_t inode_number, FscryptIV *iv) {
   return true;
 }
 
-static bool InitIVForInoLblk32(const std::vector<uint8_t> &master_key,
+static bool InitIVForInoLblk32(const StorageKey &storage_key,
                                uint64_t inode_number, FscryptIV *iv) {
   uint32_t hash;
-  if (!HashInodeNumber(master_key, inode_number, &hash)) return false;
+  if (!HashInodeNumber(storage_key, inode_number, &hash)) return false;
   memset(iv, 0, kFscryptMaxIVSize);
   iv->du_index = __cpu_to_le32(hash);
   return true;
@@ -992,8 +985,8 @@ static bool InitIVForInoLblk32(const std::vector<uint8_t> &master_key,
 void FBEPolicyTest::TestAesPerFileKeysPolicy(int data_unit_size) {
   if (skip_test_) return;
 
-  auto master_key = GenerateTestKey(kFscryptMasterKeySize);
-  ASSERT_TRUE(SetMasterKey(master_key));
+  StorageKey storage_key;
+  ASSERT_TRUE(GenerateAndAddStorageKey(KeyType::kRaw, &storage_key));
 
   if (!SetEncryptionPolicy(FSCRYPT_MODE_AES_256_XTS, FSCRYPT_MODE_AES_256_CTS,
                            data_unit_size, 0,
@@ -1004,7 +997,8 @@ void FBEPolicyTest::TestAesPerFileKeysPolicy(int data_unit_size) {
   ASSERT_TRUE(GenerateTestFile(&file_info));
 
   std::vector<uint8_t> enc_key(kAes256XtsKeySize);
-  ASSERT_TRUE(DerivePerFileEncryptionKey(master_key, file_info.nonce, enc_key));
+  ASSERT_TRUE(
+      DerivePerFileEncryptionKey(storage_key, file_info.nonce, enc_key));
 
   FscryptIV iv;
   ASSERT_TRUE(InitIVForPerFileKey(&iv));
@@ -1025,8 +1019,8 @@ TEST_F(FBEPolicyTest, TestAesPerFileKeysPolicy_4KDataUnitSize) {
 void FBEPolicyTest::TestAesInlineCryptOptimizedPolicy(int data_unit_size) {
   if (skip_test_) return;
 
-  auto master_key = GenerateTestKey(kFscryptMasterKeySize);
-  ASSERT_TRUE(SetMasterKey(master_key));
+  StorageKey storage_key;
+  ASSERT_TRUE(GenerateAndAddStorageKey(KeyType::kRaw, &storage_key));
 
   if (!SetEncryptionPolicy(FSCRYPT_MODE_AES_256_XTS, FSCRYPT_MODE_AES_256_CTS,
                            data_unit_size, FSCRYPT_POLICY_FLAG_IV_INO_LBLK_64,
@@ -1038,7 +1032,7 @@ void FBEPolicyTest::TestAesInlineCryptOptimizedPolicy(int data_unit_size) {
   ASSERT_TRUE(GenerateTestFile(&file_info));
 
   std::vector<uint8_t> enc_key(kAes256XtsKeySize);
-  ASSERT_TRUE(DerivePerModeEncryptionKey(master_key, FSCRYPT_MODE_AES_256_XTS,
+  ASSERT_TRUE(DerivePerModeEncryptionKey(storage_key, FSCRYPT_MODE_AES_256_XTS,
                                          HKDF_CONTEXT_IV_INO_LBLK_64_KEY,
                                          enc_key));
 
@@ -1064,8 +1058,8 @@ void FBEPolicyTest::TestAesInlineCryptOptimizedHwWrappedKeyPolicy(
     int data_unit_size) {
   if (skip_test_) return;
 
-  std::vector<uint8_t> enc_key, sw_secret;
-  if (!CreateAndSetHwWrappedKey(&enc_key, &sw_secret)) return;
+  StorageKey storage_key;
+  if (!GenerateAndAddStorageKey(KeyType::kHwWrappedV0, &storage_key)) return;
 
   if (!SetEncryptionPolicy(FSCRYPT_MODE_AES_256_XTS, FSCRYPT_MODE_AES_256_CTS,
                            data_unit_size, FSCRYPT_POLICY_FLAG_IV_INO_LBLK_64,
@@ -1080,7 +1074,8 @@ void FBEPolicyTest::TestAesInlineCryptOptimizedHwWrappedKeyPolicy(
 
   FscryptIV iv;
   ASSERT_TRUE(InitIVForInoLblk64(file_info.inode_number, &iv));
-  VerifyCiphertext(enc_key, iv, Aes256XtsCipher(), file_info, data_unit_size);
+  VerifyCiphertext(storage_key.inline_encryption_key, iv, Aes256XtsCipher(),
+                   file_info, data_unit_size);
 }
 
 // Tests a policy matching
@@ -1105,8 +1100,7 @@ TEST_F(FBEPolicyTest,
 //
 // Assumes that the data unit size and filesystem block size are the same.
 void FBEPolicyTest::TestEmmcOptimizedDunWraparound(
-    const std::vector<uint8_t> &master_key,
-    const std::vector<uint8_t> &enc_key) {
+    const StorageKey &storage_key, const std::vector<uint8_t> &enc_key) {
   // We'll test writing 'block_count' filesystem blocks.  The first
   // 'block_count_1' blocks will have DUNs [..., UINT32_MAX - 1, UINT32_MAX].
   // The remaining 'block_count_2' blocks will have DUNs [0, 1, ...].
@@ -1139,7 +1133,7 @@ void FBEPolicyTest::TestEmmcOptimizedDunWraparound(
 
     ASSERT_TRUE(GetInodeNumber(path, &file_info.inode_number));
     uint32_t hash;
-    ASSERT_TRUE(HashInodeNumber(master_key, file_info.inode_number, &hash));
+    ASSERT_TRUE(HashInodeNumber(storage_key, file_info.inode_number, &hash));
     // Negating the hash gives the distance to DUN 0, and hence the 0-based
     // logical block number of the block which has DUN 0.
     lblk_with_dun_0 = -hash;
@@ -1197,8 +1191,8 @@ void FBEPolicyTest::TestEmmcOptimizedDunWraparound(
 TEST_F(FBEPolicyTest, TestAesEmmcOptimizedPolicy) {
   if (skip_test_) return;
 
-  auto master_key = GenerateTestKey(kFscryptMasterKeySize);
-  ASSERT_TRUE(SetMasterKey(master_key));
+  StorageKey storage_key;
+  ASSERT_TRUE(GenerateAndAddStorageKey(KeyType::kRaw, &storage_key));
 
   if (!SetEncryptionPolicy(FSCRYPT_MODE_AES_256_XTS, FSCRYPT_MODE_AES_256_CTS,
                            0, FSCRYPT_POLICY_FLAG_IV_INO_LBLK_32,
@@ -1209,15 +1203,15 @@ TEST_F(FBEPolicyTest, TestAesEmmcOptimizedPolicy) {
   ASSERT_TRUE(GenerateTestFile(&file_info));
 
   std::vector<uint8_t> enc_key(kAes256XtsKeySize);
-  ASSERT_TRUE(DerivePerModeEncryptionKey(master_key, FSCRYPT_MODE_AES_256_XTS,
+  ASSERT_TRUE(DerivePerModeEncryptionKey(storage_key, FSCRYPT_MODE_AES_256_XTS,
                                          HKDF_CONTEXT_IV_INO_LBLK_32_KEY,
                                          enc_key));
 
   FscryptIV iv;
-  ASSERT_TRUE(InitIVForInoLblk32(master_key, file_info.inode_number, &iv));
+  ASSERT_TRUE(InitIVForInoLblk32(storage_key, file_info.inode_number, &iv));
   VerifyCiphertext(enc_key, iv, Aes256XtsCipher(), file_info, 0);
 
-  TestEmmcOptimizedDunWraparound(master_key, enc_key);
+  TestEmmcOptimizedDunWraparound(storage_key, enc_key);
 }
 
 // Tests a policy matching
@@ -1230,8 +1224,8 @@ TEST_F(FBEPolicyTest, TestAesEmmcOptimizedPolicy) {
 TEST_F(FBEPolicyTest, TestAesEmmcOptimizedHwWrappedKeyPolicy) {
   if (skip_test_) return;
 
-  std::vector<uint8_t> enc_key, sw_secret;
-  if (!CreateAndSetHwWrappedKey(&enc_key, &sw_secret)) return;
+  StorageKey storage_key;
+  if (!GenerateAndAddStorageKey(KeyType::kHwWrappedV0, &storage_key)) return;
 
   if (!SetEncryptionPolicy(FSCRYPT_MODE_AES_256_XTS, FSCRYPT_MODE_AES_256_CTS,
                            0, FSCRYPT_POLICY_FLAG_IV_INO_LBLK_32,
@@ -1243,17 +1237,19 @@ TEST_F(FBEPolicyTest, TestAesEmmcOptimizedHwWrappedKeyPolicy) {
   ASSERT_TRUE(GenerateTestFile(&file_info));
 
   FscryptIV iv;
-  ASSERT_TRUE(InitIVForInoLblk32(sw_secret, file_info.inode_number, &iv));
-  VerifyCiphertext(enc_key, iv, Aes256XtsCipher(), file_info, 0);
+  ASSERT_TRUE(InitIVForInoLblk32(storage_key, file_info.inode_number, &iv));
+  VerifyCiphertext(storage_key.inline_encryption_key, iv, Aes256XtsCipher(),
+                   file_info, 0);
 
-  TestEmmcOptimizedDunWraparound(sw_secret, enc_key);
+  TestEmmcOptimizedDunWraparound(storage_key,
+                                 storage_key.inline_encryption_key);
 }
 
 void FBEPolicyTest::TestAdiantumPolicy(int data_unit_size) {
   if (skip_test_) return;
 
-  auto master_key = GenerateTestKey(kFscryptMasterKeySize);
-  ASSERT_TRUE(SetMasterKey(master_key));
+  StorageKey storage_key;
+  ASSERT_TRUE(GenerateAndAddStorageKey(KeyType::kRaw, &storage_key));
 
   // Adiantum support isn't required (since CONFIG_CRYPTO_ADIANTUM can be unset
   // in the kernel config), so we may skip the test here.
@@ -1270,7 +1266,7 @@ void FBEPolicyTest::TestAdiantumPolicy(int data_unit_size) {
   ASSERT_TRUE(GenerateTestFile(&file_info));
 
   std::vector<uint8_t> enc_key(kAdiantumKeySize);
-  ASSERT_TRUE(DerivePerModeEncryptionKey(master_key, FSCRYPT_MODE_ADIANTUM,
+  ASSERT_TRUE(DerivePerModeEncryptionKey(storage_key, FSCRYPT_MODE_ADIANTUM,
                                          HKDF_CONTEXT_DIRECT_KEY, enc_key));
 
   FscryptIV iv;
@@ -1294,14 +1290,14 @@ TEST_F(FBEPolicyTest, TestAdiantumPolicy_4KDataUnitSize) {
 TEST_F(FBEPolicyTest, TestHwWrappedKeyCorruption) {
   if (skip_test_) return;
 
-  std::vector<uint8_t> master_key, exported_key;
-  if (!CreateHwWrappedKey(&master_key, &exported_key)) return;
+  StorageKey storage_key;
+  if (!GenerateStorageKey(KeyType::kHwWrappedV0, /* unused */ 0, &storage_key))
+    return;
 
-  for (int i = 0; i < exported_key.size(); i++) {
-    std::vector<uint8_t> corrupt_key(exported_key.begin(), exported_key.end());
-    corrupt_key[i] = ~corrupt_key[i];
-    ASSERT_FALSE(
-        SetMasterKey(corrupt_key, __FSCRYPT_ADD_KEY_FLAG_HW_WRAPPED, false));
+  for (int i = 0; i < storage_key.kernel_key.size(); i++) {
+    StorageKey corrupt_key = storage_key;
+    corrupt_key.kernel_key[i] = ~corrupt_key.kernel_key[i];
+    ASSERT_FALSE(AddStorageKey(corrupt_key, false));
   }
 }
 
@@ -1436,8 +1432,8 @@ TEST_F(FBEPolicyTest, DISABLED_TestF2fsCompression) {
   // If compression is not supported, skip the test.  Use the default encryption
   // settings, which should always be supported.
   if (!EnableF2fsCompressionOnTestDir()) return;
-  auto master_key = GenerateTestKey(kFscryptMasterKeySize);
-  ASSERT_TRUE(SetMasterKey(master_key));
+  StorageKey storage_key;
+  ASSERT_TRUE(GenerateAndAddStorageKey(KeyType::kRaw, &storage_key));
   ASSERT_TRUE(SetEncryptionPolicy(FSCRYPT_MODE_AES_256_XTS,
                                   FSCRYPT_MODE_AES_256_CTS, 0, 0, 0));
 
@@ -1466,7 +1462,8 @@ TEST_F(FBEPolicyTest, DISABLED_TestF2fsCompression) {
 
   GTEST_LOG_(INFO) << "Decrypting the blocks of the compressed file";
   std::vector<uint8_t> enc_key(kAes256XtsKeySize);
-  ASSERT_TRUE(DerivePerFileEncryptionKey(master_key, file_info.nonce, enc_key));
+  ASSERT_TRUE(
+      DerivePerFileEncryptionKey(storage_key, file_info.nonce, enc_key));
   std::vector<uint8_t> decrypted_data(kTestFileSize);
   FscryptIV iv;
   memset(&iv, 0, sizeof(iv));
