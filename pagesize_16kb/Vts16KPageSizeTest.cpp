@@ -278,14 +278,20 @@ TEST_F(Vts16KPageSizeTest, PackageManagerDisableBackCompat) {
  * is true
  */
 TEST_F(Vts16KPageSizeTest, DeviceOption16KBEnabled) {
+    int productPageSize = ProductPageSize();
+    if (productPageSize == 16384) {
+        GTEST_SKIP() << "Developer option for 16 KB page size is required for devices booting with "
+                        "4 KB page size!";
+    }
+
     if (!IsDeviceArm64()) {
         GTEST_SKIP()
-                << "Device option for 16 KB page size is required for devices running on arm64!";
+                << "Developer option for 16 KB page size is required for devices running on arm64!";
     }
 
     int board_api_level = BoardApiLevel();
     if (board_api_level < 202604) {
-        GTEST_SKIP() << "Device option for 16 KB page size is not required for board api level "
+        GTEST_SKIP() << "Developer option for 16 KB page size is not required for board api level "
                      << board_api_level;
     }
 
