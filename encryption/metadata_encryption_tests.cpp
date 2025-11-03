@@ -36,8 +36,9 @@
 // The correctness tests cover the following settings:
 //
 //    metadata_encryption=aes-256-xts
-//    metadata_encryption=adiantum
 //    metadata_encryption=aes-256-xts:wrappedkey_v0
+//    metadata_encryption=aes-256-xts:wrappedkey
+//    metadata_encryption=adiantum
 //
 // The tests don't check which one of those settings, if any, the device is
 // actually using; they just try to test everything they can.

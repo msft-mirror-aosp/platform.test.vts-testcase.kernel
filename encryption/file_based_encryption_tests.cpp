@@ -30,23 +30,22 @@
 //    fileencryption=aes-256-xts:aes-256-cts:v2+inlinecrypt_optimized+dusize_4k
 //    fileencryption=aes-256-xts:aes-256-cts:v2+inlinecrypt_optimized+wrappedkey_v0
 //    fileencryption=aes-256-xts:aes-256-cts:v2+inlinecrypt_optimized+wrappedkey_v0+dusize_4k
+//    fileencryption=aes-256-xts:aes-256-cts:v2+inlinecrypt_optimized+wrappedkey
+//    fileencryption=aes-256-xts:aes-256-cts:v2+inlinecrypt_optimized+wrappedkey+dusize_4k
 //    fileencryption=aes-256-xts:aes-256-cts:v2+emmc_optimized
+//    fileencryption=aes-256-xts:aes-256-cts:v2+emmc_optimized+dusize_4k
 //    fileencryption=aes-256-xts:aes-256-cts:v2+emmc_optimized+wrappedkey_v0
+//    fileencryption=aes-256-xts:aes-256-cts:v2+emmc_optimized+wrappedkey_v0+dusize_4k
+//    fileencryption=aes-256-xts:aes-256-cts:v2+emmc_optimized+wrappedkey
+//    fileencryption=aes-256-xts:aes-256-cts:v2+emmc_optimized+wrappedkey+dusize_4k
 //    fileencryption=adiantum:adiantum:v2
 //    fileencryption=adiantum:adiantum:v2+dusize_4k
 //
-// On devices launching with R or higher those are equivalent to simply:
-//
-//    fileencryption=
-//    fileencryption=::dusize_4k
-//    fileencryption=::inlinecrypt_optimized
-//    fileencryption=::inlinecrypt_optimized+dusize_4k
-//    fileencryption=::inlinecrypt_optimized+wrappedkey_v0
-//    fileencryption=::inlinecrypt_optimized+wrappedkey_v0+dusize_4k
-//    fileencryption=::emmc_optimized
-//    fileencryption=::emmc_optimized+wrappedkey_v0
-//    fileencryption=adiantum
-//    fileencryption=adiantum+dusize_4k
+// Note that on devices launching with R or higher, these strings can be
+// abbreviated by omitting default values.  For example,
+// fileencryption=aes-256-xts:aes-256-cts:v2+inlinecrypt_optimized can be
+// shortened to just fileencryption=::inlinecrypt_optimized.  See
+// https://source.android.com/docs/security/features/encryption/file-based#enabling-file-based-encryption
 //
 // The tests don't check which one of those settings, if any, the device is
 // actually using; they just try to test everything they can.
