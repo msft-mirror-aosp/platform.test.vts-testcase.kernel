@@ -578,8 +578,8 @@ void FBEPolicyTestBase::SetUpBase() {
   if (!IsFscryptV2Supported(kTestMountpoint)) {
     int first_api_level;
     ASSERT_TRUE(GetFirstApiLevel(&first_api_level));
-    // Devices launching with R or higher must support fscrypt v2.
-    ASSERT_LE(first_api_level, __ANDROID_API_Q__);
+    ASSERT_LE(first_api_level, __ANDROID_API_Q__)
+        << "Devices launching with R or higher must support fscrypt v2";
     GTEST_LOG_(INFO) << "Skipping test because fscrypt v2 is unsupported";
     skip_test_ = true;
     return;

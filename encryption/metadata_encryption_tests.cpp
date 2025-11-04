@@ -160,8 +160,8 @@ void DmDefaultKeyTest::SetUp() {
   if (!IsDmDefaultKeyV2Supported(*dm_)) {
     int first_api_level;
     ASSERT_TRUE(GetFirstApiLevel(&first_api_level));
-    // Devices launching with R or higher must support dm-default-key v2.
-    ASSERT_LE(first_api_level, __ANDROID_API_Q__);
+    ASSERT_LE(first_api_level, __ANDROID_API_Q__)
+        << "Devices launching with R or higher must support dm-default-key v2";
     GTEST_LOG_(INFO)
         << "Skipping test because dm-default-key v2 is unsupported";
     skip_test_ = true;
