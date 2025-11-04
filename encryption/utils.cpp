@@ -628,7 +628,14 @@ static bool ImportAndPrepareHwWrappedKey(
         .lt_key_size = lt_key.size(),
     };
     if (ioctl(fd, BLKCRYPTOIMPORTKEY, &arg) != 0) {
-      if (errno == EOPNOTSUPP || errno == ENOTTY) {
+      // EOPNOTSUPP: kernel knows about BLKCRYPTOIMPORTKEY, but the storage
+      //             device and/or driver doesn't support it
+      // ENOTTY: kernel doesn't know about BLKCRYPTOIMPORTKEY and disk is not a
+      //         SCSI disk, or inline crypto support entirely disabled in kernel
+      // EINVAL: kernel doesn't know about BLKCRYPTOIMPORTKEY and disk is a SCSI
+      //         disk.  (Should be ENOTTY, but the SCSI driver doesn't use the
+      //         correct error code.)
+      if (errno == EOPNOTSUPP || errno == ENOTTY || errno == EINVAL) {
         // It's fine for hardware-wrapped keys to be unsupported, but if
         // BLKCRYPTOGENERATEKEY is supported then BLKCRYPTOIMPORTKEY must be
         // supported as well.  Here, BLKCRYPTOIMPORTKEY is unsupported.  So
@@ -640,7 +647,7 @@ static bool ImportAndPrepareHwWrappedKey(
         if (ioctl(fd, BLKCRYPTOGENERATEKEY, &arg) == 0) {
           ADD_FAILURE()
               << "BLKCRYPTOGENERATEKEY succeeded but BLKCRYPTOIMPORTKEY failed";
-        } else if (errno == EOPNOTSUPP || errno == ENOTTY) {
+        } else if (errno == EOPNOTSUPP || errno == ENOTTY || errno == EINVAL) {
           GTEST_LOG_(INFO) << "Skipping test because device doesn't support "
                               "hardware-wrapped keys";
           // No failure.  The test case will be skipped.
