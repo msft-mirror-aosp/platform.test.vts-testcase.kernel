@@ -28,7 +28,6 @@
 #include <ext4_utils/ext4.h>
 #include <ext4_utils/ext4_sb.h>
 #include <ext4_utils/ext4_utils.h>
-#include <fstab/fstab.h>
 #include <gtest/gtest.h>
 #include <libdm/dm.h>
 #include <linux/blk-crypto.h>
@@ -599,22 +598,13 @@ constexpr size_t BLK_CRYPTO_MAX_HW_WRAPPED_KEY_SIZE = 128;
 
 static bool ImportAndPrepareHwWrappedKey(
     const std::vector<uint8_t> &raw_class_key,
-    std::vector<uint8_t> *kernel_key) {
+    const std::string &raw_blk_device, std::vector<uint8_t> *kernel_key) {
   // Open the main block device for userdata.
-  android::fs_mgr::Fstab fstab;
-  if (!android::fs_mgr::ReadDefaultFstab(&fstab)) {
-    ADD_FAILURE() << "Failed to read default fstab";
-    return false;
-  }
-  const fs_mgr::FstabEntry *entry = GetEntryForMountPoint(&fstab, "/data");
-  if (entry == nullptr) {
-    ADD_FAILURE() << "Failed to find fstab entry for /data";
-    return false;
-  }
   android::base::unique_fd fd(
-      open(entry->blk_device.c_str(), O_RDONLY | O_CLOEXEC));
+      open(raw_blk_device.c_str(), O_RDONLY | O_CLOEXEC));
   if (fd == -1) {
-    ADD_FAILURE() << "Failed to open " << entry->blk_device << Errno();
+    ADD_FAILURE() << "Failed to open raw block device " << raw_blk_device
+                  << Errno();
     return false;
   }
 
@@ -787,7 +777,8 @@ std::ostream &operator<<(std::ostream &os, KeyType key_type) {
 // gtest failure if unsuccessful, unless generating a hardware-wrapped key was
 // requested and the device does not support it.  In that case, a skip message
 // is printed instead (and false is returned).
-bool GenerateStorageKey(KeyType type, size_t size, StorageKey *key) {
+bool GenerateStorageKey(KeyType type, const std::string &raw_blk_device,
+                        size_t size, StorageKey *key) {
   key->type = type;
   if (type == KeyType::kRaw) {
     key->kernel_key = RandomRawKey(size);
@@ -800,7 +791,8 @@ bool GenerateStorageKey(KeyType type, size_t size, StorageKey *key) {
     if (!ImportAndPrepareHwWrappedV0Key(raw_class_key, &key->kernel_key))
       return false;
   } else if (type == KeyType::kHwWrapped) {
-    if (!ImportAndPrepareHwWrappedKey(raw_class_key, &key->kernel_key))
+    if (!ImportAndPrepareHwWrappedKey(raw_class_key, raw_blk_device,
+                                      &key->kernel_key))
       return false;
   } else {
     ADD_FAILURE() << "Unknown KeyType: " << type;

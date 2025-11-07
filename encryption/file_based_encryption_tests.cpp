@@ -674,7 +674,12 @@ bool FBEPolicyTestBase::AddStorageKey(const StorageKey &key, bool required) {
 // kTestMountpoint, and verifies the resulting key identifier.
 bool FBEPolicyTestBase::GenerateAndAddStorageKey(KeyType type,
                                                  StorageKey *key) {
-  if (!GenerateStorageKey(type, kFscryptMasterKeySize, key)) return false;
+  // Use disk_map[0] for the raw_blk_device to which the blk-crypto ioctls are
+  // targeted, since hardware-wrapped keys are assumed to be compatible between
+  // all the block devices comprising the userdata filesystem.
+  if (!GenerateStorageKey(type, fs_info_.disk_map[0].raw_blk_device,
+                          kFscryptMasterKeySize, key))
+    return false;
   if (!AddStorageKey(*key, type == KeyType::kRaw)) {
     if (!::testing::Test::HasFailure()) {  // This implies type != KeyType::kRaw
       GTEST_LOG_(INFO) << "Skipping test because kernel doesn't support "
@@ -1270,7 +1275,9 @@ void FBEPolicyTest::DoTestHwWrappedKeyCorruption(KeyType key_type) {
   if (skip_test_) return;
 
   StorageKey storage_key;
-  if (!GenerateStorageKey(key_type, /* unused */ 0, &storage_key)) return;
+  if (!GenerateStorageKey(key_type, fs_info_.disk_map[0].raw_blk_device,
+                          /* unused */ 0, &storage_key))
+    return;
 
   for (int i = 0; i < storage_key.kernel_key.size(); i++) {
     StorageKey corrupt_key = storage_key;

@@ -173,7 +173,8 @@ struct StorageKey {
   std::vector<uint8_t> sw_secret;
 };
 
-bool GenerateStorageKey(KeyType type, size_t size, StorageKey *key);
+bool GenerateStorageKey(KeyType type, const std::string &raw_blk_device,
+                        size_t size, StorageKey *key);
 
 }  // namespace kernel
 }  // namespace android
