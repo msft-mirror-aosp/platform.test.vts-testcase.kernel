@@ -27,6 +27,9 @@ using ::android::elfutils::ElfFile;
 
 class Vts16KPageSizeTest : public ::testing::Test {
   protected:
+    // Android API level that the vendor partition (vendor image) currently conforms to. (previously
+    // numbered in same style as Android API level but now it says that if the device's currently
+    // installed vendor software is modern enough to meet the YYYYMM requirements)
     static int VendorApiLevel() {
         // "ro.vendor.api_level" is added in Android T.
         // Undefined indicates S or below
@@ -34,9 +37,11 @@ class Vts16KPageSizeTest : public ::testing::Test {
     }
 
     static int BoardApiLevel() {
-        int api_level = android::base::GetIntProperty("ro.board.first_api_level", 0);
+        int api_level = android::base::GetIntProperty("ro.board.api_level", 0);
         if (api_level == 0) {
-            api_level = android::base::GetIntProperty("ro.board.api_level", 202604);
+            // Vendor API level that a specific chipset (SoC) was first signed on GRF.
+            // This value is missing for non-GRF devices.
+            api_level = android::base::GetIntProperty("ro.board._first_api_level", 202604);
         }
         return api_level;
     }
@@ -289,6 +294,8 @@ TEST_F(Vts16KPageSizeTest, DeviceOption16KBEnabled) {
                 << "Developer option for 16 KB page size is required for devices running on arm64!";
     }
 
+    // Also note the VendorApiLevel() in test setup which requires this entire test suite to run
+    // on ro.vendor.api_level >= 202404.
     int board_api_level = BoardApiLevel();
     if (board_api_level < 202604) {
         GTEST_SKIP() << "Developer option for 16 KB page size is not required for board api level "
