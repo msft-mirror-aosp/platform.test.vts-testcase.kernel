@@ -265,7 +265,8 @@ void DmDefaultKeyTest::DoTest(const std::string &cipher_string,
   if (skip_test_) return;
 
   StorageKey key;
-  if (!GenerateStorageKey(key_type, cipher.keysize(), &key)) return;
+  if (!GenerateStorageKey(key_type, raw_blk_device_, cipher.keysize(), &key))
+    return;
 
   if (!CreateTestDevice(key, cipher_string)) return;
 
