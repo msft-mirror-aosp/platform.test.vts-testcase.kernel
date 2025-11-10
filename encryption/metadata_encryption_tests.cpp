@@ -36,8 +36,9 @@
 // The correctness tests cover the following settings:
 //
 //    metadata_encryption=aes-256-xts
-//    metadata_encryption=adiantum
 //    metadata_encryption=aes-256-xts:wrappedkey_v0
+//    metadata_encryption=aes-256-xts:wrappedkey
+//    metadata_encryption=adiantum
 //
 // The tests don't check which one of those settings, if any, the device is
 // actually using; they just try to test everything they can.
@@ -140,10 +141,10 @@ class DmDefaultKeyTest : public ::testing::Test {
  protected:
   void SetUp() override;
   void TearDown() override;
-  bool CreateTestDevice(const std::string &cipher,
-                        const std::vector<uint8_t> &key, bool is_wrapped_key);
-  void VerifyDecryption(const std::vector<uint8_t> &key, const Cipher &cipher);
-  void DoTest(const std::string &cipher_string, const Cipher &cipher);
+  bool CreateTestDevice(const StorageKey &key, const std::string &cipher);
+  void VerifyDecryption(const StorageKey &key, const Cipher &cipher);
+  void DoTest(const std::string &cipher_string, const Cipher &cipher,
+              KeyType key_type);
   std::string test_dm_device_name_;
   bool skip_test_ = false;
   DeviceMapper *dm_ = nullptr;
@@ -160,8 +161,8 @@ void DmDefaultKeyTest::SetUp() {
   if (!IsDmDefaultKeyV2Supported(*dm_)) {
     int first_api_level;
     ASSERT_TRUE(GetFirstApiLevel(&first_api_level));
-    // Devices launching with R or higher must support dm-default-key v2.
-    ASSERT_LE(first_api_level, __ANDROID_API_Q__);
+    ASSERT_LE(first_api_level, __ANDROID_API_Q__)
+        << "Devices launching with R or higher must support dm-default-key v2";
     GTEST_LOG_(INFO)
         << "Skipping test because dm-default-key v2 is unsupported";
     skip_test_ = true;
@@ -182,16 +183,25 @@ void DmDefaultKeyTest::TearDown() { dm_->DeleteDevice(test_dm_device_name_); }
 // Creates the test dm-default-key mapping using the given key and settings.
 // If the dm device creation fails, then it is assumed the kernel doesn't
 // support the given encryption settings, and a failure is not added.
-bool DmDefaultKeyTest::CreateTestDevice(const std::string &cipher,
-                                        const std::vector<uint8_t> &key,
-                                        bool is_wrapped_key) {
+bool DmDefaultKeyTest::CreateTestDevice(const StorageKey &key,
+                                        const std::string &cipher) {
   static_assert(kTestDataBytes % kDmApiSectorSize == 0);
   std::unique_ptr<DmTargetDefaultKey> target =
-      std::make_unique<DmTargetDefaultKey>(0, kTestDataBytes / kDmApiSectorSize,
-                                           cipher.c_str(), BytesToHex(key),
-                                           raw_blk_device_, 0);
+      std::make_unique<DmTargetDefaultKey>(
+          0, kTestDataBytes / kDmApiSectorSize, cipher.c_str(),
+          BytesToHex(key.kernel_key), raw_blk_device_, 0);
   target->SetSetDun();
-  if (is_wrapped_key) target->SetWrappedKeyV0();
+  switch (key.type) {
+    case KeyType::kRaw:
+      break;
+    case KeyType::kHwWrappedV0:
+    case KeyType::kHwWrapped:
+      // The dm-default-key option "wrappedkey_v0" actually works for both
+      // wrapped key versions.  Eventually a "wrappedkey" alias should be added
+      // and used, but for now just continue using "wrappedkey_v0".
+      target->SetWrappedKeyV0();
+      break;
+  }
 
   DmTable table;
   if (!table.AddTarget(std::move(target))) {
@@ -206,18 +216,18 @@ bool DmDefaultKeyTest::CreateTestDevice(const std::string &cipher,
                          std::chrono::seconds(5))) {
     GTEST_LOG_(INFO) << "Unable to create default-key mapping" << Errno()
                      << ".  Assuming that the encryption settings cipher=\""
-                     << cipher << "\", is_wrapped_key=" << is_wrapped_key
+                     << cipher << "\", key_type=" << key.type
                      << " are unsupported and skipping the test.";
     return false;
   }
   GTEST_LOG_(INFO) << "Created default-key mapping at " << dm_device_path_
                    << " using cipher=\"" << cipher
-                   << "\", key=" << BytesToHex(key)
-                   << ", is_wrapped_key=" << is_wrapped_key;
+                   << "\", kernel_key=" << BytesToHex(key.kernel_key)
+                   << ", key_type=" << key.type;
   return true;
 }
 
-void DmDefaultKeyTest::VerifyDecryption(const std::vector<uint8_t> &key,
+void DmDefaultKeyTest::VerifyDecryption(const StorageKey &key,
                                         const Cipher &cipher) {
   std::vector<uint8_t> raw_data;
   std::vector<uint8_t> decrypted_data;
@@ -239,9 +249,9 @@ void DmDefaultKeyTest::VerifyDecryption(const std::vector<uint8_t> &key,
   std::vector<uint8_t> encrypted_data(kTestDataBytes);
   static_assert(kTestDataBytes % kCryptoSectorSize == 0);
   for (size_t i = 0; i < kTestDataBytes; i += kCryptoSectorSize) {
-    ASSERT_TRUE(cipher.Encrypt(key, reinterpret_cast<const uint8_t *>(iv.get()),
-                               &decrypted_data[i], &encrypted_data[i],
-                               kCryptoSectorSize));
+    ASSERT_TRUE(cipher.Encrypt(
+        key.inline_encryption_key, reinterpret_cast<const uint8_t *>(iv.get()),
+        &decrypted_data[i], &encrypted_data[i], kCryptoSectorSize));
 
     // Update the IV by incrementing the crypto sector number.
     *iv = cpu_to_le64(le64_to_cpu(*iv) + 1);
@@ -251,40 +261,38 @@ void DmDefaultKeyTest::VerifyDecryption(const std::vector<uint8_t> &key,
 }
 
 void DmDefaultKeyTest::DoTest(const std::string &cipher_string,
-                              const Cipher &cipher) {
+                              const Cipher &cipher, KeyType key_type) {
   if (skip_test_) return;
 
-  std::vector<uint8_t> key = GenerateTestKey(cipher.keysize());
+  StorageKey key;
+  if (!GenerateStorageKey(key_type, raw_blk_device_, cipher.keysize(), &key))
+    return;
 
-  if (!CreateTestDevice(cipher_string, key, false)) return;
+  if (!CreateTestDevice(key, cipher_string)) return;
 
   VerifyDecryption(key, cipher);
 }
 
 // Tests dm-default-key parameters matching metadata_encryption=aes-256-xts.
 TEST_F(DmDefaultKeyTest, TestAes256Xts) {
-  DoTest("aes-xts-plain64", Aes256XtsCipher());
+  DoTest("aes-xts-plain64", Aes256XtsCipher(), KeyType::kRaw);
 }
 
 // Tests dm-default-key parameters matching metadata_encryption=adiantum.
 TEST_F(DmDefaultKeyTest, TestAdiantum) {
-  DoTest("xchacha12,aes-adiantum-plain64", AdiantumCipher());
+  DoTest("xchacha12,aes-adiantum-plain64", AdiantumCipher(), KeyType::kRaw);
 }
 
 // Tests dm-default-key parameters matching
 // metadata_encryption=aes-256-xts:wrappedkey_v0.
+TEST_F(DmDefaultKeyTest, TestHwWrappedKeyV0) {
+  DoTest("aes-xts-plain64", Aes256XtsCipher(), KeyType::kHwWrappedV0);
+}
+
+// Tests dm-default-key parameters matching
+// metadata_encryption=aes-256-xts:wrappedkey.
 TEST_F(DmDefaultKeyTest, TestHwWrappedKey) {
-  if (skip_test_) return;
-
-  std::vector<uint8_t> master_key, exported_key;
-  if (!CreateHwWrappedKey(&master_key, &exported_key)) return;
-
-  if (!CreateTestDevice("aes-xts-plain64", exported_key, true)) return;
-
-  std::vector<uint8_t> enc_key;
-  ASSERT_TRUE(DeriveHwWrappedEncryptionKey(master_key, &enc_key));
-
-  VerifyDecryption(enc_key, Aes256XtsCipher());
+  DoTest("aes-xts-plain64", Aes256XtsCipher(), KeyType::kHwWrapped);
 }
 
 // Tests that if the device uses metadata encryption, then the first filesystem
