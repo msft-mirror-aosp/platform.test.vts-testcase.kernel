@@ -41,7 +41,7 @@ class Vts16KPageSizeTest : public ::testing::Test {
         if (api_level == 0) {
             // Vendor API level that a specific chipset (SoC) was first signed on GRF.
             // This value is missing for non-GRF devices.
-            api_level = android::base::GetIntProperty("ro.board._first_api_level", 202604);
+            api_level = android::base::GetIntProperty("ro.board.first_api_level", 202604);
         }
         return api_level;
     }
