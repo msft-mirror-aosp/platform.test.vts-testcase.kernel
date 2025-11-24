@@ -74,7 +74,7 @@ class F2fsTest : public testing::Test {
     LoopDevice loop_dev("/data/local/tmp/img", 10s);
     ASSERT_TRUE(loop_dev.valid());
 
-    ASSERT_EQ(mount(loop_dev.device().c_str(), "data/local/tmp/mnt", "f2fs", 0,
+    ASSERT_EQ(mount(loop_dev.device().c_str(), "/data/local/tmp/mnt", "f2fs", 0,
                     "compress_mode=user"),
               0);
     test_data1 = malloc(page_size);
