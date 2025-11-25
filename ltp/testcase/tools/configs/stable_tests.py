@@ -1643,7 +1643,7 @@ STABLE_TESTS = {
     'syscalls.ioctl09_32bit': False,
     'syscalls.ioctl09_64bit': False,
     'syscalls.ioctl10_32bit': True,
-    'syscalls.ioctl10_64bit': True,
+    'syscalls.ioctl10_64bit': False,  # b/463615017
     'syscalls.ioctl_ficlone01_32bit': False,
     'syscalls.ioctl_ficlone01_64bit': False,
     'syscalls.ioctl_ficlone02_32bit': False,
@@ -1723,9 +1723,9 @@ STABLE_TESTS = {
     'syscalls.kill10_32bit': True,
     'syscalls.kill10_64bit': True,
     'syscalls.landlock09_32bit': True,
-    'syscalls.landlock09_64bit': True,
+    'syscalls.landlock09_64bit': False,  # b/463615017
     'syscalls.landlock10_32bit': True,
-    'syscalls.landlock10_64bit': True,
+    'syscalls.landlock10_64bit': False,  # b/463615017
     'syscalls.lchown01_16_32bit': False,
     'syscalls.lchown01_16_64bit': False,
     'syscalls.lchown01_32bit': True,
@@ -1801,7 +1801,7 @@ STABLE_TESTS = {
     'syscalls.lsm_get_self_attr03_32bit': False,  # b/463538548
     'syscalls.lsm_get_self_attr03_64bit': False,  # b/463538548
     'syscalls.lsm_list_modules01_32bit': True,
-    'syscalls.lsm_list_modules01_64bit': True,
+    'syscalls.lsm_list_modules01_64bit': False,  # b/463615017
     'syscalls.lsm_list_modules02_32bit': False,   # b/463538565
     'syscalls.lsm_list_modules02_64bit': False,   # b/463538565
     'syscalls.lsm_set_self_attr01_32bit': False,  # b/463538565
@@ -1983,7 +1983,6 @@ STABLE_TESTS = {
     'syscalls.mount06_32bit': True,
     'syscalls.mount06_64bit': True,
     'syscalls.mount08_32bit': True,
-    'syscalls.mount08_64bit': True,
     'syscalls.mount_setattr01_32bit': False,
     'syscalls.mount_setattr01_64bit': False,
     'syscalls.mount_setattr02_32bit': True,
@@ -2916,7 +2915,7 @@ STABLE_TESTS = {
     'syscalls.statmount08_32bit': False,
     'syscalls.statmount08_64bit': False,
     'syscalls.statmount09_32bit': True,
-    'syscalls.statmount09_64bit': True,
+    'syscalls.statmount09_64bit': False,  # b/463615017
     'syscalls.statvfs01_32bit': False,
     'syscalls.statvfs01_64bit': False,
     'syscalls.statvfs02_32bit': False,
