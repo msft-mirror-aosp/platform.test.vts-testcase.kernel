@@ -93,8 +93,9 @@ class GenericBootImageTest : public testing::Test {
     // device targets, and we don't have any requests to skip this test
     // on x86 / x86_64 as of 2022-06-07.
 
-    int firstApiLevel = std::stoi(android::base::GetProperty("ro.product.first_api_level", "0"));
-    if (isTV() && firstApiLevel <= __ANDROID_API_T__) {
+    int first_api_level =
+        android::base::GetIntProperty("ro.product.first_api_level", 0);
+    if (isTV() && first_api_level <= __ANDROID_API_T__) {
       GTEST_SKIP() << "Skipping on TV devices";
     }
   }
@@ -102,8 +103,6 @@ class GenericBootImageTest : public testing::Test {
 };
 
 TEST_F(GenericBootImageTest, KernelReleaseFormat) {
-  // On "GKI 2.0" with 5.10+ kernels, VTS runs once with the device kernel,
-  // so this test is meaningful.
   if (runtime_info->kernelVersion().dropMinor() < Version{5, 10}) {
     GTEST_SKIP() << "Exempt generic kernel image (GKI) test on kernel "
                  << runtime_info->kernelVersion()
@@ -169,6 +168,10 @@ TEST_F(GenericBootImageTest, GenericRamdisk) {
 
   using std::filesystem::recursive_directory_iterator;
 
+  int first_api_level = android::base::GetIntProperty(
+      "ro.board.first_api_level",
+      android::base::GetIntProperty("ro.vendor.api_level", 1000000));
+
   std::string slot_suffix = GetProperty("ro.boot.slot_suffix", "");
   // Launching devices with T+ using android13+ kernels have the ramdisk in
   // init_boot instead of boot
@@ -183,9 +186,6 @@ TEST_F(GenericBootImageTest, GenericRamdisk) {
   }
   std::string boot_path;
   if (kernel_level >= Level::T) {
-    int first_api_level = android::base::GetIntProperty(
-        "ro.board.first_api_level",
-        android::base::GetIntProperty("ro.vendor.api_level", 1000000));
     if (first_api_level >= __ANDROID_API_T__) {
       boot_path = "/dev/block/by-name/init_boot" + slot_suffix;
     } else {
@@ -227,6 +227,20 @@ TEST_F(GenericBootImageTest, GenericRamdisk) {
       GetRequirementBySdkLevel(sdk_level);
   std::set<std::string> generic_ramdisk_allow_list =
       GetAllowListBySdkLevel(sdk_level);
+
+  // init_boot was considered a system partition since its introduction,
+  // however, many devices accidentally shipped it under vendor freeze. As of
+  // 2025Q4 we are now validating the requirement.
+  if (first_api_level >= 202504) {
+    const auto system_sdk_level =
+        android::base::GetIntProperty("ro.system.build.version.sdk", 0);
+    ASSERT_EQ(sdk_level, system_sdk_level)
+        << "The generic ramdisk must be updated along with the system image "
+           "and be built from the same source code. The current system level "
+           "is "
+        << system_sdk_level << " and the ramdisk was built at level "
+        << sdk_level;
+  }
 
   const bool is_debuggable = GetBoolProperty("ro.debuggable", false);
   if (is_debuggable) {
