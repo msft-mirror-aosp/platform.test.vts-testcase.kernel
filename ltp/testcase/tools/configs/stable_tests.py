@@ -1794,12 +1794,12 @@ STABLE_TESTS = {
     'syscalls.lseek07_64bit': True,
     'syscalls.lseek11_32bit': False,  # b/145105382
     'syscalls.lseek11_64bit': False,  # b/145105382
-    'syscalls.lsm_get_self_attr01_32bit': True,
-    'syscalls.lsm_get_self_attr01_64bit': True,
-    'syscalls.lsm_get_self_attr02_32bit': True,
-    'syscalls.lsm_get_self_attr02_64bit': True,
-    'syscalls.lsm_get_self_attr03_32bit': True,
-    'syscalls.lsm_get_self_attr03_64bit': True,
+    'syscalls.lsm_get_self_attr01_32bit': False,  # b/463538548
+    'syscalls.lsm_get_self_attr01_64bit': False,  # b/463538548
+    'syscalls.lsm_get_self_attr02_32bit': False,  # b/463538548
+    'syscalls.lsm_get_self_attr02_64bit': False,  # b/463538548
+    'syscalls.lsm_get_self_attr03_32bit': False,  # b/463538548
+    'syscalls.lsm_get_self_attr03_64bit': False,  # b/463538548
     'syscalls.lsm_list_modules01_32bit': True,
     'syscalls.lsm_list_modules01_64bit': True,
     'syscalls.lsm_list_modules02_32bit': True,
