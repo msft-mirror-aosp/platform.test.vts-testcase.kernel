@@ -101,6 +101,8 @@ DISABLED_TESTS = {
     'syscalls.splice07_64bit',  # b/328315662
     'syscalls.statx07_32bit',  # b/191236106
     'syscalls.statx07_64bit',  # b/191236106
+    'syscalls.unshare05_32bit',  # b/463541890
+    'syscalls.unshare05_64bit',  # b/463541890
     'syscalls.unlink09_32bit',
     'syscalls.unlink09_64bit',
 }

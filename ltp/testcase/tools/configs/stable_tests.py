@@ -3103,8 +3103,6 @@ STABLE_TESTS = {
     'syscalls.unshare03_64bit': True,
     'syscalls.unshare04_32bit': True,
     'syscalls.unshare04_64bit': True,
-    'syscalls.unshare05_32bit': True,
-    'syscalls.unshare05_64bit': True,
     'syscalls.userfaultfd01_32bit': False,
     'syscalls.userfaultfd01_64bit': False,
     'syscalls.ustat01_32bit': True,
