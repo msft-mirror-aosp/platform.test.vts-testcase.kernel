@@ -1770,8 +1770,8 @@ STABLE_TESTS = {
     'syscalls.listxattr02_64bit': True,
     'syscalls.listxattr03_32bit': True,
     'syscalls.listxattr03_64bit': True,
-    'syscalls.listxattr04_32bit': True,
-    'syscalls.listxattr04_64bit': True,
+    'syscalls.listxattr04_32bit': False,  # b/463534560
+    'syscalls.listxattr04_64bit': False,  # b/463534560
     'syscalls.llistxattr01_32bit': True,
     'syscalls.llistxattr01_64bit': True,
     'syscalls.llistxattr02_32bit': True,
