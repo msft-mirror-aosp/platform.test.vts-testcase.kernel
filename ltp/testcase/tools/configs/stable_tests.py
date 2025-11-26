@@ -1260,14 +1260,14 @@ STABLE_TESTS = {
     'syscalls.fgetxattr01_64bit': True,
     'syscalls.fgetxattr03_32bit': True,
     'syscalls.fgetxattr03_64bit': True,
-    'syscalls.file_attr01_32bit': True,
-    'syscalls.file_attr01_64bit': True,
-    'syscalls.file_attr02_32bit': True,
-    'syscalls.file_attr02_64bit': True,
-    'syscalls.file_attr03_32bit': True,
-    'syscalls.file_attr03_64bit': True,
-    'syscalls.file_attr04_32bit': True,
-    'syscalls.file_attr04_64bit': True,
+    'syscalls.file_attr01_32bit': False,  # b/463800742
+    'syscalls.file_attr01_64bit': False,  # b/463800742
+    'syscalls.file_attr02_32bit': False,  # b/463800742
+    'syscalls.file_attr02_64bit': False,  # b/463800742
+    'syscalls.file_attr03_32bit': False,  # b/463800742
+    'syscalls.file_attr03_64bit': False,  # b/463800742
+    'syscalls.file_attr04_32bit': False,  # b/463800742
+    'syscalls.file_attr04_64bit': False,  # b/463800742
     'syscalls.finit_module01_32bit': False,
     'syscalls.finit_module01_64bit': False,
     'syscalls.finit_module02_32bit': False,
