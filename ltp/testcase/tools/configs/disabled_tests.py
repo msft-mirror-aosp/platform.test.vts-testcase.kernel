@@ -85,6 +85,7 @@ DISABLED_TESTS = {
     'syscalls.mount03_64bit',  # b/275747273
     'syscalls.mount07_32bit',  # b/309808883
     'syscalls.mount07_64bit',  # b/309808883
+    'syscalls.mount08_64bit',  # b/463615017
     'syscalls.mseal01_32bit',  # b/400564968 mseal not supported on 32 bit
     'syscalls.mseal02_32bit',  # b/400564968 mseal not supported on 32 bit
     'syscalls.openat04_32bit',  # b/277806579
@@ -101,6 +102,8 @@ DISABLED_TESTS = {
     'syscalls.splice07_64bit',  # b/328315662
     'syscalls.statx07_32bit',  # b/191236106
     'syscalls.statx07_64bit',  # b/191236106
+    'syscalls.unshare05_32bit',  # b/463541890
+    'syscalls.unshare05_64bit',  # b/463541890
     'syscalls.unlink09_32bit',
     'syscalls.unlink09_64bit',
 }
