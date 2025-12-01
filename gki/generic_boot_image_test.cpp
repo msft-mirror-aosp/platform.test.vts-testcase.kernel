@@ -93,14 +93,13 @@ class GenericBootImageTest : public testing::Test {
     // device targets, and we don't have any requests to skip this test
     // on x86 / x86_64 as of 2022-06-07.
 
-    first_api_level_ = std::stoi(
-        android::base::GetProperty("ro.product.first_api_level", "0"));
-    if (isTV() && first_api_level_ <= __ANDROID_API_T__) {
+    int first_api_level =
+        android::base::GetIntProperty("ro.product.first_api_level", 0);
+    if (isTV() && first_api_level <= __ANDROID_API_T__) {
       GTEST_SKIP() << "Skipping on TV devices";
     }
   }
   std::shared_ptr<const RuntimeInfo> runtime_info;
-  int first_api_level_ = -1;
 };
 
 TEST_F(GenericBootImageTest, KernelReleaseFormat) {
@@ -183,6 +182,10 @@ TEST_F(GenericBootImageTest, GenericRamdisk) {
 
   using std::filesystem::recursive_directory_iterator;
 
+  int first_api_level = android::base::GetIntProperty(
+      "ro.board.first_api_level",
+      android::base::GetIntProperty("ro.vendor.api_level", 1000000));
+
   std::string slot_suffix = GetProperty("ro.boot.slot_suffix", "");
   // Launching devices with T+ using android13+ kernels have the ramdisk in
   // init_boot instead of boot
@@ -192,9 +195,6 @@ TEST_F(GenericBootImageTest, GenericRamdisk) {
   ASSERT_NE(Level::UNSPECIFIED, kernel_level) << error_msg;
   std::string boot_path;
   if (kernel_level >= Level::T) {
-    int first_api_level = android::base::GetIntProperty(
-        "ro.board.first_api_level",
-        android::base::GetIntProperty("ro.vendor.api_level", 1000000));
     if (first_api_level >= __ANDROID_API_T__) {
       boot_path = "/dev/block/by-name/init_boot" + slot_suffix;
     } else {
@@ -239,8 +239,8 @@ TEST_F(GenericBootImageTest, GenericRamdisk) {
 
   // init_boot was considered a system partition since its introduction,
   // however, many devices accidentally shipped it under vendor freeze. As of
-  // 2025Q2 we are now validating the requirement.
-  if (first_api_level_ > __ANDROID_API_V__) {
+  // 2025Q4 we are now validating the requirement.
+  if (first_api_level >= 202504) {
     const auto system_sdk_level =
         android::base::GetIntProperty("ro.system.build.version.sdk", 0);
     ASSERT_EQ(sdk_level, system_sdk_level)
