@@ -1642,7 +1642,7 @@ STABLE_TESTS = {
     'syscalls.ioctl08_64bit': False,
     'syscalls.ioctl09_32bit': False,
     'syscalls.ioctl09_64bit': False,
-    'syscalls.ioctl10_32bit': True,
+    'syscalls.ioctl10_32bit': False,  # b/465347115
     'syscalls.ioctl10_64bit': False,  # b/463615017
     'syscalls.ioctl_ficlone01_32bit': False,
     'syscalls.ioctl_ficlone01_64bit': False,
