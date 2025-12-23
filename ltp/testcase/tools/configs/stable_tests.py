@@ -1800,7 +1800,7 @@ STABLE_TESTS = {
     'syscalls.lsm_get_self_attr02_64bit': False,  # b/463538548
     'syscalls.lsm_get_self_attr03_32bit': False,  # b/463538548
     'syscalls.lsm_get_self_attr03_64bit': False,  # b/463538548
-    'syscalls.lsm_list_modules01_32bit': True,
+    'syscalls.lsm_list_modules01_32bit': False,  # b/469972696
     'syscalls.lsm_list_modules01_64bit': False,  # b/463615017
     'syscalls.lsm_list_modules02_32bit': False,   # b/463538565
     'syscalls.lsm_list_modules02_64bit': False,   # b/463538565
