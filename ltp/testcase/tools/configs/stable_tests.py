@@ -1722,7 +1722,7 @@ STABLE_TESTS = {
     'syscalls.kill08_64bit': True,
     'syscalls.kill10_32bit': True,
     'syscalls.kill10_64bit': True,
-    'syscalls.landlock09_32bit': True,
+    'syscalls.landlock09_32bit': False,  # b/471351608
     'syscalls.landlock09_64bit': False,  # b/463615017
     'syscalls.landlock10_32bit': True,
     'syscalls.landlock10_64bit': False,  # b/463615017
