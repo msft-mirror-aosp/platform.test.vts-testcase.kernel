@@ -2914,7 +2914,7 @@ STABLE_TESTS = {
     'syscalls.statmount07_64bit': False,
     'syscalls.statmount08_32bit': False,
     'syscalls.statmount08_64bit': False,
-    'syscalls.statmount09_32bit': True,
+    'syscalls.statmount09_32bit': False,  # b/471345769
     'syscalls.statmount09_64bit': False,  # b/463615017
     'syscalls.statvfs01_32bit': False,
     'syscalls.statvfs01_64bit': False,
