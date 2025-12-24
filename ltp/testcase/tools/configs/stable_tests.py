@@ -314,7 +314,7 @@ STABLE_TESTS = {
     'cve.cve-2023-1829_32bit': False,
     'cve.cve-2023-1829_64bit': False,
     'cve.cve-2025-38236_32bit': True,
-    'cve.cve-2025-38236_64bit': True,
+    'cve.cve-2025-38236_64bit': False,  # b/471342776
     'dio.dio01_32bit': False,
     'dio.dio01_64bit': False,
     'dio.dio02_32bit': False,
