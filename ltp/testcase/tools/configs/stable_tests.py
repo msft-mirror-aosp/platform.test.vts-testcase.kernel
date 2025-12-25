@@ -314,7 +314,7 @@ STABLE_TESTS = {
     'cve.cve-2023-1829_32bit': False,
     'cve.cve-2023-1829_64bit': False,
     'cve.cve-2025-38236_32bit': True,
-    'cve.cve-2025-38236_64bit': True,
+    'cve.cve-2025-38236_64bit': False,  # b/471342776
     'dio.dio01_32bit': False,
     'dio.dio01_64bit': False,
     'dio.dio02_32bit': False,
@@ -1722,9 +1722,9 @@ STABLE_TESTS = {
     'syscalls.kill08_64bit': True,
     'syscalls.kill10_32bit': True,
     'syscalls.kill10_64bit': True,
-    'syscalls.landlock09_32bit': True,
+    'syscalls.landlock09_32bit': False,  # b/471351608
     'syscalls.landlock09_64bit': False,  # b/463615017
-    'syscalls.landlock10_32bit': True,
+    'syscalls.landlock10_32bit': False,  # b/471354482
     'syscalls.landlock10_64bit': False,  # b/463615017
     'syscalls.lchown01_16_32bit': False,
     'syscalls.lchown01_16_64bit': False,
@@ -1800,7 +1800,7 @@ STABLE_TESTS = {
     'syscalls.lsm_get_self_attr02_64bit': False,  # b/463538548
     'syscalls.lsm_get_self_attr03_32bit': False,  # b/463538548
     'syscalls.lsm_get_self_attr03_64bit': False,  # b/463538548
-    'syscalls.lsm_list_modules01_32bit': True,
+    'syscalls.lsm_list_modules01_32bit': False,  # b/469972696
     'syscalls.lsm_list_modules01_64bit': False,  # b/463615017
     'syscalls.lsm_list_modules02_32bit': False,   # b/463538565
     'syscalls.lsm_list_modules02_64bit': False,   # b/463538565
@@ -1986,7 +1986,7 @@ STABLE_TESTS = {
     'syscalls.mount_setattr01_32bit': False,
     'syscalls.mount_setattr01_64bit': False,
     'syscalls.mount_setattr02_32bit': True,
-    'syscalls.mount_setattr02_64bit': True,
+    'syscalls.mount_setattr02_64bit': False,  # b/471350031
     'syscalls.move_mount03_32bit': False,  # b/436690544
     'syscalls.move_mount03_64bit': False,  # b/436690544
     'syscalls.mprotect01_32bit': True,
@@ -2914,7 +2914,7 @@ STABLE_TESTS = {
     'syscalls.statmount07_64bit': False,
     'syscalls.statmount08_32bit': False,
     'syscalls.statmount08_64bit': False,
-    'syscalls.statmount09_32bit': True,
+    'syscalls.statmount09_32bit': False,  # b/471345769
     'syscalls.statmount09_64bit': False,  # b/463615017
     'syscalls.statvfs01_32bit': False,
     'syscalls.statvfs01_64bit': False,
