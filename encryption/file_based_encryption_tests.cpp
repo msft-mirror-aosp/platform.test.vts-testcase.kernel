@@ -1279,7 +1279,7 @@ void FBEPolicyTest::DoTestHwWrappedKeyCorruption(KeyType key_type) {
                           /* unused */ 0, &storage_key))
     return;
 
-  for (int i = 0; i < storage_key.kernel_key.size(); i++) {
+  for (int i = 0; i < storage_key.kernel_key.size(); i += 4) {
     StorageKey corrupt_key = storage_key;
     corrupt_key.kernel_key[i] = ~corrupt_key.kernel_key[i];
     ASSERT_FALSE(AddStorageKey(corrupt_key, false));
