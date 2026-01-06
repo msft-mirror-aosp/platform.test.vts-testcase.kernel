@@ -2576,7 +2576,7 @@ STABLE_TESTS = {
     'syscalls.set_robust_list01_32bit': True,
     'syscalls.set_robust_list01_64bit': True,
     'syscalls.set_thread_area01_32bit': False,
-    'syscalls.set_thread_area02_32bit': True,
+    'syscalls.set_thread_area02_32bit': False,  # b/464671217
     'syscalls.set_thread_area02_64bit': False,  # b/463541890
     'syscalls.set_tid_address01_32bit': True,
     'syscalls.set_tid_address01_64bit': True,
