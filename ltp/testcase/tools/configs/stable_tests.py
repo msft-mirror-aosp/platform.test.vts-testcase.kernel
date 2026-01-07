@@ -1982,7 +1982,7 @@ STABLE_TESTS = {
     'syscalls.mount05_64bit': True,
     'syscalls.mount06_32bit': True,
     'syscalls.mount06_64bit': True,
-    'syscalls.mount08_32bit': True,
+    'syscalls.mount08_32bit': False,  # b/473909550
     'syscalls.mount_setattr01_32bit': False,
     'syscalls.mount_setattr01_64bit': False,
     'syscalls.mount_setattr02_32bit': True,
