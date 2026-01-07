@@ -313,7 +313,7 @@ STABLE_TESTS = {
     'cve.cve-2022-4378_64bit': False,
     'cve.cve-2023-1829_32bit': False,
     'cve.cve-2023-1829_64bit': False,
-    'cve.cve-2025-38236_32bit': True,
+    'cve.cve-2025-38236_32bit': False,  # b/471342776
     'cve.cve-2025-38236_64bit': False,  # b/471342776
     'dio.dio01_32bit': False,
     'dio.dio01_64bit': False,
@@ -1762,8 +1762,6 @@ STABLE_TESTS = {
     'syscalls.listmount02_64bit': False,
     'syscalls.listmount03_32bit': False,
     'syscalls.listmount03_64bit': False,
-    'syscalls.listmount04_32bit': False,
-    'syscalls.listmount04_64bit': False,
     'syscalls.listxattr01_32bit': True,
     'syscalls.listxattr01_64bit': True,
     'syscalls.listxattr02_32bit': True,
@@ -1982,7 +1980,7 @@ STABLE_TESTS = {
     'syscalls.mount05_64bit': True,
     'syscalls.mount06_32bit': True,
     'syscalls.mount06_64bit': True,
-    'syscalls.mount08_32bit': True,
+    'syscalls.mount08_32bit': False,  # b/473909550
     'syscalls.mount_setattr01_32bit': False,
     'syscalls.mount_setattr01_64bit': False,
     'syscalls.mount_setattr02_32bit': True,
