@@ -17,9 +17,7 @@
 #include <chrono>
 #include <cstdint>
 #include <format>
-#include <limits>
 #include <regex>
-#include <sstream>
 
 #include <android-base/file.h>
 #include <android-base/parseint.h>
@@ -107,6 +105,12 @@ bool EolEnforcementTest::isReleaseEol(std::string_view date_string) const {
 TEST_F(EolEnforcementTest, KernelNotEol) {
   ASSERT_GE(runtime_info->kernelVersion().dropMinor(), (Version{4, 14}))
       << "Kernel versions below 4.14 are EOL";
+
+  if (runtime_info->kernelVersion().dropMinor() < Version{5, 10}) {
+    GTEST_LOG_(WARNING) << "Devices 4.19 and 5.4 kernels are beyond EOL, "
+                           "vulnerable and are not supported by Google.";
+    GTEST_SKIP() << "EOL is not enforced on on kernels below 5.10.";
+  }
 
   std::string kernel_lifetimes_content;
   ASSERT_TRUE(android::base::ReadFileToString(kernel_lifetimes_config_path,
