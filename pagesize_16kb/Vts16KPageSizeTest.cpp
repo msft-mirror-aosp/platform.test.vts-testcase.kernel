@@ -287,6 +287,10 @@ TEST_F(Vts16KPageSizeTest, DeviceOption16KBEnabled) {
         GTEST_SKIP() << "16 KB developer option not required if CPU is unsupported.";
     }
 
+    if (android::base::GetBoolProperty("ro.hardware.16kb_hardware_unsupported", false)) {
+        GTEST_SKIP() << "16 KB developer option not required if hardware is unsupported.";
+    }
+
     int productPageSize = ProductPageSize();
     if (productPageSize == 16384) {
         GTEST_SKIP() << "Developer option for 16 KB page size is required for devices booting with "
