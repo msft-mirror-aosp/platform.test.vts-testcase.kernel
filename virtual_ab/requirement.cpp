@@ -32,6 +32,12 @@ TEST(VirtualAbRequirementTest, EnabledOnLaunchR) {
 }
 
 TEST(VirtualAbRequirementTest, EnabledOnLaunchT) {
+  int first_vsr_level =
+      android::base::GetIntProperty("ro.board.first_api_level", -1);
+  if (first_vsr_level != -1 && first_vsr_level < __ANDROID_API_T__) {
+    GTEST_SKIP() << "Skipping for VSR upgrade device";
+  }
+
   int vsr_level = android::base::GetIntProperty("ro.vendor.api_level", -1);
 
   if (vsr_level >= __ANDROID_API_T__) {
