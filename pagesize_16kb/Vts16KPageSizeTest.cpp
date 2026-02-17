@@ -22,6 +22,7 @@
 #include <gtest/gtest.h>
 #include <meminfo/sysmeminfo.h>
 #include <procinfo/process_map.h>
+#include <iomanip>
 
 using ::android::elfutils::ElfFile;
 
@@ -171,8 +172,12 @@ TEST_F(Vts16KPageSizeTest, BootPageSize) {
 TEST_F(Vts16KPageSizeTest, ProcessVmasArePageAligned) {
     ASSERT_TRUE(android::procinfo::ReadProcessMaps(
             getpid(), [&](const android::procinfo::MapInfo& mapinfo) {
-                EXPECT_EQ(mapinfo.start % getpagesize(), 0u) << mapinfo.start;
-                EXPECT_EQ(mapinfo.end % getpagesize(), 0u) << mapinfo.end;
+                EXPECT_EQ(mapinfo.start % getpagesize(), 0u)
+                        << "Start: 0x" << std::hex << mapinfo.start << " of " << mapinfo.name
+                        << " is not page-aligned";
+                EXPECT_EQ(mapinfo.end % getpagesize(), 0u)
+                        << "End: 0x" << std::hex << mapinfo.end << " of " << mapinfo.name
+                        << " is not page-aligned";
             }));
 }
 
@@ -212,10 +217,6 @@ TEST_F(Vts16KPageSizeTest, CanReadProcessFileMappedContents) {
 
                 // Skip devices
                 if (android::base::StartsWith(mapinfo.name, "/dev/")) return;
-
-                // Skip short lived mappings that race with the read.
-                if (mapinfo.name == "/memfd:exec" || mapinfo.name == "/memfd:exec (deleted)")
-                    return;
 
                 maps.push_back(mapinfo);
             }));
