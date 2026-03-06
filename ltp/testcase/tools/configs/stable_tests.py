@@ -1593,7 +1593,6 @@ STABLE_TESTS = {
     'syscalls.inotify08_32bit': True,
     'syscalls.inotify08_64bit': True,
     'syscalls.inotify09_32bit': True,
-    'syscalls.inotify09_64bit': True,
     'syscalls.inotify10_32bit': True,
     'syscalls.inotify10_64bit': True,
     'syscalls.inotify11_32bit': True,

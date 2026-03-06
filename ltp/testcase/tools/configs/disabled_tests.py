@@ -109,6 +109,7 @@ DISABLED_TESTS = {
     'syscalls.unshare05_64bit',  # b/463541890
     'syscalls.unlink09_32bit',
     'syscalls.unlink09_64bit',
+    'syscalls.inotify09_64bit',  # b/488191585
 }
 
 # These tests are only disabled for hwasan
