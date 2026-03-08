@@ -189,6 +189,8 @@ TEST_F(Vts16KPageSizeTest, ProcessVmasArePageAligned) {
 void fault_file_pages(const android::procinfo::MapInfo& mapinfo) {
     std::vector<uint8_t> first_bytes;
 
+    if (mapinfo.start == mapinfo.end) exit(0);
+
     for (size_t i = mapinfo.start; i < mapinfo.end; i += getpagesize()) {
         first_bytes.push_back(*(reinterpret_cast<uint8_t*>(i)));
     }
