@@ -226,16 +226,22 @@ public class KernelApiSysfsTest extends BaseHostJUnit4Test {
         String rtc = getKernelConfigUnquotedString("CONFIG_RTC_HCTOSYS_DEVICE");
         if (rtc == null)
             fail("Could not find CONFIG_RTC_HCTOSYS_DEVICE");
-        String rtc_link = getDevice().executeShellCommand("readlink /dev/rtc");
-        if (rtc_link.isEmpty()) {
+        String rtcPath = getDevice().executeShellCommand("readlink -n /dev/rtc");
+        if (rtcPath.isEmpty()) {
             if (getDevice().doesFileExist("/dev/rtc0")) {
-                rtc_link = "rtc0";
+                rtcPath = "rtc0";
             } else {
                 fail("Neither /dev/rtc nor /dev/rtc0 exist");
             }
         }
-        assertTrue(String.format("(%s) does not match RTC_HCTOSYS_DEVICE (%s)", rtc_link, rtc),
-                rtc.equals(rtc_link));
+
+        /*
+         * The readlink command can return a full path (e.g. /dev/rtc0) or just the device name
+         * (e.g. rtc0). In the first case, we need to extract the device name.
+         */
+        String rtcName = rtcPath.substring(rtcPath.lastIndexOf('/') + 1);
+        assertTrue(String.format("(%s) does not match RTC_HCTOSYS_DEVICE (%s)", rtcName, rtc),
+                rtc.equals(rtcName));
     }
 
     /* Check that locking and unlocking a wake lock works.. */
