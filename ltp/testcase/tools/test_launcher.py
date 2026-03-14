@@ -62,13 +62,11 @@ class LTPConfigTest(unittest.TestCase):
         executed on non-HWASAN devices.
         """
 
-        multiple_occurrences = {
-            "DISABLED_TESTS": {},
-            "DISABLED_TESTS_HWASAN": {},
-        }
+        multiple_occurrences = {}
 
         for container_name in ["STABLE_TESTS", "DISABLED_TESTS_HWASAN"]:
-            for st in parsed_tests[container_name]:
+            container_collisions = {}
+            for test in parsed_tests[container_name]:
                 """
                 gen_ltp_config.py filters the stable tests by testing the
                 existence of the disabled test substring into the stable test
@@ -76,13 +74,14 @@ class LTPConfigTest(unittest.TestCase):
                 list::count() is not an option.
                 """
                 for dt in parsed_tests["DISABLED_TESTS"]:
-                    if dt in st:
-                        multiple_occurrences["DISABLED_TESTS"][st] = dt
-                        success = False
-        self.assertTrue(success, 'Test(s) in {} also in {}: \n{}'.format(
-            container_name,
-            "DISABLED_TESTS",
-            pprint.pformat(multiple_occurrences)))
+                    if dt in test:
+                        container_collisions[test] = dt
+            if container_collisions:
+                multiple_occurrences[container_name] = container_collisions
+
+        self.assertEqual(multiple_occurrences, {},
+                         "Collisions found with DISABLED_TESTS:\n{}".format(
+                             pprint.pformat(multiple_occurrences)))
 
 
 if __name__ == '__main__':
