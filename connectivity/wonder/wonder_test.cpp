@@ -29,6 +29,7 @@
 #include <net/if.h>
 #include <unistd.h>
 
+#include <cstdlib>
 #include <sstream>
 #include <vector>
 
@@ -54,6 +55,9 @@ enum WonderVendorSubCmd {
 class WonderTest : public ::testing::TestWithParam<std::string> {
  public:
   virtual void SetUp() override {
+    std::system("cmd wifi set-scan-always-available disabled");
+    std::system("cmd wifi start-restricting-auto-join-to-subscription-id -1");
+
     ASSERT_TRUE(helper_.Init()) << "NetlinkHelper Init failed";
     bool wonder_enabled = false;
     std::string status;
@@ -95,6 +99,8 @@ class WonderTest : public ::testing::TestWithParam<std::string> {
   }
   virtual void TearDown() override {
     helper_.RemoveInterface(WONDER_INTERFACE_NAME);
+    std::system("cmd wifi stop-restricting-auto-join-to-subscription-id");
+    std::system("cmd wifi set-scan-always-available enabled");
   }
   bool SendVendorCmd(WonderVendorSubCmd subCmd, const std::string& hexData) {
     return helper_.SendVendorCommand(WONDER_INTERFACE_NAME, WONDER_VENDOR_ID,
