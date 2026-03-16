@@ -28,6 +28,7 @@
 #include <gtest/gtest.h>
 #include <net/if.h>
 #include <unistd.h>
+#include <sys/utsname.h>
 
 #include <cstdlib>
 #include <sstream>
@@ -41,6 +42,10 @@ using aidl::android::hardware::wifi::IWifi;
 constexpr uint32_t WONDER_VENDOR_ID = 0x001A11;
 constexpr char WONDER_INTERFACE_NAME[] = "wonder0";
 constexpr char WONDER_PHY_NAME[] = "wonder";
+// Define the minimum required kernel version for Wonder features.
+// Requirement: Kernel version must be >= 6.1
+constexpr uint32_t WONDER_SUPPORT_KERNEL_MAJOR_VERSION = 6;
+constexpr uint32_t WONDER_SUPPORT_KERNEL_MINOR_VERSION = 1;
 
 enum WonderVendorSubCmd {
   SUBCMD_SET_CHANNEL = 0x1,
@@ -125,6 +130,64 @@ class WonderTest : public ::testing::TestWithParam<std::string> {
     return data;
   }
 };
+
+/**
+ * @brief Verifies the system kernel version.
+ *
+ * Checks if the device's Linux kernel version is newer than or equal
+ * to 6.1.
+ *
+ * @test This test performs the following steps:
+ * 1. Calls uname() to get the system release string.
+ * 2. Parses the Major and Minor version numbers.
+ * 3. Compares the parsed version against wonder supported kernel
+ * version.
+ *
+ * @note Required for Wonder compatibility.
+ */
+TEST_P(WonderTest, KernelVersion) {
+  struct utsname buffer;
+  int major = 0;
+  int minor = 0;
+  std::string release;
+  int parsed_fields = 0;
+  bool is_version_supported = false;
+
+  // Retrieve system information using the standard POSIX uname function.
+  // This provides the kernel release string (e.g., "6.6.12-android15").
+  ASSERT_EQ(uname(&buffer), 0)
+    << "Failed to retrieve system information via uname().";
+
+  release = buffer.release;
+  // Parse the major and minor version numbers from the release string.
+  // sscanf returns the number of successfully matched and assigned input items.
+  parsed_fields = sscanf(release.c_str(), "%d.%d", &major, &minor);
+
+  // Ensure we successfully extracted at least the first two version components.
+  ASSERT_EQ(parsed_fields, 2)
+    << "Failed to parse major/minor version from kernel release string: "
+    << release;
+
+  // Log the detected version to logcat. This is useful for debugging.
+  LOG(INFO) << "Detected Kernel Version: " << release
+    << " [Major: " << major << ", Minor: " << minor << "]";
+
+  // Version Comparison Logic:
+  // The version is valid if:
+  // 1. The major version is strictly greater than the requirement.
+  // 2. The major version matches, but the minor version is greater or equal.
+  is_version_supported =
+    (major > WONDER_SUPPORT_KERNEL_MAJOR_VERSION) ||
+    (major == WONDER_SUPPORT_KERNEL_MAJOR_VERSION &&
+    minor >= WONDER_SUPPORT_KERNEL_MINOR_VERSION);
+
+  // Assert that the current kernel meets the specified requirement.
+  EXPECT_TRUE(is_version_supported)
+    << "The device kernel is outdated and does not support Wonder features."
+    << "\n  Current Version:  " << major << "." << minor
+    << "\n  Required Version: >= " << WONDER_SUPPORT_KERNEL_MAJOR_VERSION
+    << "." << WONDER_SUPPORT_KERNEL_MINOR_VERSION;
+}
 
 TEST_P(WonderTest, SetChannel) {
   // This command sets the channel to 5745 MHz with a 80 MHz bandwidth.
