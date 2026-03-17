@@ -212,6 +212,7 @@ TEST_P(WonderTest, SetFixedTxRate) {
   ASSERT_TRUE(helper_.SetInterfaceUp(WONDER_INTERFACE_NAME, true));
 }
 
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(WonderTest);
 INSTANTIATE_TEST_SUITE_P(
     PerInstance, WonderTest,
     testing::ValuesIn(android::getAidlHalInstanceNames(IWifi::descriptor)),
