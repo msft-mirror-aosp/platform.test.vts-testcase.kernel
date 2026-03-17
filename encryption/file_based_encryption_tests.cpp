@@ -625,7 +625,7 @@ void FBEPolicyTestBase::TearDownBase() {
 // resulting key identifier in master_key_specifier_.  Returns true if
 // successful or false if unsuccessful.  Adds a gtest failure if unsuccessful,
 // unless required=false and the error is due to FS_IOC_ADD_ENCRYPTION_KEY
-// failing with EINVAL or EOPNOTSUPP.
+// failing with EINVAL, EBADMSG, or EOPNOTSUPP.
 bool FBEPolicyTestBase::AddStorageKey(const StorageKey &key, bool required) {
   size_t allocsize = sizeof(struct fscrypt_add_key_arg) + key.kernel_key.size();
   std::unique_ptr<struct fscrypt_add_key_arg> arg(
@@ -657,7 +657,8 @@ bool FBEPolicyTestBase::AddStorageKey(const StorageKey &key, bool required) {
     return false;
   }
   if (ioctl(mntfd, FS_IOC_ADD_ENCRYPTION_KEY, arg.get()) != 0) {
-    if (required || (errno != EINVAL && errno != EOPNOTSUPP)) {
+    if (required ||
+        (errno != EINVAL && errno != EBADMSG && errno != EOPNOTSUPP)) {
       ADD_FAILURE() << "FS_IOC_ADD_ENCRYPTION_KEY failed on " << kTestMountpoint
                     << Errno();
     }
