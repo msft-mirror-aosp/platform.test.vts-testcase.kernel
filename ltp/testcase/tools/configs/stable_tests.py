@@ -2039,8 +2039,8 @@ STABLE_TESTS = {
     'syscalls.name_to_handle_at01_64bit': False,
     'syscalls.name_to_handle_at02_32bit': False,
     'syscalls.name_to_handle_at02_64bit': False,
-    'syscalls.name_to_handle_at03_32bit': True,
-    'syscalls.name_to_handle_at03_64bit': True,
+    'syscalls.name_to_handle_at03_32bit': False,  #b/494101146
+    'syscalls.name_to_handle_at03_64bit': False,  #b/494101146
     'syscalls.name_to_handle_at04_32bit': True,
     'syscalls.name_to_handle_at04_64bit': True,
     'syscalls.name_to_handle_at05_32bit': True,
