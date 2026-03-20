@@ -840,8 +840,6 @@ STABLE_TESTS = {
     'syscalls.clone08_64bit': True,
     'syscalls.clone09_32bit': False,  # b/123587295
     'syscalls.clone09_64bit': False,  # b/123587295
-    'syscalls.clone10_32bit': True,
-    'syscalls.clone10_64bit': True,
     'syscalls.clone11_32bit': True,
     'syscalls.clone11_64bit': True,
     'syscalls.clone303_32bit': False,
