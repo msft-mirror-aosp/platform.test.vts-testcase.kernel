@@ -1280,8 +1280,8 @@ STABLE_TESTS = {
     'syscalls.file_attr03_64bit': False,  # b/463800742
     'syscalls.file_attr04_32bit': False,  # b/463800742
     'syscalls.file_attr04_64bit': False,  # b/463800742
-    'syscalls.file_attr05_32bit': True,
-    'syscalls.file_attr05_64bit': True,
+    'syscalls.file_attr05_32bit': False,  # b/494094320
+    'syscalls.file_attr05_64bit': False,  # b/494094320
     'syscalls.finit_module01_32bit': False,
     'syscalls.finit_module01_64bit': False,
     'syscalls.finit_module02_32bit': False,
