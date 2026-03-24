@@ -52,6 +52,8 @@ DISABLED_TESTS = {
     'syscalls.bpf_prog02_64bit',  # b/191867447
     'syscalls.bpf_prog06_32bit',  # b/314008608
     'syscalls.bpf_prog06_64bit',  # b/314008608
+    'syscalls.clone10_32bit', # b/494075921
+    'syscalls.clone10_64bit', # b/494075921
     'syscalls.clone301_32bit',  # b/191236153
     'syscalls.clone301_64bit',  # b/191236153
     'syscalls.clone302_32bit',  # b/191236103
