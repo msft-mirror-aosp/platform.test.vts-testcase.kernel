@@ -445,6 +445,14 @@ STABLE_TESTS = {
     'hyperthreading.smt_smp_affinity_64bit': True,
     'hyperthreading.smt_smp_enabled_32bit': True,
     'hyperthreading.smt_smp_enabled_64bit': True,
+    'ima.ima_conditionals_fgroup_32bit': True,
+    'ima.ima_conditionals_fgroup_64bit': True,
+    'ima.ima_conditionals_fowner_32bit': True,
+    'ima.ima_conditionals_fowner_64bit': True,
+    'ima.ima_conditionals_gid_32bit': True,
+    'ima.ima_conditionals_gid_64bit': True,
+    'ima.ima_conditionals_uid_32bit': True,
+    'ima.ima_conditionals_uid_64bit': True,
     'input.input01_32bit': False,
     'input.input02_32bit': False,
     'input.input04_32bit': False,
@@ -832,8 +840,12 @@ STABLE_TESTS = {
     'syscalls.clone08_64bit': True,
     'syscalls.clone09_32bit': False,  # b/123587295
     'syscalls.clone09_64bit': False,  # b/123587295
+    'syscalls.clone11_32bit': False,  # b/494078338
+    'syscalls.clone11_64bit': False,  # b/494078338
     'syscalls.clone303_32bit': False,
     'syscalls.clone303_64bit': False,
+    'syscalls.clone304_32bit': False, # b/494075102
+    'syscalls.clone304_64bit': False, # b/494075102
     'syscalls.close01_32bit': True,
     'syscalls.close01_64bit': True,
     'syscalls.close02_32bit': True,
@@ -1268,6 +1280,8 @@ STABLE_TESTS = {
     'syscalls.file_attr03_64bit': False,  # b/463800742
     'syscalls.file_attr04_32bit': False,  # b/463800742
     'syscalls.file_attr04_64bit': False,  # b/463800742
+    'syscalls.file_attr05_32bit': False,  # b/494094320
+    'syscalls.file_attr05_64bit': False,  # b/494094320
     'syscalls.finit_module01_32bit': False,
     'syscalls.finit_module01_64bit': False,
     'syscalls.finit_module02_32bit': False,
@@ -2025,6 +2039,12 @@ STABLE_TESTS = {
     'syscalls.name_to_handle_at01_64bit': False,
     'syscalls.name_to_handle_at02_32bit': False,
     'syscalls.name_to_handle_at02_64bit': False,
+    'syscalls.name_to_handle_at03_32bit': False,  #b/494101146
+    'syscalls.name_to_handle_at03_64bit': False,  #b/494101146
+    'syscalls.name_to_handle_at04_32bit': True,
+    'syscalls.name_to_handle_at04_64bit': True,
+    'syscalls.name_to_handle_at05_32bit': True,
+    'syscalls.name_to_handle_at05_64bit': True,
     'syscalls.nanosleep01_32bit': True,
     'syscalls.nanosleep01_64bit': True,
     'syscalls.nanosleep02_32bit': True,
@@ -3090,6 +3110,14 @@ STABLE_TESTS = {
     'syscalls.unshare04_64bit': True,
     'syscalls.userfaultfd01_32bit': False,
     'syscalls.userfaultfd01_64bit': False,
+    'syscalls.userfaultfd02_32bit': True,
+    'syscalls.userfaultfd02_64bit': True,
+    'syscalls.userfaultfd03_32bit': True,
+    'syscalls.userfaultfd03_64bit': True,
+    'syscalls.userfaultfd04_32bit': True,
+    'syscalls.userfaultfd04_64bit': True,
+    'syscalls.userfaultfd05_32bit': True,
+    'syscalls.userfaultfd05_64bit': True,
     'syscalls.ustat01_32bit': True,
     'syscalls.ustat01_64bit': False,  # b/112484619
     'syscalls.ustat02_32bit': True,
