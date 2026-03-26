@@ -121,6 +121,10 @@ DISABLED_TESTS = {
     'syscalls.unshare05_64bit',  # b/463541890
     'syscalls.unlink09_32bit',
     'syscalls.unlink09_64bit',
+    'syscalls.userfaultfd02_32bit', #b/495950032
+    'syscalls.userfaultfd02_64bit', #b/495950032
+    'syscalls.userfaultfd05_32bit', #b/495950032
+    'syscalls.userfaultfd05_64bit', #b/495950032
     'syscalls.inotify09_64bit',  # b/488191585
 }
 
