@@ -47,6 +47,10 @@ class Vts16KPageSizeTest : public ::testing::Test {
         return api_level;
     }
 
+    static int ProductFirstApiLevel() {
+        return android::base::GetIntProperty("ro.product.first_api_level", 0);
+    }
+
     static int ProductPageSize() {
         return android::base::GetIntProperty("ro.product.page_size", 0);
     }
@@ -311,6 +315,13 @@ TEST_F(Vts16KPageSizeTest, DeviceOption16KBEnabled) {
     if (board_api_level < 202604) {
         GTEST_SKIP() << "Developer option for 16 KB page size is not required for board api level "
                      << board_api_level;
+    }
+
+    // Skip the test if device has been already launched with Android version older than C.
+    int product_first_api_level = ProductFirstApiLevel();
+    if (product_first_api_level < 37 /* Android 17 */) {
+        GTEST_SKIP() << "Developer option for 16 KB page size is not required for product api level "
+                     << product_first_api_level;
     }
 
     uint64_t totalMemoryBytes = GetTotalMemoryBytes();
