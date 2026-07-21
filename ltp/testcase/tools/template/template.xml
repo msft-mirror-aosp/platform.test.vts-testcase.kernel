@@ -14,7 +14,7 @@
     <!ENTITY ltp_root "/data/local/tmp/ltp">
     <!ENTITY ltp_dir "/data/local/tmp/ltp/DATA/nativetest{nativetest_bit_path}/ltp">
     <!ENTITY ltp_bin_dir "/data/local/tmp/ltp/DATA/nativetest{nativetest_bit_path}/ltp/testcases/bin">
-    <!ENTITY env_setup_cmd "export LTPROOT=/data/local/tmp/ltp/DATA/nativetest{nativetest_bit_path}/ltp LTP_DEV_FS_TYPE=ext4; export PATH=/system/bin:$LTPROOT/testcases/bin TMP=$LTPROOT/tmp; export TMPBASE=$TMP/tmpbase LTPTMP=$TMP/ltptemp TMPDIR=$TMP/tmpdir">
+    <!ENTITY env_setup_cmd "export LTPROOT=/data/local/tmp/ltp/DATA/nativetest{nativetest_bit_path}/ltp LTP_DEV_FS_TYPE=ext4; export PATH=/system/bin:$LTPROOT:$LTPROOT/testcases/bin TMP=$LTPROOT/tmp; export TMPBASE=$TMP/tmpbase LTPTMP=$TMP/ltptemp TMPDIR=$TMP/tmpdir">
 ]>
 <configuration description="Runs vts_ltp_test.">
     <target_preparer class="com.android.tradefed.targetprep.RootTargetPreparer"/>
