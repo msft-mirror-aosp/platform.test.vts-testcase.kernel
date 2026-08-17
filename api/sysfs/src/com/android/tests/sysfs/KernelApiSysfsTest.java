@@ -308,6 +308,20 @@ public class KernelApiSysfsTest extends BaseHostJUnit4Test {
         return res;
     }
 
+    /* Check if MTE-based KASAN (KASAN HW tags) is available. */
+    private boolean isKasanHwTagsAvailable() throws Exception {
+        if (!"y".equals(getKernelConfigValue("CONFIG_KASAN_HW_TAGS"))) {
+            return false;
+        }
+
+        if (getDevice().doesFileExist("/proc/cpuinfo")) {
+            String cpuinfo = getDevice().pullFileContents("/proc/cpuinfo");
+            return Pattern.compile("\\bmte\\b").matcher(cpuinfo).find();
+        }
+
+        return false;
+    }
+
     /* /sys/module/kfence/parameters/sample_interval contains KFENCE sampling rate. */
     @Test
     public void testKfenceSampleRate() throws Exception {
@@ -328,9 +342,17 @@ public class KernelApiSysfsTest extends BaseHostJUnit4Test {
                 TargetFileUtils.isReadWriteOnly(filePath, getDevice()));
         String content = getDevice().pullFileContents(filePath).trim();
         int sampleRate = Integer.parseInt(content);
-        assertTrue(
-                "Bad KFENCE sample rate: " + sampleRate + ", should be " + kRecommendedSampleRate,
-                sampleRate == kRecommendedSampleRate);
+        if (isKasanHwTagsAvailable()) {
+            // KFENCE may be disabled if KASAN was enabled: if KASAN HW tags mode is enabled, the
+            // kernel will force KFENCE off (KASAN is the better memory-safety error detector).
+            assertTrue("Bad KFENCE sample rate: " + sampleRate + ", should be 0 or "
+                            + kRecommendedSampleRate,
+                    sampleRate == 0 || sampleRate == kRecommendedSampleRate);
+        } else {
+            assertTrue("Bad KFENCE sample rate: " + sampleRate + ", should be "
+                            + kRecommendedSampleRate,
+                    sampleRate == kRecommendedSampleRate);
+        }
     }
 
     /* Ensure kernel stack initialization is enabled. */
