@@ -10,12 +10,6 @@
      See the License for the specific language governing permissions and
      limitations under the License.
 -->
-<!DOCTYPE configuration [
-    <!ENTITY ltp_root "/data/local/tmp/ltp">
-    <!ENTITY ltp_dir "/data/local/tmp/ltp/DATA/nativetest{nativetest_bit_path}/ltp">
-    <!ENTITY ltp_bin_dir "/data/local/tmp/ltp/DATA/nativetest{nativetest_bit_path}/ltp/testcases/bin">
-    <!ENTITY env_setup_cmd "export LTPROOT=/data/local/tmp/ltp/DATA/nativetest{nativetest_bit_path}/ltp LTP_DEV_FS_TYPE=ext4; export PATH=/system/bin:$LTPROOT:$LTPROOT/testcases/bin TMP=$LTPROOT/tmp; export TMPBASE=$TMP/tmpbase LTPTMP=$TMP/ltptemp TMPDIR=$TMP/tmpdir">
-]>
 <configuration description="Runs vts_ltp_test.">
     <target_preparer class="com.android.tradefed.targetprep.RootTargetPreparer"/>
     <target_preparer class="com.android.tradefed.targetprep.StopServicesSetup"/>
@@ -28,14 +22,14 @@
         <option name="cleanup" value="true" />
         <!-- LTP tests must be pushed to `/data/local/tmp/ltp` which has the right security context setting.
           Any other directory might not work. -->
-        <option name="push" value="vts_kernel_ltp_tests->&ltp_root;" />
+        <option name="push" value="vts_kernel_ltp_tests->{ltp_root}" />
     </target_preparer>
 
     <target_preparer class="com.android.tradefed.targetprep.RunCommandTargetPreparer">
-        <option name="run-command" value='chmod -R 755 &ltp_dir;; find &ltp_dir; -type f | xargs -r grep -l -e "bin/sh" -e "bin/bash" | xargs -r sed -i -e "s?/bin/echo?echo?" -e "s?#!/bin/sh?#!/system/bin/sh?" -e "s?#!/bin/bash?#!/system/bin/sh?" -e "s?bs=1M?#bs=1m?"' />
+        <option name="run-command" value='chmod -R 755 {ltp_dir}; find {ltp_dir} -type f | xargs -r grep -l -e "bin/sh" -e "bin/bash" | xargs -r sed -i -e "s?/bin/echo?echo?" -e "s?#!/bin/sh?#!/system/bin/sh?" -e "s?#!/bin/bash?#!/system/bin/sh?" -e "s?bs=1M?#bs=1m?"' />
          <!-- Apply the right security context for kernel tests to work. -->
-        <option name="run-command" value='&env_setup_cmd;; mkdir -p $TMP; mkdir -p $TMPBASE; mkdir -p $LTPTMP; mkdir -p $TMPDIR; chmod -R 777 $TMP; restorecon -F -R $LTPROOT' />
-        <option name="teardown-command" value="rm -rf &ltp_dir;/tmp" />
+        <option name="run-command" value='{env_setup_cmd}; mkdir -p $TMP; mkdir -p $TMPBASE; mkdir -p $LTPTMP; mkdir -p $TMPDIR; chmod -R 777 $TMP; restorecon -F -R $LTPROOT' />
+        <option name="teardown-command" value="rm -rf {ltp_dir}/tmp" />
     </target_preparer>
 
     <!-- Mandatory tests (must pass and cannot skip). -->

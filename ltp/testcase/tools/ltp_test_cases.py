@@ -27,8 +27,8 @@ from configs import disabled_tests
 from common import filter_utils
 from typing import Set, Optional, List, Callable
 
-ltp_test_template = '        <option name="test-command-line" key="%s" value="&env_setup_cmd; ;' \
-                    ' cd &ltp_bin_dir; ; %s" />'
+ltp_test_template = '        <option name="test-command-line" key="%s" value="%s ;' \
+                    ' cd %s ; %s" />'
 
 class LtpTestCases(object):
     """Load a ltp vts testcase definition file and parse it into a generator.
@@ -170,6 +170,15 @@ class LtpTestCases(object):
                                                                         is_hwasan)
         mandatory_test_cases = []
         skippable_test_cases = []
+
+        nativetest_bit_path = '64' if str(n_bit) == '64' else ''
+        ltp_root = "/data/local/tmp/ltp"
+        ltp_dir = f"/data/local/tmp/ltp/DATA/nativetest{nativetest_bit_path}/ltp"
+        ltp_bin_dir = f"{ltp_dir}/testcases/bin"
+        env_setup_cmd = (f"export LTPROOT={ltp_dir} LTP_DEV_FS_TYPE=ext4; "
+                         f"export PATH=/system/bin:$LTPROOT:$LTPROOT/testcases/bin TMP=$LTPROOT/tmp; "
+                         f"export TMPBASE=$TMP/tmpbase LTPTMP=$TMP/ltptemp TMPDIR=$TMP/tmpdir")
+
         run_script = self.GenerateLtpRunScript(scenario_groups)
         for line in run_script:
             items = self.ValidateDefinition(line)
@@ -246,15 +255,17 @@ class LtpTestCases(object):
                 command = command.replace(';', '&amp;&amp;')
                 # Replace the original command with '/data/local/tmp/ltp'
                 # e.g. mm.mmapstress07
-                command = command.replace(ltp_configs.LTPDIR, '&ltp_dir;')
-                ltp_test_line = ltp_test_template % (test_display_name, command)
+                command = command.replace(ltp_configs.LTPDIR, ltp_dir)
+                ltp_test_line = ltp_test_template % (test_display_name, env_setup_cmd, ltp_bin_dir, command)
                 if testcase.is_mandatory:
                     mandatory_test_cases.append(ltp_test_line)
                 else:
                     skippable_test_cases.append(ltp_test_line)
-        nativetest_bit_path = '64' if n_bit == '64' else ''
+
         config_lines = config_lines.format(
-            nativetest_bit_path=nativetest_bit_path,
+            ltp_root=ltp_root,
+            ltp_dir=ltp_dir,
+            env_setup_cmd=env_setup_cmd,
             module_controller_option=module_controller_option,
             mandatory_test_cases='\n'.join(mandatory_test_cases),
             skippable_test_cases='\n'.join(skippable_test_cases))
