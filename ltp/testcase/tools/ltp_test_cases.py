@@ -24,8 +24,8 @@ from configs import stable_tests
 from configs import disabled_tests
 from common import filter_utils
 
-ltp_test_template = '        <option name="test-command-line" key="%s" value="&env_setup_cmd; ;' \
-                    ' cd &ltp_bin_dir; ; %s" />'
+ltp_test_template = '        <option name="test-command-line" key="%s" value="%s ;' \
+                    ' cd %s ; %s" />'
 
 class LtpTestCases(object):
     """Load a ltp vts testcase definition file and parse it into a generator.
@@ -172,6 +172,16 @@ class LtpTestCases(object):
         module_controller_option = self.GetKernelModuleControllerOption(arch, n_bit,
                                                                         is_low_mem,
                                                                         is_hwasan)
+
+        nativetest_bit_path = '64' if str(n_bit) == '64' else ''
+        ltp_root = "/data/local/tmp/ltp"
+        ltp_dir = f"/data/local/tmp/ltp/DATA/nativetest{nativetest_bit_path}/ltp"
+        ltp_bin_dir = f"{ltp_dir}/testcases/bin"
+        env_setup_cmd = (f"export TMP={ltp_dir}/tmp LTPTMP={ltp_dir}/tmp/ltptemp "
+                         f"PATH=/system/bin:{ltp_dir}/testcases/bin LTP_DEV_FS_TYPE=ext4 "
+                         f"TMPBASE={ltp_dir}/tmp/tmpbase TMPDIR={ltp_dir}/tmp/tmpdir "
+                         f"LTPROOT={ltp_dir}")
+
         test_case_string = ''
         run_scritp = self.GenerateLtpRunScript(scenario_groups)
         for line in run_scritp:
@@ -251,12 +261,14 @@ class LtpTestCases(object):
                 command = command.replace(';', '&amp;&amp;')
                 # Replace the original command with '/data/local/tmp/ltp'
                 # e.g. mm.mmapstress07
-                command = command.replace(ltp_configs.LTPDIR, '&ltp_dir;')
-                ltp_test_line = ltp_test_template % (test_display_name, command)
+                command = command.replace(ltp_configs.LTPDIR, ltp_dir)
+                ltp_test_line = ltp_test_template % (test_display_name, env_setup_cmd, ltp_bin_dir, command)
                 test_case_string += (ltp_test_line + '\n')
-        nativetest_bit_path = '64' if n_bit == '64' else ''
-        config_lines = config_lines.format(nativetest_bit_path, module_controller_option,
-                                           test_case_string)
+        config_lines = config_lines.format(
+            ltp_root=ltp_root,
+            ltp_dir=ltp_dir,
+            module_controller_option=module_controller_option,
+            test_case_string=test_case_string)
         with open(output_file, 'w') as f:
             f.write(config_lines)
 
